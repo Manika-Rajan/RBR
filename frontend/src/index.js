@@ -4,7 +4,7 @@ import './index.css';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
 import { StoreProvider } from './Store';
-//import Amplify from 'aws-amplify';123
+import Amplify from 'aws-amplify';
 //import { configure } from 'aws-amplify';
 import awsmobile from './aws-exports';
 
