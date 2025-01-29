@@ -10,7 +10,7 @@ import '@react-pdf-viewer/default-layout/lib/styles/index.css';
 import Login from './Login'
 import Otp from './Otp'
 import EmailVerify from './EmailVerify'
-import pdfFile from '../assets/sample1.pdf'
+//import pdfFile from '../assets/sample1.pdf'
 import { Store } from '../Store';
 import {Modal,ModalBody} from "reactstrap"
 
@@ -24,7 +24,8 @@ const ReportsDisplay = () => {
   const [login,setLogin]=useState(true)
   const [otp,sendOtp]=useState(false)
   const [verify,setVerify]=useState(false)
-    const pdfFile = 'https://mozilla.github.io/pdf.js/web/compressed.tracemonkey-pldi-09.pdf';
+  const [pdfUrl, setPdfUrl] = useState('');
+  const [isLoading, setIsLoading] = useState(true); // To show a loading spinner while fetching
 
   const handlePayment=()=>{
     if(isLogin)
@@ -40,6 +41,44 @@ const ReportsDisplay = () => {
     setOpenModel(false)
     cxtDispatch({type:'SET_REPORT_STATUS'})
   }
+
+    // Fetch presigned URL
+  useEffect(() => {
+    const fetchPresignedUrl = async () => {
+      setIsLoading(true);  // Show loading spinner
+      try {
+        const response = await fetch('https://vtwyu7hv50.execute-api.ap-south-1.amazonaws.com/default/RBR_report_pre-signed_URL', 
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ file_key: 'compressed.tracemonkey-pldi-09.pdf' }), // Update with your file key
+        }
+      );
+      
+      // Check if the response is successful
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+        
+        const data = await response.json();  // Parse JSON response
+        console.log('API Response:', data);  // Log the API response for debugging
+
+        if (data.presigned_url) {
+          setPdfUrl(data.presigned_url); // Set the fetched presigned URL
+        } else {
+          throw new Error(`No presigned URL returned: ${JSON.stringify(data)}`);
+        }
+      } catch (error) {
+        console.error('Error fetching presigned URL:', error.message);
+        setPdfUrl(null); // Clear URL if there's an error
+      } finally {
+        setIsLoading(false); // Stop loading spinner
+      }
+    };
+
+    fetchPresignedUrl();
+  }, []); // Runs once on component mount
+  
   return (
     <>
     <div className='report-display'>
@@ -72,9 +111,21 @@ const ReportsDisplay = () => {
   </nav>
   <div className='viewer col-md-11 col-sm-11 col-11'>
   <Worker workerUrl="https://unpkg.com/pdfjs-dist@3.4.120/build/pdf.worker.min.js">
-  <Viewer fileUrl={pdfFile}  
-  // plugins={[defaultLayoutPluginInstance]}
-   />
+    {isLoading ? ( // Show spinner while fetching URL
+      <div className="spinner-border" role="status">
+      <span className="visually-hidden">Loading...</span>
+      </div>
+    ) : pdfUrl ? ( // Show Viewer when URL is ready
+             
+              <Viewer
+                fileUrl={pdfUrl} // Use the dynamically fetched URL
+                plugins={[defaultLayoutPluginInstance]}
+              />
+            ) : (
+                <div className="spinner-border" role="status">
+                    <span className="visually-hidden">Loading...</span>
+                </div>
+            )}
 </Worker>
   </div>
     </div>
