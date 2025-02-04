@@ -208,7 +208,7 @@ const Reports = () => {
     <Navbar reports/>
     {popup&&<div className="nav-popup row">
     <div className="col-md-11 col-sm-10 col-10">
-    <p className='container'>Use the Promo code "<strong>RBideas 25</strong>"to get an instant 25% discount during the purchase.Valid till 31st August 2023 
+    <p className='container'>Use the Promo code "<strong>RBideas 25</strong>"to get an instant 25% discount during the purchase.Valid till 31st August 2025 
     </p>
     </div>
    <div className="col-md-1 col-sm-1 col-1 icon" style={{fontSize:"20px"}}>
