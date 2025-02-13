@@ -13,6 +13,7 @@ import vector from '../assets/vector.svg'
 import black from '../assets/black.svg'
 import { Link, useNavigate } from 'react-router-dom'
 import { Store } from '../Store'
+
 const Reports = () => {
   const navigate=useNavigate()
   const {state,dispatch:cxtDispatch}=useContext(Store)
@@ -44,6 +45,45 @@ const Reports = () => {
   const[nogenerate,setNoGenerate]=useState(false)
  const [price,setPrice]=useState(0)
 
+ //******************************************************************************************************************** 
+const generateReport = async () => {
+    try {
+      // Step 1: Trigger Lambda function to generate report
+      const response = await fetch(
+        'https://ypoucxtxgh.execute-api.ap-south-1.amazonaws.com/default/RBR_report_create_from_filters_received', // Replace with actual endpoint
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' ,
+                   "Origin": 'https://main.d38sdwl55z3dqy.amplifyapp.com'
+                   },
+          body: JSON.stringify({
+            filters: { /* Pass selected filters here */ },
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`Report generation failed: ${response.status}`);
+      }
+
+      const data = await response.json();
+      console.log("API Response:", data); // Debugging
+      
+      const fileKey = data.file_key; // Get file key of the generated PDF
+
+      if (!fileKey) {
+        throw new Error("File key not returned from API.");
+      }
+
+      // Step 2: Navigate to ReportsDisplay with fileKey as state
+      navigate("/report-display", { state: { fileKey } });
+
+    } catch (error) {
+      console.error('Error generating report:', error.message);
+    }
+  };
+//********************************************************************************************************************
+  
   const updateIndustry=(value,checked)=>{
     console.log(checked,value)
     setNoSearch(false)
@@ -208,7 +248,7 @@ const Reports = () => {
     <Navbar reports/>
     {popup&&<div className="nav-popup row">
     <div className="col-md-11 col-sm-10 col-10">
-    <p className='container'>Use the Promo code "<strong>RBideas 25</strong>"to get an instant 25% discount during the purchase.Valid till 31st August 2025 
+    <p className='container'>Use the Promo code "<strong>RBideas 25</strong>"to get an instant 25% discount during the purchase.Valid till 31st August 2023 
     </p>
     </div>
    <div className="col-md-1 col-sm-1 col-1 icon" style={{fontSize:"20px"}}>
@@ -553,7 +593,7 @@ const Reports = () => {
             </>
 :
 <>
-<button className='generate-btn' style={{background:" #0263c7",color:"white"}} >
+<button className='generate-btn' style={{background:" #0263c7",color:"white"}} onClick={generateReport} >
 <Link to="/report-display"  style={{textDecoration:"none"}}>
 <div className='' style={{display:"flex"}}>
      <div className='white-img' >
