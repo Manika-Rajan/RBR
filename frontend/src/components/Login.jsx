@@ -81,7 +81,7 @@ const Login = ({ sendOtp, setLogin, setVerify, onClose }) => {
         const body = JSON.parse(data.body);
         if (data.statusCode === 200) {
           setResponseMessage(body.message);
-          cxtDispatch({ type: 'USER_LOGIN', payload: true });
+          cxtDispatch({ type: 'SET_VERIFY', payload: true });
           setLogin(false);
           sendOtp(false);
           setVerify(true);
