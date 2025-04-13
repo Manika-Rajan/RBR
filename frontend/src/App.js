@@ -57,6 +57,7 @@ const [login, setLogin] = useState(false); // Login form hidden by default
         <Route path='/payment' element={<Payment/>}/>
         <Route path='/commingSoon' element={<CommingSoon/>} />
         <Route path='/not-found' element={<Invalid/>} />
+        <Route path="/terms" element={<TermsAndConditions />} />
       </Routes>
       <Footer/>
     </div>
