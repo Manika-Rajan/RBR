@@ -1,7 +1,7 @@
 import './App.css';
 import About from './components/About';
 import Contact from './components/Contact';
-import TnC from './components/TermsAndConditions';
+import TermsAndConditions from './components/TermsAndConditions';
 import Navbar from './components/Navbar';
 import Reports from './components/Reports';
 import {BrowserRouter,Routes,Route} from 'react-router-dom'
