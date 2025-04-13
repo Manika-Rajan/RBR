@@ -288,4 +288,89 @@ const TermsAndConditions = () => {
         The User is further aware that any reproduction or infringement of the intellectual property of the aforementioned owners by the User will result in legal action being initiated against the User by the respective owners of the intellectual property so reproduced/infringed upon. It is agreed to by the Parties that the contents of this Section shall survive even after the termination or expiry of the Terms and/or Policy.
       </p>
 
-      
+      <h2>15. DISCLAIMER OF WARRANTIES AND LIABILITIES</h2>
+      <ol type="a">
+        <li>
+          Except as otherwise expressly stated on the Website, all services offered on the Website are offered on an "as is" basis without any warranty whatsoever, either express or implied.
+        </li>
+        <li>
+          The User agrees and undertakes that it is accessing the Website and transacting at his/her sole risk and are that it is using his/her best and prudent judgment before availing any service listed on the Website, or accessing/using any information displayed thereon.
+        </li>
+        <li>
+          The User agrees that any kind of information, resources, activities, recommendations obtained/availed from website, written or oral, will not create any warranty and the Website disclaims all liabilities resulting from these. You are solely responsible for your communication/interaction with other Users on the Website and the Website doesn’t make any warranty about the conduct of Users on the Website.
+        </li>
+        <li>
+          The Proprietor/Website does not guarantee that the functions and services contained in the Website will be uninterrupted or error-free, or that the Website or its server will be free of viruses or other harmful components, and the User hereby expressly accepts any and all associated risks involved with the User’s use of the Website.
+        </li>
+        <li>
+          The Website may avail services from third party to serve you better and these services will be provided on “as is” basis and the Website disclaims any liabilities resulting from these third party services. The Website will not be responsible for any internet delays and damages caused by such problems.
+        </li>
+        <li>
+          It is further agreed to by the Parties that the contents of this Section shall survive even after the termination or expiry of the Terms and/or Policy.
+        </li>
+      </ol>
+
+      <h2>15. RETURNS AND CANCELLATIONS</h2>
+      <p>
+        All the transactions made on the Website are final and non-refundable. If you believe your purchase was made in error or by fraud, please contact our support staff and they will investigate further and help resolve the matter.
+      </p>
+
+      <h2>16. FORCE MAJEURE</h2>
+      <p>
+        Neither the Proprietor nor the Website shall be liable for damages for any delay or failure to perform its obligations hereunder if such delay or failure is due to cause beyond its control or without its fault or negligence, due to Force Majeure events including but not limited to acts of war, acts of God, earthquake, riot, sabotage, labor shortage or dispute, internet interruption, technical failure, breakage of sea cable, hacking, piracy, cheating, illegal or unauthorized.
+      </p>
+
+      <h2>17. FEES AND PAYMENT</h2>
+      <p>
+        The fees we charge for using our Services are listed on our services page in the Website. We may change our fees from time to time with no advance notice required. The Website uses third Party payment gateway CC Avenue payment to handle financial transactions on the Website. We are not responsible for these third Party services. Such services are depended on the respective third party legal terms. The billing details provided during payment should be up-to-date, such as the billing address and the Users name. Payment information on the website of users using our services is stored on the database for the respective website as encrypted using basic encryption of which can be decrypted to reveal the original information. This information is provided to us by the third Party payment gateway services w use to provide online payment functionality, and hence, may contain certain personal information. We are not responsible for what information is sent to us and it’s stored as this is sent to us via third Party and we cannot control the information sent. However, storage of this information is necessary for legalities and auditing as well as for verification and more. Currently, the information stored that may be deemed personal to the User is their first name, last name and their address zip code.
+      </p>
+      <p>
+        If you wish to dispute a payment regarding your account, you may talk to our Support staff directly.
+      </p>
+      <p>
+        In case the transaction is not processed by the User and the Product has been delivered, the User is liable to make sure that the payment is made.
+      </p>
+
+      <h2>18. DISPUTE RESOLUTION AND JURISDICTION</h2>
+      <p>
+        It is expressly agreed to by the Parties hereto that the formation, interpretation and performance of these Terms and any disputes arising there from will be resolved through a two-step Alternate Dispute Resolution (“ADR”) mechanism. It is further agreed to by the Parties that the contents of this Section shall survive even after the termination or expiry of the Terms and/or Policy.
+      </p>
+      <ol type="a">
+        <li>
+          Mediation: In case of any dispute between the parties, the Parties will attempt to resolve the same amicably amongst themselves, to the mutual satisfaction of both Parties. In the event that the Parties are unable to reach such an amicable solution within thirty (30) days of one Party communicating the existence of a dispute to the other Party, the dispute will be resolved by arbitration, as detailed herein below;
+        </li>
+        <li>
+          Arbitration. In the event that the Parties are unable to amicably resolve a dispute by mediation, said dispute will be referred to arbitration by a sole arbitrator to be appointed by the Proprietor, and the award passed by such sole arbitrator will be valid and binding on both Parties. The Parties shall bear their own costs for the proceedings, although the sole arbitrator may, in his/her sole discretion, direct either Party to bear the entire cost of the proceedings. The arbitration shall be conducted in English, and the seat of Arbitration shall be the city of Secunderabad, India;
+        </li>
+      </ol>
+      <p>
+        The Parties expressly agree that the Terms, Policy and any other agreements entered into between the Parties are governed by the laws, rules and regulations of India.
+      </p>
+
+      <h2>19. NOTICES</h2>
+      <p>
+        Any and all communication relating to any dispute or grievance experienced by the User may be communicated to the Proprietor by the User writing an email to{' '}
+        <a href="mailto:helpdesk@rajanbusinessideas.com">helpdesk@rajanbusinessideas.com</a>.
+      </p>
+
+      <h2>20. MISCELLANEOUS PROVISIONS</h2>
+      <ol type="a">
+        <li>
+          Entire Agreement: These Terms, read with the Policy form the complete and final contract between the User and the Proprietor with respect to the subject matter hereof and supersedes all other communications, representations and agreements (whether oral, written or otherwise) relating thereto.
+        </li>
+        <li>
+          Waiver: The failure of either Party at any time to require performance of any provision of these Terms shall in no manner affect such Party's right at a later time to enforce the same. No waiver by either Party of any breach of these Terms, whether by conduct or otherwise, in any one or more instances, shall be deemed to be or construed as a further or continuing waiver of any such breach, or a waiver of any other breach of these Terms.
+        </li>
+        <li>
+          Severability: If any provision/clause of these Terms is held to be invalid, illegal or unenforceable by any court or authority of competent jurisdiction, the validity, legality and enforceability of the remaining provisions/clauses of these Terms shall in no way be affected or impaired thereby, and each such provision/clause of these Terms shall be valid and enforceable to the fullest extent permitted by law. In such case, these Terms shall be reformed to the minimum extent necessary to correct any invalidity, illegality or unenforceability, while preserving to the maximum extent the original rights, intentions and commercial expectations of the Parties hereto, as expressed herein.
+        </li>
+        <li>
+          Contact Us: If you have any questions about this Agreement, the practices of the Website, or your experience with the Service, you can e-mail us at{' '}
+          <a href="mailto:team@rajanbusinessideas.com">team@rajanbusinessideas.com</a>.
+        </li>
+      </ol>
+    </div>
+  );
+};
+
+export default TermsAndConditions;
