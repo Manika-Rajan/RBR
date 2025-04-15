@@ -12,6 +12,9 @@ import CommingSoon from './components/CommingSoon';
 import Invalid from './components/Invalid';
 import Login from './components/Login';
 import { useState } from 'react';
+import RefundPolicy from './components/RefundPolicy'; 
+import PrivacyPolicy from './components/PrivacyPolicy'; 
+
 
 function App() {
 const [login, setLogin] = useState(false); // Login form hidden by default
@@ -58,6 +61,8 @@ const [login, setLogin] = useState(false); // Login form hidden by default
         <Route path='/commingSoon' element={<CommingSoon/>} />
         <Route path='/not-found' element={<Invalid/>} />
         <Route path="/terms" element={<TermsAndConditions />} />
+        <Route path="/refund-policy" element={<RefundPolicy />} />
+        <Route path="/privacy-policy" element={<PrivacyPolicy />} />
       </Routes>
       <Footer/>
     </div>
