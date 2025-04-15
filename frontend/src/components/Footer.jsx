@@ -14,7 +14,7 @@ const Footer = () => {
       <p className='footer-head'>Get to Know Us</p></div>
       <ul>
      <u ><li><Link to="/about" style={{color:"white"}}  onClick={() => window.scrollTo(0, 0)}>About Us</Link></li></u>
-     <u> <li>Careers</li></u>
+     <u> <li><Link to="/commingSoon" style={{ color: '#0263C7' }} onClick={() => window.scrollTo(0, 0)}>Careers</Link></li></u>
      <u style={{color:"#0263C7"}}><li className='text-primary'><Link to="/commingSoon"  onClick={() => window.scrollTo(0, 0)}>Press Releases</Link></li></u> 
      <u style={{color:"#0263C7"}}> <li className='text-primary'><Link to="/commingSoon" onClick={() => window.scrollTo(0, 0)}>RB Ideas Cares</Link></li></u>
      <u style={{color:"#0263C7"}}> <li className='text-primary'><Link to="/commingSoon"  onClick={() => window.scrollTo(0, 0)}>Gift a Smile</Link></li></u>
@@ -68,16 +68,23 @@ const Footer = () => {
     <div className='row'>
     <div className='col-md-5 col-sm-4 col-4'>
     <u><p>©
-    2023 Rajan Business Ideas Pvt. Ltd.</p></u>
+    2025 Rajan Business Ideas Pvt. Ltd.</p></u>
     </div>
     <div className="col-md-2 col-sm-4 col-6">
     <Link to="/terms" onClick={() => window.scrollTo(0, 0)}>
     Terms & Conditions
     </Link>
     </div>
-    <div  className='col-md-2 col-sm-4 col-4'>
-    <p>Privacy Policy</p>
-    </div>
+    <div className="col-md-2 col-sm-4 col-12">
+          <Link to="/refund-policy" style={{ color: 'white' }} onClick={() => window.scrollTo(0, 0)}>
+            Refund Policy
+          </Link>
+        </div>
+        <div className="col-md-3 col-sm-4 col-12">
+          <Link to="/privacy-policy" style={{ color: 'white' }} onClick={() => window.scrollTo(0, 0)}>
+            Privacy Policy
+          </Link>
+        </div>
     </div>
     </div>
   )
