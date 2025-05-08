@@ -46,6 +46,9 @@ const Reports = () => {
  const [price,setPrice]=useState(0)
 
  //******************************************************************************************************************** 
+  const [selectedFilters, setSelectedFilters] = useState({});
+  const [isLoading, setIsLoading] = useState(false);
+  const navigate = useNavigate();
 const generateReport = async () => {
     setIsLoading(true);
     try {
@@ -612,7 +615,8 @@ const generateReport = async () => {
             </>
 :
 <>
-<button className='generate-btn' style={{background:" #0263c7",color:"white"}} onClick={generateReport} >
+<button className='generate-btn' style={{background:" #0263c7",color:"white"}} onClick={generateReport} disabled={isLoading} >
+  {isLoading ? 'Generating...' : 'GENERATE REPORT'}
 <Link to="/report-display"  style={{textDecoration:"none"}}>
 <div className='' style={{display:"flex"}}>
      <div className='white-img' >
