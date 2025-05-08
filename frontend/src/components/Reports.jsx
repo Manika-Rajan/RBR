@@ -57,7 +57,7 @@ const generateReport = async () => {
                    "Origin": 'https://main.d38sdwl55z3dqy.amplifyapp.com'
                    },
           body: JSON.stringify({
-            filters: { /* Pass selected filters here */ },
+            filters: { /* Pass selected filters here */ }, folderId: 'rbrfinalfiles', timestamp: timestamp
           }),
         }
       );
