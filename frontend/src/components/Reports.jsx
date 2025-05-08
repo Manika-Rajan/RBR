@@ -48,7 +48,6 @@ const Reports = () => {
  //******************************************************************************************************************** 
   const [selectedFilters, setSelectedFilters] = useState({});
   const [isLoading, setIsLoading] = useState(false);
-  const navigate = useNavigate();
 const generateReport = async () => {
     setIsLoading(true);
     try {
