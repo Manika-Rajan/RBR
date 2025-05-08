@@ -86,7 +86,7 @@ const Reports = () => {
       console.log('Sending payload to Lambda:', payload);
 
       const response = await fetch(
-        'https://vtwyu7hv50.execute-api.ap-south-1.amazonaws.com/default/RBR_report_create_from_filters_received',
+        'https://ypoucxtxgh.execute-api.ap-south-1.amazonaws.com/default/RBR_report_create_from_filters_received',
         {
           method: 'POST',
           headers: {
