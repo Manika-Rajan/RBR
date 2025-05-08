@@ -91,13 +91,17 @@ const Reports = () => {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            Origin: 'https://main.d38sdwl55z3dqy.amplifyapp.com'
+            Origin: 'https://www.rajanbusinessreports.in'
           },
           body: JSON.stringify(payload)
         }
-      );
+      ).catch((err) => {
+        throw new Error(`Fetch failed: ${err.message}`);
+      });
 
       console.log('Response status:', response.status);
+      console.log('Response headers:', [...response.headers.entries()]);
+
       if (!response.ok) {
         const errorText = await response.text();
         throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
@@ -115,7 +119,8 @@ const Reports = () => {
 
       navigate('/report-display', { state: { fileKey } });
     } catch (error) {
-      console.error('Error generating report:', error.message);
+      console.error('Error generating report:', error);
+      console.error('Error stack:', error.stack);
       alert(`Failed to generate report: ${error.message}`);
     } finally {
       setIsLoading(false);
