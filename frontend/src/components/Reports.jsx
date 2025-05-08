@@ -47,39 +47,58 @@ const Reports = () => {
 
  //******************************************************************************************************************** 
 const generateReport = async () => {
+    setIsLoading(true);
     try {
-      // Step 1: Trigger Lambda function to generate report
+      // Generate timestamp (DDMMYYYYHHMM)
+      const now = new Date();
+      const timestamp = `${now.getDate().toString().padStart(2, '0')}${(
+        now.getMonth() + 1
+      ).toString().padStart(2, '0')}${now.getFullYear()}${now
+        .getHours()
+        .toString()
+        .padStart(2, '0')}${now.getMinutes().toString().padStart(2, '0')}`;
+
+      const payload = {
+        filters: selectedFilters,
+        folderId: 'rbrfinalfiles',
+        timestamp: timestamp
+      };
+      console.log('Sending payload to Lambda:', payload);
+
       const response = await fetch(
-        'https://ypoucxtxgh.execute-api.ap-south-1.amazonaws.com/default/RBR_report_create_from_filters_received', // Replace with actual endpoint
+        'https://vtwyu7hv50.execute-api.ap-south-1.amazonaws.com/default/RBR_report_create_from_filters_received',
         {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' ,
-                   "Origin": 'https://main.d38sdwl55z3dqy.amplifyapp.com'
-                   },
-          body: JSON.stringify({
-            filters: { /* Pass selected filters here */ }, folderId: 'rbrfinalfiles', timestamp: timestamp
-          }),
+          headers: {
+            'Content-Type': 'application/json',
+            Origin: 'https://main.d38sdwl55z3dqy.amplifyapp.com'
+          },
+          body: JSON.stringify(payload)
         }
       );
 
+      console.log('Response status:', response.status);
       if (!response.ok) {
-        throw new Error(`Report generation failed: ${response.status}`);
+        const errorText = await response.text();
+        throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
       }
 
       const data = await response.json();
-      console.log("API Response:", data); // Debugging
-      
-      const fileKey = data.file_key; // Get file key of the generated PDF
+      console.log('API Response:', data);
 
-      if (!fileKey) {
-        throw new Error("File key not returned from API.");
+      if (!data.file_key) {
+        throw new Error('No file_key returned in API response');
       }
 
-      // Step 2: Navigate to ReportsDisplay with fileKey as state
-      navigate("/report-display", { state: { fileKey } });
+      const fileKey = data.file_key;
+      console.log('Navigating with fileKey:', fileKey);
 
+      navigate('/report-display', { state: { fileKey } });
     } catch (error) {
       console.error('Error generating report:', error.message);
+      alert(`Failed to generate report: ${error.message}`);
+    } finally {
+      setIsLoading(false);
     }
   };
 //********************************************************************************************************************
