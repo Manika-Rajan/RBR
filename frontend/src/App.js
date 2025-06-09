@@ -1,7 +1,6 @@
 import './App.css';
 import About from './components/About';
 import Contact from './components/Contact';
-import TermsAndConditions from './components/TermsAndConditions';
 import Navbar from './components/Navbar';
 import Reports from './components/Reports';
 import {BrowserRouter,Routes,Route} from 'react-router-dom'
@@ -12,12 +11,9 @@ import CommingSoon from './components/CommingSoon';
 import Invalid from './components/Invalid';
 import Login from './components/Login';
 import { useState } from 'react';
-import RefundPolicy from './components/RefundPolicy'; 
-import PrivacyPolicy from './components/PrivacyPolicy'; 
-
 
 function App() {
-const [login, setLogin] = useState(false); // Login form hidden by default
+  const [login, setLogin] = useState(false); // Login form hidden by default
   const [otpSent, setOtpSent] = useState(false); // OTP input hidden by default
   const [verify, setVerify] = useState(false); // User not verified by default
 
@@ -28,13 +24,11 @@ const [login, setLogin] = useState(false); // Login form hidden by default
     }
   };
 
-  // Close login popup when clicking outside
-  const handleLoginClose = (e) => {
-    if (e.target.className === 'login-popup-container') {
-      setLogin(false);
-      setOtpSent(false);
-    }
-  };
+  // Reset login states after closing
+  const handleLoginClose = () => {
+    setLogin(false);
+    setOtpSent(false);
+  };  
   
   return (
     <BrowserRouter>
@@ -45,13 +39,16 @@ const [login, setLogin] = useState(false); // Login form hidden by default
           <Route path="*" element={<Navbar />} />
         </Routes>
 
-        {/* Login overlay with outside-click-to-close */}
+        {/* Login overlay */}
         {login || otpSent ? (
-          <div className="login-popup-container" onClick={handleLoginClose}>
-            <Login sendOtp={setOtpSent} setLogin={setLogin} setVerify={setVerify} />
-          </div>
+          <Login
+            sendOtp={setOtpSent}
+            setLogin={setLogin}
+            setVerify={setVerify}
+            onClose={handleLoginClose}
+          />
         ) : null}
-    
+
          <Routes>
         <Route path="/about" element={<About/>} />
         <Route path="/" element={<Reports/>}/>
@@ -60,9 +57,6 @@ const [login, setLogin] = useState(false); // Login form hidden by default
         <Route path='/payment' element={<Payment/>}/>
         <Route path='/commingSoon' element={<CommingSoon/>} />
         <Route path='/not-found' element={<Invalid/>} />
-        <Route path="/terms" element={<TermsAndConditions />} />
-        <Route path="/refund-policy" element={<RefundPolicy />} />
-        <Route path="/privacy-policy" element={<PrivacyPolicy />} />
       </Routes>
       <Footer/>
     </div>
