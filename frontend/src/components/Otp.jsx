@@ -1,87 +1,73 @@
-import { CognitoUserPool, CognitoUser, AuthenticationDetails } from 'amazon-cognito-identity-js';
-import React, { useState } from 'react';
-import { CognitoIdentityProvider } from 'aws-sdk';
-import UserPool from './UserPool';
-import './Login.css'
-import './Login'
+import React, { useState, useContext } from 'react';
+import { Store } from '../Store';
 
-
-
-
-
-const Otp = ({setVerify,sendOtp,setLogin}) => {
+const Otp = ({ setVerify, sendOtp, setLogin, phone, setOpenModel }) => {
   const [otp, setOtp] = useState('');
- 
-  const userData = {
-    Username: 'phone_number',
-    Pool: UserPool
-  }
+  const { state, dispatch } = useContext(Store);
+  const phoneNumber = state.phone;
 
-  const cognitoClient = new CognitoUser(userData);
-  const handleVerificationAndConfirmation = async () => {
+  const handleVerification = async () => {
+    console.log('🔵 Login button clicked');
+    console.log('🔵 phone_number:', phoneNumber, 'otp:', otp);
     try {
-      const verifyAttributeParams = {
-        //AccessToken: '', // Replace with the actual user access token
-        AttributeName: 'phone_number', // Replace with the attribute name you used for phone number verification
-        Code: otp // The received OTP code from the user input
-      };
+      const response = await fetch('https://eg3s8q87p7.execute-api.ap-south-1.amazonaws.com/default/verify-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone_number: phoneNumber, otp }),
+      });
 
-      // Verify the user attribute (OTP)
-      const verifyAttributeResponse = await cognitoClient.verifyAttribute(verifyAttributeParams).promise();
+      const data = await response.json();
+      console.log('🟢 OTP verification response:', data);
 
-      if (verifyAttributeResponse.$response.error) {
-        console.log('OTP verification failed.');
-        return;
+      if (response.ok) {
+        const parsedBody = JSON.parse(data.body); // extract message if needed
+        alert('✅ Login successful!');
+
+        // ✅ OTP verified — update global state
+        dispatch({ type: 'USER_LOGIN', payload: true });
+        dispatch({ type: 'SET_PHONE', payload: phone });
+        dispatch({ type: 'SET_NAME', payload: phone }); // Optional placeholder
+
+        // ✅ Update UI and close modal
+        setOpenModel(false);
+        setLogin(false);
+        setVerify(true);    // Keep this true, used only for UI now
+        sendOtp(false);
+      } else {
+        alert(data.error || 'OTP verification failed');
       }
-
-      console.log('OTP verification succeeded.');
-      const confirmSignUpParams = {
-        ClientId: '1glle7bvkfkrqt77p19jpqelss', // Replace with your Cognito client ID
-        Username: 'phone_number', // Replace with the user's username
-        ConfirmationCode: otp // The received OTP code from the user input
-      };
-
-      // Confirm the user
-      const confirmSignUpResponse = await cognitoClient.confirmSignUp(confirmSignUpParams).promise();
-
-      if (confirmSignUpResponse.$response.error) {
-        console.log('User confirmation failed.');
-        return;
-      }
-
-      console.log('User confirmed successfully.');
-
-
-    } catch (error) {
-      console.log('Error:', error);
+    } catch (err) {
+      console.error('OTP verification error:', err);
     }
-      sendOtp(false)
-      setLogin(false)
-      setVerify(true)
   };
-  
-  return (
-    <div>
-    <div  className='login-popup'>
-    <div className='login-title' style={{padding:"0 20px"}}>
-      <h3>Please Enter the One Time Password to Login</h3>
-    </div>
-    <div className='login-paragraph'>
-    <p>OTP has been sent </p>
-  <div className="otp-fields">
-  <input className='otp-input' type="text" value={otp} onChange={(e) => setOtp(e.target.value)} />
-    
-   </div>
-   </div>
-   
-   <div>
-   <button className='login-button' onClick={handleVerificationAndConfirmation}>LOGIN</button>
-   <p style={{color:" #0263C7",marginTop:"15px"}}>RESEND OTP</p>
-   <p style={{color:"#0263C7"}}><a href='Login.jsx'> Entered a Wrong Mobile Number?</a></p>
-   </div>
-  </div>
-    </div>
-  )
-}
 
-export default Otp
+  return (
+    <div className='login-popup'>
+      <div className='login-title' style={{ padding: '0 20px' }}>
+        <h3>Please Enter the One Time Password to Login</h3>
+      </div>
+      <div className='login-paragraph'>
+        <p>OTP has been sent to {phone}</p>
+        <div className="otp-fields">
+          <input
+            className='otp-input'
+            type="text"
+            value={otp}
+            onChange={(e) => setOtp(e.target.value)}
+            maxLength={6}
+            placeholder="Enter 6-digit OTP"
+          />
+        </div>
+      </div>
+      <div>
+        <button className='login-button' onClick={handleVerification}>LOGIN</button>
+        <p style={{ color: '#0263C7', marginTop: '15px' }}>RESEND OTP</p>
+        <p style={{ color: '#0263C7' }}>
+          <a href='Login.jsx'>Entered a Wrong Mobile Number?</a>
+        </p>
+      </div>
+    </div>
+  );
+};
+
+export default Otp;

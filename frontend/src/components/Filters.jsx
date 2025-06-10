@@ -145,7 +145,34 @@ const handleMainSearch=(e)=>{
   setMainField(serchField)
   
 }
+  
+const handleSubmitFilters = () => {
+  // Create an object to hold the selected filters
+  const selectedFilters = {
+    industry: select_industry,
+    city: select_city,
+    competitors: select_competitors,
+    market: select_market,
+    painpoints: select_pain,
+  };
 
+  // Send the selected filters to Lambda (you can call your Lambda function here)
+  // Example: using an API Gateway to trigger your Lambda function
+  fetch('', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(selectedFilters),
+  })
+    .then((response) => response.json())
+    .then((data) => {
+      console.log(data); // Handle the response from Lambda
+    })
+    .catch((error) => {
+      console.error('Error:', error);
+    });
+};
   return (
     <div className='sidebar'>
     
@@ -241,7 +268,9 @@ const handleMainSearch=(e)=>{
         <div className="accordion-item1">
           <div className="accordion-title1"
           onClick={()=>{
-            setIndustry(!industry)
+            console.log('Industry accordion clicked, current industry:', industry);
+            setIndustry(!industry);
+            console.log('Industry set to:', !industry);
             setCountry(false)
             setCity(false)
             setCompetitors(false)
