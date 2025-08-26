@@ -1,148 +1,243 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import './Login.css';
-import UserPool from './UserPool';
-import { Amplify } from 'aws-amplify';
-import Auth from '@aws-amplify/auth';
-import { Store } from '../Store';
-import awsconfig from '../aws-exports.js';
-Amplify.configure(awsconfig);
+import { useStore } from '../Store';
 
-const Login = ({ onClose }) => {
-  const { state, dispatch: cxtDispatch } = useContext(Store);
-  const { totalPrice, name, phone, email, status } = state;
+const Login = React.memo(({ onClose, returnTo }) => {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { state, dispatch: cxtDispatch } = useStore();
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const [number, setNumber] = useState('');
-  const password = Math.random().toString(6) + 'Abc#';
-  const [otpInput, setOtpInput] = useState('');
-  const [responseMessage, setResponseMessage] = useState('');
-  const [error, setError] = useState('');
+  const [phone, setPhone] = useState(
+    state.phone ? state.phone.replace('+91', '') : ''
+  );
+  const [otp, setOtp] = useState('');
   const [otpSent, setOtpSent] = useState(false);
+  const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
-  useEffect(() => {}, []);
+  const phoneInputRef = useRef(null);
+  const otpInputRef = useRef(null);
 
-  const Signup = async (event) => {
-    event.preventDefault();
-    console.log('Signup triggered, otpSent:', otpSent);
+  useEffect(() => {
+    setIsModalOpen(true);
+  }, [returnTo]);
 
-    if (!otpSent) {
-      if (number.length !== 10 || !/^\d+$/.test(number)) {
-        setError('Please enter a valid 10-digit mobile number');
-        return;
-      }
-      setError('');
-      setResponseMessage('');
-      setOtpInput('');
+  // ✅ Autofocus input when step changes
+  useEffect(() => {
+    if (!otpSent && phoneInputRef.current) {
+      phoneInputRef.current.focus();
+    } else if (otpSent && otpInputRef.current) {
+      otpInputRef.current.focus();
+    }
+  }, [otpSent, isModalOpen]);
 
-      const phoneNumber = `+91${number}`;
-      console.log('Sending OTP to:', phoneNumber);
-      try {
-        const response = await fetch('https://eg3s8q87p7.execute-api.ap-south-1.amazonaws.com/default/send-otp', {
+  const sendOtp = async () => {
+    if (!phone || phone.length !== 10 || !/^\d+$/.test(phone)) {
+      setError('Please enter a valid 10-digit mobile number');
+      return;
+    }
+    setIsLoading(true);
+    setError('');
+    const phoneNumber = `+91${phone}`;
+    try {
+      const response = await fetch(
+        'https://eg3s8q87p7.execute-api.ap-south-1.amazonaws.com/default/send-otp',
+        {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ phone_number: phoneNumber }),
-        });
-        const data = await response.json();
-        console.log('Send OTP response:', data);
-        if (response.ok) {
-          setResponseMessage('OTP sent! Enter it below:');
-          cxtDispatch({ type: 'SET_PHONE', payload: phoneNumber });
-          setOtpSent(true);
-        } else {
-          setError(`Error: ${data.error || data.message || 'Unknown error'}`);
         }
-      } catch (err) {
-        console.error('Send OTP error:', err);
-        setError('Failed to connect to server');
+      );
+      const data = await response.json();
+      if (response.ok) {
+        cxtDispatch({ type: 'SET_PHONE', payload: phoneNumber });
+        setOtpSent(true);
+      } else {
+        setError(`Error: ${data.error || 'Failed to send OTP'}`);
       }
-    } else {
-      if (otpInput.length !== 6 || !/^\d+$/.test(otpInput)) {
-        setError('Please enter a valid 6-digit OTP');
-        return;
-      }
-      setError('');
-      setResponseMessage('');
-      const phoneNumber = `+91${number}`;
-      console.log('Verifying OTP for:', phoneNumber, 'with OTP:', otpInput);
-      try {
-        const response = await fetch('https://eg3s8q87p7.execute-api.ap-south-1.amazonaws.com/default/verify-otp', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ phone_number: phoneNumber, otp: otpInput }),
-        });
-        const data = await response.json();
-        console.log('Verify OTP response:', data);
-        const body = JSON.parse(data.body);
-        if (data.statusCode === 200) {
-          setResponseMessage(body.message);
-          // Assuming the API returns a userId; adjust if it’s different
-          const userId = body.user_id || phoneNumber; // Fallback to phone if no user_id
-          cxtDispatch({ 
-            type: 'USER_LOGIN', 
-            payload: { isLogin: true, userId } 
-          });
-          cxtDispatch({ type: 'SET_NAME', payload: phoneNumber });
-          console.log('Login successful, isLogin set to true, userId:', userId);
-          onClose();
-        } else {
-          setError(`Error: ${body.error || 'Invalid OTP'}`);
-        }
-      } catch (err) {
-        console.error('Verify OTP error:', err);
-        setError('Failed to verify OTP');
-      }
+    } catch (err) {
+      setError(`An error occurred: ${err.message}`);
+    } finally {
+      setIsLoading(false);
     }
   };
 
+  const verifyOtp = async () => {
+    if (!otp || otp.length !== 6 || !/^\d+$/.test(otp)) {
+      setError('Please enter a valid 6-digit OTP');
+      return;
+    }
+    setIsLoading(true);
+    setError('');
+    const phoneNumber = `+91${phone}`;
+    try {
+      const response = await fetch(
+        'https://eg3s8q87p7.execute-api.ap-south-1.amazonaws.com/default/verify-otp',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ phone_number: phoneNumber, otp }),
+        }
+      );
+      const data = await response.json();
+
+      if (response.status === 200) {
+        // ✅ Step 1: Dispatch minimal login info
+        const baseUser = {
+          isLogin: true,
+          userId: phoneNumber,
+          phone: phoneNumber,
+        };
+        cxtDispatch({ type: 'USER_LOGIN', payload: baseUser });
+        localStorage.setItem('userInfo', JSON.stringify(baseUser));
+
+        // ✅ Step 2: Immediately fetch full profile from DynamoDB
+        try {
+          const profileRes = await fetch(
+            'https://eg3s8q87p7.execute-api.ap-south-1.amazonaws.com/default/manage-user-profile',
+            {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ action: 'get', phone_number: phoneNumber }),
+            }
+          );
+
+          const profileData = await profileRes.json();
+          let userProfile = profileData;
+
+          // 🔧 Fix: parse nested body JSON if exists
+          if (profileData.body) {
+            try {
+              userProfile = JSON.parse(profileData.body);
+            } catch (e) {
+              console.error("Failed to parse profile body:", profileData.body);
+            }
+          }
+
+          const enrichedUser = {
+            ...baseUser,
+            name: userProfile.name || "User Name",
+            email: userProfile.email || '',
+            photo_url: userProfile.photo_url || null,
+          };
+
+          cxtDispatch({ type: 'USER_LOGIN', payload: enrichedUser });
+          localStorage.setItem('userInfo', JSON.stringify(enrichedUser));
+        } catch (profileErr) {
+          console.error("Profile fetch failed:", profileErr);
+          // ✅ fallback to safe default
+          const fallbackUser = { ...baseUser, name: "User Name", email: '', photo_url: null };
+          cxtDispatch({ type: 'USER_LOGIN', payload: fallbackUser });
+          localStorage.setItem('userInfo', JSON.stringify(fallbackUser));
+        }
+
+        if (onClose) onClose();
+        setIsModalOpen(false);
+
+        // ✅ Conditional redirect logic
+        let redirectTo = '/'; // default → landing page
+        if (returnTo) {
+          redirectTo = returnTo;
+        } else if (location.pathname.includes('/report-display')) {
+          redirectTo = '/report-display';
+        }
+
+        navigate(redirectTo, { replace: true });
+      } else {
+        setError(`Error: ${data.error || 'Invalid OTP'}`);
+      }
+    } catch (err) {
+      setError(`An error occurred: ${err.message}`);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (!otpSent) sendOtp();
+    else verifyOtp();
+  };
+
+  const handleChange = (setter) => (e) => setter(e.target.value);
+
   return (
     <div className="login-popup-container">
-      <div className="login-popup">
-        <div className="login-title">
-          <h3>{otpSent ? 'Enter OTP to Login' : 'Please Enter Your Mobile Number'}</h3>
-        </div>
-        <div className="login-paragraph">
-          {!otpSent && <p>We will send you a <strong>One Time Password</strong></p>}
-        </div>
-        {!otpSent ? (
-          <div className="login-phone-input" style={{ width: '70%', textAlign: 'center', margin: 'auto' }}>
-            <div className="input-group mb-3" style={{ marginRight: '20px', width: '23%' }}>
-              <select className="form-select" aria-label="Default select example">
-                <option selected>+91</option>
-                <option value="2">+11</option>
-              </select>
-            </div>
-            <div className="input-group mb-3">
-              <input
-                type="text"
-                className="form-control"
-                placeholder="Enter Your 10 digit Mobile Number"
-                style={{ textAlign: 'center' }}
-                value={number}
-                onChange={(event) => setNumber(event.target.value)}
-                maxLength={10}
-              />
-            </div>
-          </div>
-        ) : (
-          <div className="otp-fields">
-            <input
-              type="text"
-              placeholder="Enter 6-digit OTP"
-              value={otpInput}
-              onChange={(e) => setOtpInput(e.target.value)}
-              maxLength={6}
-            />
+      <div
+        className="login-popup"
+        style={{ display: isModalOpen ? 'block' : 'none' }}
+      >
+        {!isLoading && !error && (
+          <div className="login-title">
+            <h3>{otpSent ? 'Verify OTP' : 'Please Enter Your Mobile Number'}</h3>
           </div>
         )}
-        <div>
-          <button type="submit" className="login-button" onClick={Signup}>
-            {otpSent ? 'VERIFY OTP' : 'SEND OTP'}
-          </button>
+        <div className="login-paragraph">
+          {!otpSent && (
+            <p>
+              We will send you a <strong>One Time Password</strong>
+            </p>
+          )}
         </div>
-        {responseMessage && <p style={{ color: 'green', textAlign: 'center' }}>{responseMessage}</p>}
-        {error && <p style={{ color: 'red', textAlign: 'center' }}>{error}</p>}
+
+        {/* ✅ Form handles Enter key */}
+        <form onSubmit={handleSubmit}>
+          {!otpSent ? (
+            <div
+              className="login-phone-input d-flex justify-content-center align-items-center gap-2"
+              style={{ width: '80%', margin: 'auto' }}
+            >
+              <select
+                className="form-select w-auto"
+                aria-label="Country code"
+                disabled
+              >
+                <option defaultValue>+91</option>
+              </select>
+              <input
+                type="text"
+                className="form-control text-center"
+                placeholder="Enter Your 10 digit Mobile Number"
+                value={phone}
+                onChange={handleChange(setPhone)}
+                maxLength={10}
+                disabled={isLoading}
+                ref={phoneInputRef}
+              />
+            </div>
+          ) : (
+            <div className="otp-fields d-flex justify-content-center mt-3">
+              <input
+                type="text"
+                className="form-control text-center"
+                placeholder="Enter 6-digit OTP"
+                value={otp}
+                onChange={handleChange(setOtp)}
+                maxLength={6}
+                disabled={isLoading}
+                ref={otpInputRef}
+              />
+            </div>
+          )}
+
+          <div className="text-center mt-3">
+            <button
+              type="submit"
+              className="btn btn-primary w-50"
+              disabled={isLoading}
+            >
+              {otpSent ? 'VERIFY OTP' : 'SEND OTP'}
+            </button>
+          </div>
+        </form>
+
+        {error && <p className="error-message text-danger mt-2">{error}</p>}
+        {isLoading && <p className="loading-message">Processing...</p>}
       </div>
     </div>
   );
-};
+});
 
 export default Login;

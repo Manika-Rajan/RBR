@@ -1,8 +1,15 @@
+```css
 /* Navbar container */
 .navbar {
   background-color: #ffffff;
   box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
   padding: 10px 20px;
+}
+
+/* Container for navbar content */
+.container-fluid {
+  padding-left: 40px !important; /* Increased for more edge space */
+  padding-right: 40px !important;
 }
 
 /* Left section with logo and text */
@@ -39,7 +46,7 @@
 }
 
 .nav-item {
-  margin-right: 30px;
+  margin-right: 80px;
 }
 
 .nav-link {
@@ -54,11 +61,15 @@
 }
 
 /* User Profile Section */
-.user-menu {
+.dropdown-toggle.user-menu {
   display: flex;
   align-items: center;
   cursor: pointer;
   padding: 10px;
+}
+
+.nav-item.dropdown {
+  margin-right: 80px;
 }
 
 .avatar {
@@ -74,30 +85,33 @@
 }
 
 /* Dropdown Menu */
-.dropdown-menu {
+.navbar-nav .nav-item.dropdown .dropdown-menu {
   position: absolute;
   top: 50px;
-  right: 10px;
+  right: 0 !important; /* Align with toggle's right edge */
+  left: auto !important;
   background: white;
   border-radius: 5px;
   box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
-  width: 150px;
-  list-style: none;
+  min-width: 160px;
+  max-width: calc(100vw - 80px) !important; /* Ensure fits viewport */
   padding: 10px 0;
   z-index: 1000;
   display: none;
+  transform: translateX(-20px) !important; /* Stronger left shift */
+  /* border: 1px solid red; */ /* Uncomment for debugging */
 }
 
-.dropdown-menu.show {
+.navbar-nav .nav-item.dropdown .dropdown-menu.show {
   display: block;
 }
 
 .dropdown-item {
-  padding: 10px;
+  padding: 10px 16px;
   text-decoration: none;
   color: black;
   display: block;
-  text-align: center;
+  text-align: left;
 }
 
 .dropdown-item:hover {
@@ -108,7 +122,7 @@
   border: none;
   background: none;
   width: 100%;
-  text-align: center;
+  text-align: left;
   cursor: pointer;
   color: red;
 }
@@ -116,3 +130,33 @@
 .logout-btn:hover {
   background: #ffcccc;
 }
+
+/* Mobile view */
+@media (max-width: 991px) {
+  .container-fluid {
+    padding-left: 15px !important;
+    padding-right: 15px !important;
+  }
+  .navbar-nav {
+    text-align: left;
+  }
+  .nav-item {
+    margin-right: 0;
+    margin-bottom: 10px;
+  }
+  .nav-item.dropdown {
+    margin-right: 0;
+  }
+  .navbar-nav .nav-item.dropdown .dropdown-menu {
+    right: auto !important;
+    left: 0 !important;
+    width: 100%;
+    max-width: 100% !important;
+    transform: none !important;
+    /* border: 1px solid blue; */ /* Uncomment for debugging */
+  }
+  .dropdown-item, .logout-btn {
+    text-align: left;
+  }
+}
+```

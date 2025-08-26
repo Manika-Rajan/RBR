@@ -4,12 +4,8 @@ import './index.css';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
 import { StoreProvider } from './Store';
-//import Amplify from 'aws-amplify';123
-//import { configure } from 'aws-amplify';
-import awsmobile from './aws-exports';
+import 'bootstrap/dist/css/bootstrap.min.css';
 
-// Configure Amplify.
-//Amplify.configure(awsmobile);
 //configure(awsmobile);
 
 

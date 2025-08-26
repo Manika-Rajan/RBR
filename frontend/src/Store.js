@@ -1,40 +1,102 @@
-import { createContext, useReducer } from "react";
+import { createContext, useReducer, useContext } from "react";
 
 export const Store = createContext();
 
 const initialState = {
-  isLogin: localStorage.getItem("isLogin") === "true" || false,
-  userId: localStorage.getItem("userId") || '', // Added userId
-  name: '',
-  phone: '',
-  email: '',
+  userInfo: {
+    isLogin: localStorage.getItem("isLogin") === "true",
+    userId: localStorage.getItem("userId") || "",
+    name: localStorage.getItem("userName") || "",
+    phone: localStorage.getItem("userPhone") || "",
+    email: localStorage.getItem("userEmail") || "",
+  },
   totalPrice: 0,
   status: false,
+
+  // ✅ add report state
+  report: {
+    fileKey: localStorage.getItem("reportFileKey") || "",
+    reportId: localStorage.getItem("reportId") || "",
+  },
 };
 
 const reducer = (state, action) => {
   switch (action.type) {
-    case 'SET_PRICE':
+    case "SET_PRICE":
       return { ...state, totalPrice: action.payload };
-    case 'USER_LOGIN':
-      localStorage.setItem("isLogin", action.payload.isLogin);
-      if (action.payload.userId) localStorage.setItem("userId", action.payload.userId); // Persist userId
-      return { ...state, isLogin: action.payload.isLogin, userId: action.payload.userId || state.userId };
-    case 'SET_USER_ID': // Added
-      localStorage.setItem("userId", action.payload);
-      return { ...state, userId: action.payload };
-    case 'SET_NAME':
-      return { ...state, name: action.payload };
-    case 'SET_PHONE':
-      return { ...state, phone: action.payload };
-    case 'SET_EMAIL':
-      return { ...state, email: action.payload };
-    case 'SET_REPORT_STATUS':
-      return { ...state, status: !state.status };
-    case 'LOGOUT':
+
+    case "USER_LOGIN": {
+      const updatedUser = {
+        isLogin: action.payload.isLogin === true,
+        userId: action.payload.userId || state.userInfo.userId || Date.now().toString(),
+        name: action.payload.name || state.userInfo.name,
+        email: action.payload.email || state.userInfo.email,
+        phone: action.payload.phone || state.userInfo.phone,
+      };
+
+      // ✅ persist to localStorage
+      localStorage.setItem("isLogin", updatedUser.isLogin ? "true" : "false");
+      localStorage.setItem("userId", updatedUser.userId);
+      localStorage.setItem("userName", updatedUser.name);
+      localStorage.setItem("userEmail", updatedUser.email);
+      localStorage.setItem("userPhone", updatedUser.phone);
+
+      console.log("🔑 USER_LOGIN reducer applied, updatedUser:", updatedUser);
+
+      // ✅ preserve existing report object
+      return { ...state, userInfo: updatedUser, report: { ...state.report } };
+    }
+
+    case "LOGOUT":
       localStorage.setItem("isLogin", "false");
-      localStorage.removeItem("userId"); // Clear userId on logout
-      return { ...state, isLogin: false, userId: '', name: '', phone: '', email: '' };
+      localStorage.removeItem("userId");
+      localStorage.removeItem("authToken");
+      localStorage.removeItem("userName");
+      localStorage.removeItem("userEmail");
+      localStorage.removeItem("userPhone");
+      localStorage.removeItem("reportFileKey");
+      localStorage.removeItem("reportId");
+
+      return {
+        ...state,
+        userInfo: { isLogin: false, userId: "", name: "", phone: "", email: "" },
+        report: { fileKey: "", reportId: "" },
+      };
+
+    case "SET_REPORT": {
+      localStorage.setItem("reportFileKey", action.payload.fileKey || "");
+      localStorage.setItem("reportId", action.payload.reportId || "");
+
+      console.log("📝 SET_REPORT reducer applied:", action.payload);
+
+      return {
+        ...state,
+        report: {
+          fileKey: action.payload.fileKey || "",
+          reportId: action.payload.reportId || "",
+        },
+      };
+    }
+
+    // ✅ New action to store fileKey + reportId when BUY NOW is clicked
+    case "SET_FILE_REPORT": {
+      localStorage.setItem("reportFileKey", action.payload.fileKey || "");
+      localStorage.setItem("reportId", action.payload.reportId || "");
+
+      console.log("🛒 SET_FILE_REPORT reducer applied:", action.payload);
+
+      return {
+        ...state,
+        report: {
+          fileKey: action.payload.fileKey || "",
+          reportId: action.payload.reportId || "",
+        },
+      };
+    }
+
+    case "SET_REPORT_STATUS":
+      return { ...state, status: !state.status };
+
     default:
       return state;
   }
@@ -45,3 +107,5 @@ export function StoreProvider(props) {
   const value = { state, dispatch };
   return <Store.Provider value={value}>{props.children}</Store.Provider>;
 }
+
+export const useStore = () => useContext(Store);

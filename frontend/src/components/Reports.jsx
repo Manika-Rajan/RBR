@@ -24,27 +24,24 @@ const Reports = () => {
   const [select_pain, setSelect_pain] = useState([]);
   const [select_competitors, setSelect_competitors] = useState([]);
   const [selectedFilters, setSelectedFilters] = useState({});
-
   const [country, setCountry] = useState(false);
   const [industry, setIndustry] = useState(false);
   const [city, setCity] = useState(false);
   const [market, setMarket] = useState(false);
   const [competitors, setCompetitors] = useState(false);
   const [painpoints, setPainpoints] = useState(false);
-
   const [expandIndustry, setExpandIndustry] = useState(false);
   const [expandCity, setExpandCity] = useState(false);
   const [expandMarket, setExpandMarket] = useState(false);
   const [expandCompetitors, setExpandCompetitors] = useState(false);
   const [expandPain, setExpandPain] = useState(false);
-
   const [popup, setPopup] = useState(true);
   const [noSearch, setNoSearch] = useState(false);
   const [nogenerate, setNoGenerate] = useState(false);
   const [price, setPrice] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
+  const [lastReportId, setLastReportId] = useState(0); // Track the last used ID
 
-  // Update selectedFilters whenever filter selections change
   useEffect(() => {
     const filters = {
       industry: select_industry,
@@ -56,7 +53,6 @@ const Reports = () => {
     setSelectedFilters(filters);
     console.log('Updated selectedFilters:', filters);
 
-    // Update generate state
     const hasFilters =
       select_industry.length > 0 ||
       select_city.length > 0 ||
@@ -69,7 +65,6 @@ const Reports = () => {
   const generateReport = async () => {
     setIsLoading(true);
     try {
-      // Generate timestamp (DDMMYYYYHHMM)
       const now = new Date();
       const timestamp = `${now.getDate().toString().padStart(2, '0')}${(
         now.getMonth() + 1
@@ -78,12 +73,16 @@ const Reports = () => {
         .toString()
         .padStart(2, '0')}${now.getMinutes().toString().padStart(2, '0')}`;
 
+      const nextReportId = `RBR${(lastReportId + 1).toString().padStart(4, '0')}`;
+      setLastReportId(lastReportId + 1); // Increment for next use
+
       const payload = {
         filters: selectedFilters,
         folderId: 'rbrfinalfiles',
-        timestamp: timestamp
+        timestamp: timestamp,
+        reportId: nextReportId // Include the new report ID
       };
-      console.log('Sending payload to Lambda:', payload);
+      console.log('Generate Report triggered - Sending payload to Lambda:', payload);
 
       const response = await fetch(
         'https://ypoucxtxgh.execute-api.ap-south-1.amazonaws.com/default/RBR_report_create_from_filters_received',
@@ -108,20 +107,20 @@ const Reports = () => {
       }
 
       const data = await response.json();
-      console.log('API Response:', data);
+      console.log('API Response for report generation:', data);
 
       if (!data.file_key) {
         throw new Error('No file_key returned in API response');
       }
 
       const fileKey = data.file_key;
-      console.log('Navigating with fileKey:', fileKey);
-
-      navigate('/report-display', { state: { fileKey } });
+      console.log('Navigating to /report-display with fileKey:', fileKey, 'and reportId:', nextReportId);
+      navigate('/report-display', { state: { fileKey, reportId: nextReportId } });
     } catch (error) {
-      console.error('Error generating report:', error);
-      console.error('Error stack:', error.stack);
-      alert(`Failed to generate report: ${error.message}`);
+      console.error('Error generating report:', error.message, error.stack);
+      const errorMessage = error.response ? await error.response.text() : error.message;
+      console.error('Error details:', errorMessage);
+      alert(`Failed to generate report: ${errorMessage}`);
     } finally {
       setIsLoading(false);
     }
@@ -246,7 +245,7 @@ const Reports = () => {
         <div className="nav-popup row">
           <div className="col-md-11 col-sm-10 col-10">
             <p className="container">
-              Use the Promo code "<strong>RBideas 25</strong>" to get an instant 25% discount during the purchase. Valid till 31st August 2023
+              Use the Promo code "<strong>RBideas 25</strong>" to get an instant 25% discount during the purchase. Valid till 31st August 2025
             </p>
           </div>
           <div className="col-md-1 col-sm-1 col-1 icon" style={{ fontSize: '20px' }}>
@@ -295,7 +294,6 @@ const Reports = () => {
               style={{ textAlign: 'center', justifyContent: 'flex-end' }}
             >
               <img src={india} alt="" />
-                
               <span>India</span>
             </div>
           </div>
@@ -320,7 +318,7 @@ const Reports = () => {
                     }}
                     style={{ cursor: 'pointer', fontFamily: 'Baskerville Old Face' }}
                   >
-                    Industry   
+                    Industry&nbsp;
                     {select_industry.length ? (
                       <span className="text-primary">({select_industry.length})</span>
                     ) : (
@@ -342,7 +340,7 @@ const Reports = () => {
                                   paddingTop: '4px',
                                   height: '16px',
                                   width: '16px',
-                                  marginLeft: '8px'
+                                  marginLeft: '8px',
                                 }}
                               >
                                 X
@@ -363,7 +361,7 @@ const Reports = () => {
                                   paddingTop: '4px',
                                   height: '16px',
                                   width: '16px',
-                                  marginLeft: '8px'
+                                  marginLeft: '8px',
                                 }}
                               >
                                 X
@@ -396,7 +394,7 @@ const Reports = () => {
                     }}
                     style={{ cursor: 'pointer', fontFamily: 'Baskerville Old Face' }}
                   >
-                    City   
+                    City&nbsp;
                     {select_city.length ? (
                       <span className="text-primary">({select_city.length})</span>
                     ) : (
@@ -418,7 +416,7 @@ const Reports = () => {
                                   paddingTop: '4px',
                                   height: '16px',
                                   width: '16px',
-                                  marginLeft: '8px'
+                                  marginLeft: '8px',
                                 }}
                               >
                                 X
@@ -439,7 +437,7 @@ const Reports = () => {
                                   paddingTop: '4px',
                                   height: '16px',
                                   width: '16px',
-                                  marginLeft: '8px'
+                                  marginLeft: '8px',
                                 }}
                               >
                                 X
@@ -472,7 +470,7 @@ const Reports = () => {
                     }}
                     style={{ cursor: 'pointer', fontFamily: 'Baskerville Old Face' }}
                   >
-                    List of Competitors   
+                    List of Competitors&nbsp;
                     {select_competitors.length ? (
                       <span className="text-primary">({select_competitors.length})</span>
                     ) : (
@@ -494,7 +492,7 @@ const Reports = () => {
                                   paddingTop: '4px',
                                   height: '16px',
                                   width: '16px',
-                                  marginLeft: '8px'
+                                  marginLeft: '8px',
                                 }}
                               >
                                 X
@@ -515,7 +513,7 @@ const Reports = () => {
                                   paddingTop: '4px',
                                   height: '16px',
                                   width: '16px',
-                                  marginLeft: '8px'
+                                  marginLeft: '8px',
                                 }}
                               >
                                 X
@@ -548,7 +546,7 @@ const Reports = () => {
                     }}
                     style={{ cursor: 'pointer', fontFamily: 'Baskerville Old Face' }}
                   >
-                    Market Segment   
+                    Market Segment&nbsp;
                     {select_market.length ? (
                       <span className="text-primary">({select_market.length})</span>
                     ) : (
@@ -570,7 +568,7 @@ const Reports = () => {
                                   paddingTop: '4px',
                                   height: '16px',
                                   width: '16px',
-                                  marginLeft: '8px'
+                                  marginLeft: '8px',
                                 }}
                               >
                                 X
@@ -591,7 +589,7 @@ const Reports = () => {
                                   paddingTop: '4px',
                                   height: '16px',
                                   width: '16px',
-                                  marginLeft: '8px'
+                                  marginLeft: '8px',
                                 }}
                               >
                                 X
@@ -624,7 +622,7 @@ const Reports = () => {
                     }}
                     style={{ cursor: 'pointer', fontFamily: 'Baskerville Old Face' }}
                   >
-                    Pain Points   
+                    Pain Points&nbsp;
                     {select_pain.length ? (
                       <span className="text-primary">({select_pain.length})</span>
                     ) : (
@@ -646,7 +644,7 @@ const Reports = () => {
                                   paddingTop: '4px',
                                   height: '16px',
                                   width: '16px',
-                                  marginLeft: '8px'
+                                  marginLeft: '8px',
                                 }}
                               >
                                 X
@@ -667,7 +665,7 @@ const Reports = () => {
                                   paddingTop: '4px',
                                   height: '16px',
                                   width: '16px',
-                                  marginLeft: '8px'
+                                  marginLeft: '8px',
                                 }}
                               >
                                 X
