@@ -1,30 +1,22 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+# Python/Django
+venv/
+*.pyc
+__pycache__/
+db.sqlite3
+*.log
+.env
 
-#.env
-#*.pyc
-#__pycache__/
+# Frontend
+node_modules/
+frontend/build/
+frontend/.cache/
+frontend/dist/
 
-# dependencies
-#/node_modules
-/.pnp
-.pnp.js
+# Static files (already collected)
+backend/static/
 
-# testing
-#/coverage
-
-# production
-#/build
-
-# misc
-.DS_Store
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
-
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
+# Sensitive files
+backend/backend/settings.py.bak
 
 #amplify-do-not-edit-begin
 amplify/\#current-cloud-backend

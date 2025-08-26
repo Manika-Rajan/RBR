@@ -1,0 +1,18 @@
+{
+  "whyContinueWithGen1": "I am a current Gen 1 user",
+  "projectName": "clonerbrproject",
+  "version": "3.1",
+  "frontend": "javascript",
+  "javascript": {
+    "framework": "react",
+    "config": {
+      "SourceDir": "frontend",
+      "DistributionDir": "frontend/build",
+      "BuildCommand": "npm --prefix frontend run build",
+      "StartCommand": "npm --prefix frontend start"
+    }
+  },
+  "providers": [
+    "awscloudformation"
+  ]
+}
