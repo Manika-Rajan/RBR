@@ -170,15 +170,20 @@ const Login = React.memo(({ onClose, returnTo }) => {
         if (onClose) onClose();
         setIsModalOpen(false);
 
-        // ✅ Conditional redirect logic
+        // ✅ Conditional redirect logic for Buy Now
+        console.log('Redirect debug - returnTo:', returnTo, 'location.pathname:', location.pathname, 'location.state:', location.state); // Debug redirect
         let redirectTo = '/';
-        if (returnTo) {
-          redirectTo = returnTo;
-        } else if (location.pathname.includes('/report-display')) {
-          redirectTo = '/report-display';
+        if (returnTo === '/payment' || location.pathname.includes('/report-display')) {
+          redirectTo = '/payment';
         }
         console.log('Navigating to:', redirectTo); // Debug navigation
-        navigate(redirectTo, { replace: true, state: { fileKey: state.fileKey, reportId: state.reportId } });
+        navigate(redirectTo, {
+          replace: true,
+          state: {
+            fileKey: location.state?.fileKey || state.fileKey,
+            reportId: location.state?.reportId || state.reportId,
+          },
+        });
       } else {
         setError(`Error: ${data.error || 'Invalid OTP'}`);
       }
