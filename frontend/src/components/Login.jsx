@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import './Login.css';
@@ -12,7 +11,7 @@ const Login = React.memo(({ onClose, returnTo }) => {
   const [phone, setPhone] = useState(
     state.phone ? state.phone.replace('+91', '') : ''
   );
-  const [otp, setOtp] = useState('');
+  const [otp, setOtp ] = useState('');
   const [otpSent, setOtpSent] = useState(false);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -84,21 +83,9 @@ const Login = React.memo(({ onClose, returnTo }) => {
       console.log('verify-otp response:', data); // Debug response
 
       if (response.status === 200) {
-        // Parse data.body if it exists
-        let responseBody = data;
-        if (data.body) {
-          try {
-            responseBody = JSON.parse(data.body);
-          } catch (e) {
-            console.error('Failed to parse verify-otp body:', data.body);
-            setError('Authentication failed: Invalid response format');
-            setIsLoading(false);
-            return;
-          }
-        }
-
-        // Extract token
-        const { token } = responseBody;
+        // Parse the body string
+        const parsedBody = JSON.parse(data.body);
+        const { token } = parsedBody;
         if (!token) {
           setError('Authentication failed: No token received');
           setIsLoading(false);
@@ -214,7 +201,6 @@ const Login = React.memo(({ onClose, returnTo }) => {
             </p>
           )}
         </div>
-
         {/* ✅ Form handles Enter key */}
         <form onSubmit={handleSubmit}>
           {!otpSent ? (
@@ -265,7 +251,6 @@ const Login = React.memo(({ onClose, returnTo }) => {
             </button>
           </div>
         </form>
-
         {error && <p className="error-message text-danger mt-2">{error}</p>}
         {isLoading && <p className="loading-message">Processing...</p>}
       </div>
