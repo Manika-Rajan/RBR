@@ -84,8 +84,21 @@ const Login = React.memo(({ onClose, returnTo }) => {
       console.log('verify-otp response:', data); // Debug response
 
       if (response.status === 200) {
+        // Parse data.body if it exists
+        let responseBody = data;
+        if (data.body) {
+          try {
+            responseBody = JSON.parse(data.body);
+          } catch (e) {
+            console.error('Failed to parse verify-otp body:', data.body);
+            setError('Authentication failed: Invalid response format');
+            setIsLoading(false);
+            return;
+          }
+        }
+
         // Extract token
-        const { token } = data;
+        const { token } = responseBody;
         if (!token) {
           setError('Authentication failed: No token received');
           setIsLoading(false);
