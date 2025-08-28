@@ -11,7 +11,7 @@ const Login = React.memo(({ onClose, returnTo }) => {
   const [phone, setPhone] = useState(
     state.phone ? state.phone.replace('+91', '') : ''
   );
-  const [otp, setOtp ] = useState('');
+  const [otp, setOtp] = useState('');
   const [otpSent, setOtpSent] = useState(false);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -84,9 +84,19 @@ const Login = React.memo(({ onClose, returnTo }) => {
 
       if (response.status === 200) {
         // Parse the body string
-        const parsedBody = JSON.parse(data.body);
+        let parsedBody;
+        try {
+          parsedBody = JSON.parse(data.body);
+        } catch (e) {
+          console.error('Failed to parse verify-otp body:', data.body);
+          setError('Authentication failed: Invalid response format');
+          setIsLoading(false);
+          return;
+        }
+
         const { token } = parsedBody;
         if (!token) {
+          console.error('No token in parsed body:', parsedBody);
           setError('Authentication failed: No token received');
           setIsLoading(false);
           return;
@@ -97,11 +107,12 @@ const Login = React.memo(({ onClose, returnTo }) => {
           isLogin: true,
           userId: phoneNumber,
           phone: phoneNumber,
-          token, // Include token
+          token,
         };
         cxtDispatch({ type: 'USER_LOGIN', payload: baseUser });
         localStorage.setItem('authToken', token); // Store token
         localStorage.setItem('userInfo', JSON.stringify(baseUser));
+        console.log('baseUser dispatched:', baseUser); // Debug dispatch
 
         // ✅ Step 2: Immediately fetch full profile from DynamoDB
         try {
@@ -111,12 +122,13 @@ const Login = React.memo(({ onClose, returnTo }) => {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
-                Authorization: `Bearer ${token}`, // Use token
+                Authorization: `Bearer ${token}`,
               },
               body: JSON.stringify({ action: 'get', phone_number: phoneNumber }),
             }
           );
           const profileData = await profileRes.json();
+          console.log('manage-user-profile response:', profileData); // Debug profile response
           let userProfile = profileData;
 
           // 🔧 Fix: parse nested body JSON if exists
@@ -124,51 +136,54 @@ const Login = React.memo(({ onClose, returnTo }) => {
             try {
               userProfile = JSON.parse(profileData.body);
             } catch (e) {
-              console.error("Failed to parse profile body:", profileData.body);
+              console.error('Failed to parse profile body:', profileData.body);
             }
           }
 
           const enrichedUser = {
             ...baseUser,
-            name: userProfile.name || "User Name",
+            name: userProfile.name || 'User Name',
             email: userProfile.email || '',
             photo_url: userProfile.photo_url || null,
-            token, // Preserve token
+            token,
           };
           cxtDispatch({ type: 'USER_LOGIN', payload: enrichedUser });
-          localStorage.setItem('authToken', token); // Store token
+          localStorage.setItem('authToken', token);
           localStorage.setItem('userInfo', JSON.stringify(enrichedUser));
+          console.log('enrichedUser dispatched:', enrichedUser); // Debug dispatch
+
         } catch (profileErr) {
-          console.error("Profile fetch failed:", profileErr);
-          // ✅ fallback to safe default
+          console.error('Profile fetch failed:', profileErr);
           const fallbackUser = {
             ...baseUser,
-            name: "User Name",
+            name: 'User Name',
             email: '',
             photo_url: null,
-            token, // Preserve token
+            token,
           };
           cxtDispatch({ type: 'USER_LOGIN', payload: fallbackUser });
-          localStorage.setItem('authToken', token); // Store token
+          localStorage.setItem('authToken', token);
           localStorage.setItem('userInfo', JSON.stringify(fallbackUser));
+          console.log('fallbackUser dispatched:', fallbackUser); // Debug dispatch
         }
 
         if (onClose) onClose();
         setIsModalOpen(false);
 
         // ✅ Conditional redirect logic
-        let redirectTo = '/'; // default → landing page
+        let redirectTo = '/';
         if (returnTo) {
           redirectTo = returnTo;
         } else if (location.pathname.includes('/report-display')) {
           redirectTo = '/report-display';
         }
-
-        navigate(redirectTo, { replace: true });
+        console.log('Navigating to:', redirectTo); // Debug navigation
+        navigate(redirectTo, { replace: true, state: { fileKey: state.fileKey, reportId: state.reportId } });
       } else {
         setError(`Error: ${data.error || 'Invalid OTP'}`);
       }
     } catch (err) {
+      console.error('verifyOtp error:', err);
       setError(`An error occurred: ${err.message}`);
     } finally {
       setIsLoading(false);
@@ -240,7 +255,6 @@ const Login = React.memo(({ onClose, returnTo }) => {
               />
             </div>
           )}
-
           <div className="text-center mt-3">
             <button
               type="submit"
