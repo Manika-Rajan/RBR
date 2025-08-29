@@ -10,8 +10,8 @@ const Footer = () => {
     <div className='row footer'>
     <div className='row'>
       <div className='col-md-2 col-sm-6 col-12' >
-      //<div>
-      //<p className='footer-head'>Get to Know Us</p></div>
+      <div>
+      <p className='footer-head'>Get to Know Us</p></div>
       <ul>
      <u ><li><Link to="/about" style={{color:"white"}}  onClick={() => window.scrollTo(0, 0)}>About Us</Link></li></u>
      <u> <li>Careers</li></u>
