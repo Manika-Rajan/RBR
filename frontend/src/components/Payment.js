@@ -301,16 +301,17 @@ const Payment = () => {
       }
       const order = await response.json();
       console.log('Razorpay order response:', order);
+      const parsedBody = JSON.parse(order.body);
       // Step 4: Resolve order details
-      const orderId = order?.razorpay_response?.id;
+      const orderId = parsedBody?.razorpay_response?.id;
       const orderAmount =
-        order?.razorpay_response?.amount ||
+        parsedBody?.razorpay_response?.amount ||
         Math.round(Number(amount) * 100);
       const orderCurrency =
-        order?.razorpay_response?.currency ||
+        parsedBody?.razorpay_response?.currency ||
         'INR';
       const keyFromOrder =
-        order?.key_id ||
+        parsedBody?.key_id ||
         null;
       const razorpayKey =
         process.env.REACT_APP_RAZORPAY_KEY_ID ||
