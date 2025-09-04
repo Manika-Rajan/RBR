@@ -9,7 +9,7 @@ import ReportsDisplay from './components/ReportsDisplay';
 import Payment from './components/Payment';
 import Footer from './components/Footer';
 import CommingSoon from './components/CommingSoon';
-import Careers from './components/career';
+import Careers from './components/Career';
 import Invalid from './components/Invalid';
 import RefundPolicy from './components/RefundPolicy'; 
 import PrivacyPolicy from './components/PrivacyPolicy'; 
