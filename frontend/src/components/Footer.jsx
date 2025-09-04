@@ -22,7 +22,11 @@ const Footer = () => {
               </li>
             </u>
             <u>
-              <li>Careers</li>
+              <li>
+                <Link to="/careers" style={{ color: "white" }} onClick={() => window.scrollTo(0, 0)}>
+                Careers
+                </Link>
+              </li>
             </u>
           </ul>
         </div>
