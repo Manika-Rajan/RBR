@@ -1,0 +1,138 @@
+.partner-page {
+  background-color: #f4f7fc;
+  min-height: 100vh;
+  font-family: 'Roboto', sans-serif;
+}
+
+.hero-section {
+  background: linear-gradient(135deg, #0263C7 0%, #4a90e2 100%);
+  color: white;
+  padding: 3rem 1rem;
+  margin-bottom: 2rem;
+}
+
+.hero-section h1 {
+  font-size: 2.5rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+}
+
+.hero-section .lead {
+  font-size: 1.25rem;
+  opacity: 0.9;
+}
+
+.partner-container {
+  padding: 2rem 0;
+}
+
+.section-title {
+  font-size: 1.75rem;
+  color: #0263C7;
+  font-weight: 600;
+  margin-bottom: 1.5rem;
+  position: relative;
+  text-align: center;
+}
+
+.section-title::after {
+  content: '';
+  display: block;
+  width: 50px;
+  height: 3px;
+  background: #0263C7;
+  margin: 0.25rem auto;
+}
+
+.partner-form {
+  background: white;
+  padding: 2rem;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+}
+
+.partner-form .form-group {
+  position: relative;
+}
+
+.partner-form .form-label {
+  font-weight: 500;
+  color: #333;
+  transition: all 0.3s ease;
+  position: absolute;
+  top: 0.75rem;
+  left: 1rem;
+  pointer-events: none;
+  background: white;
+  padding: 0 0.25rem;
+}
+
+.partner-form .form-control:focus + .form-label,
+.partner-form .form-control:not(:placeholder-shown) + .form-label,
+.partner-form .form-select:focus + .form-label,
+.partner-form .form-select:not([value=""]) + .form-label {
+  transform: translateY(-1.8rem);
+  font-size: 0.85rem;
+  color: #0263C7;
+}
+
+.partner-form .form-control,
+.partner-form .form-select {
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  padding: 0.75rem;
+  transition: border-color 0.3s ease;
+}
+
+.partner-form .form-control:focus,
+.partner-form .form-select:focus {
+  border-color: #0263C7;
+  box-shadow: 0 0 5px rgba(2, 99, 199, 0.3);
+}
+
+.submit-btn {
+  background: #0263C7;
+  border: none;
+  padding: 0.75rem;
+  font-size: 1.1rem;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.submit-btn:hover {
+  background: #014a99;
+  transform: scale(1.05);
+}
+
+.animate-error {
+  animation: shake 0.3s ease;
+}
+
+.animate-success {
+  animation: fadeIn 0.5s ease;
+  font-weight: 500;
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-5px); }
+  75% { transform: translateX(5px); }
+}
+
+@keyframes fadeIn {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+@media (max-width: 767px) {
+  .hero-section h1 {
+    font-size: 2rem;
+  }
+  .hero-section .lead {
+    font-size: 1rem;
+  }
+  .partner-form {
+    padding: 1rem;
+  }
+}
