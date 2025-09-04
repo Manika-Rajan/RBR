@@ -9,6 +9,7 @@ import ReportsDisplay from './components/ReportsDisplay';
 import Payment from './components/Payment';
 import Footer from './components/Footer';
 import CommingSoon from './components/CommingSoon';
+import Careers from './components/career';
 import Invalid from './components/Invalid';
 import RefundPolicy from './components/RefundPolicy'; 
 import PrivacyPolicy from './components/PrivacyPolicy'; 
@@ -30,6 +31,7 @@ function AppContent() {
         <Route path="/" element={<Reports />} />
         <Route path='/contact' element={<Contact />} />
         <Route path='/report-display' element={<ReportsDisplay />} />
+        <Route path='/careers' element={<career />} />
         <Route path='/payment' element={
           <ProtectedRoute>
             <Payment />
