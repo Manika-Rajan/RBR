@@ -72,6 +72,10 @@
   z-index: 2;
 }
 
+.partner-form .mobile-label {
+  top: -2.0rem;
+}
+
 .partner-form .form-control,
 .partner-form .form-select {
   border-radius: 6px;
@@ -157,6 +161,9 @@
     left: 0.8rem;
     font-size: 0.8rem;
   }
+  .partner-form .mobile-label {
+    top: -2.0rem;
+  }
   .partner-form .form-control,
   .partner-form .form-select {
     padding: 0.6rem;
@@ -165,4 +172,3 @@
     width: 80px;
   }
 }
-
