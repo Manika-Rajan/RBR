@@ -119,7 +119,7 @@ const Partner = () => {
                     required
                     aria-label="Mobile number"
                   />
-                  <label htmlFor="mobile" className="form-label">Mobile Number *</label>
+                  <label htmlFor="mobile" className="form-label mobile-label">Mobile Number *</label>
                 </div>
               </div>
               <div className="form-group mb-3">
@@ -174,3 +174,4 @@ const Partner = () => {
 };
 
 export default Partner;
+
