@@ -54,6 +54,7 @@
 
 .partner-form .form-group {
   position: relative;
+  margin-bottom: 1.5rem;
 }
 
 .partner-form .form-label {
@@ -66,13 +67,14 @@
   pointer-events: none;
   background: white;
   padding: 0 0.25rem;
+  z-index: 1;
 }
 
 .partner-form .form-control:focus + .form-label,
 .partner-form .form-control:not(:placeholder-shown) + .form-label,
 .partner-form .form-select:focus + .form-label,
-.partner-form .form-select:not([value=""]) + .form-label {
-  transform: translateY(-1.8rem);
+.partner-form .form-select:not([value=""]:not([value=""])) + .form-label {
+  transform: translateY(-2rem);
   font-size: 0.85rem;
   color: #0263C7;
 }
@@ -83,12 +85,19 @@
   border: 1px solid #ccc;
   padding: 0.75rem;
   transition: border-color 0.3s ease;
+  width: 100%;
 }
 
 .partner-form .form-control:focus,
 .partner-form .form-select:focus {
   border-color: #0263C7;
   box-shadow: 0 0 5px rgba(2, 99, 199, 0.3);
+  outline: none;
+}
+
+.partner-form .input-group .form-select {
+  flex: 0 0 auto;
+  width: 100px;
 }
 
 .submit-btn {
@@ -134,5 +143,19 @@
   }
   .partner-form {
     padding: 1rem;
+  }
+  .partner-form .form-group {
+    margin-bottom: 1.2rem;
+  }
+  .partner-form .form-label {
+    top: 0.5rem;
+    left: 0.8rem;
+  }
+  .partner-form .form-control:focus + .form-label,
+  .partner-form .form-control:not(:placeholder-shown) + .form-label,
+  .partner-form .form-select:focus + .form-label,
+  .partner-form .form-select:not([value=""]:not([value=""])) + .form-label {
+    transform: translateY(-1.5rem);
+    font-size: 0.8rem;
   }
 }
