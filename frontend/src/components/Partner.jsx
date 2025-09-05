@@ -71,6 +71,7 @@ const Partner = () => {
                   onChange={handleInputChange}
                   required
                 >
+                  <option value="" disabled>Select a service</option>
                   {services.map((service) => (
                     <option key={service} value={service}>{service}</option>
                   ))}
@@ -85,6 +86,7 @@ const Partner = () => {
                   name="name"
                   value={formData.name}
                   onChange={handleInputChange}
+                  placeholder="Enter your name"
                   required
                 />
               </div>
@@ -111,6 +113,7 @@ const Partner = () => {
                     value={formData.mobile}
                     onChange={handleInputChange}
                     maxLength={15}
+                    placeholder="Enter mobile number"
                     required
                   />
                 </div>
@@ -124,6 +127,7 @@ const Partner = () => {
                   name="email"
                   value={formData.email}
                   onChange={handleInputChange}
+                  placeholder="Enter your email"
                   required
                 />
               </div>
@@ -136,6 +140,7 @@ const Partner = () => {
                   name="companyEmail"
                   value={formData.companyEmail}
                   onChange={handleInputChange}
+                  placeholder="Enter company email"
                 />
               </div>
               <div className="form-group mb-3">
@@ -147,6 +152,7 @@ const Partner = () => {
                   value={formData.summary}
                   onChange={handleInputChange}
                   rows={4}
+                  placeholder="Provide a brief summary"
                 />
               </div>
               {error && <p className="text-danger animate-error">{error}</p>}
@@ -161,4 +167,3 @@ const Partner = () => {
 };
 
 export default Partner;
-
