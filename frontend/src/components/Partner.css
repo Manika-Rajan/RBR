@@ -74,6 +74,7 @@
 
 .partner-form .mobile-label {
   top: -2.0rem;
+  left: 0.5rem;
 }
 
 .partner-form .form-control,
@@ -100,6 +101,12 @@
 
 .partner-form .input-group .form-control {
   padding: 0.75rem;
+}
+
+.partner-form .input-group > :not(:first-child):not(.dropdown-menu):not(.valid-tooltip):not(.valid-feedback):not(.invalid-tooltip):not(.invalid-feedback) {
+  border-bottom-left-radius: 0;
+  border-top-left-radius: 0;
+  margin-left: -1px;
 }
 
 .submit-btn {
@@ -163,6 +170,7 @@
   }
   .partner-form .mobile-label {
     top: -2.0rem;
+    left: 0.4rem;
   }
   .partner-form .form-control,
   .partner-form .form-select {
@@ -171,4 +179,10 @@
   .partner-form .input-group .form-select {
     width: 80px;
   }
+  .partner-form .input-group > :not(:first-child):not(.dropdown-menu):not(.valid-tooltip):not(.valid-feedback):not(.invalid-tooltip):not(.invalid-feedback) {
+    border-bottom-left-radius: 0;
+    border-top-left-radius: 0;
+    margin-left: -1px;
+  }
 }
+
