@@ -5,7 +5,7 @@ import { useLocation } from 'react-router-dom';
 const Partner = () => {
   const location = useLocation();
   const [formData, setFormData] = useState({
-    service: location.state?.service || 'Sell on our Business Ideas Page',
+    service: location.state?.service || '',
     name: '',
     mobile: '',
     countryCode: '+91',
@@ -62,7 +62,6 @@ const Partner = () => {
             <h3 className="section-title">Partnership Application</h3>
             <form onSubmit={handleSubmit} className="partner-form">
               <div className="form-group mb-3">
-                <label htmlFor="service" className="form-label">Service *</label>
                 <select
                   className="form-select"
                   id="service"
@@ -70,15 +69,16 @@ const Partner = () => {
                   value={formData.service}
                   onChange={handleInputChange}
                   required
+                  aria-label="Select a service"
                 >
                   <option value="" disabled>Select a service</option>
                   {services.map((service) => (
                     <option key={service} value={service}>{service}</option>
                   ))}
                 </select>
+                <label htmlFor="service" className="form-label">Service *</label>
               </div>
               <div className="form-group mb-3">
-                <label htmlFor="name" className="form-label">Name *</label>
                 <input
                   type="text"
                   className="form-control"
@@ -88,16 +88,18 @@ const Partner = () => {
                   onChange={handleInputChange}
                   placeholder="Enter your name"
                   required
+                  aria-label="Name"
                 />
+                <label htmlFor="name" className="form-label">Name *</label>
               </div>
               <div className="form-group mb-3">
-                <label htmlFor="mobile" className="form-label">Mobile Number *</label>
                 <div className="input-group">
                   <select
                     className="form-select w-auto"
                     name="countryCode"
                     value={formData.countryCode}
                     onChange={handleInputChange}
+                    aria-label="Country code"
                   >
                     <option value="+91">+91</option>
                     <option value="+1">+1</option>
@@ -115,11 +117,12 @@ const Partner = () => {
                     maxLength={15}
                     placeholder="Enter mobile number"
                     required
+                    aria-label="Mobile number"
                   />
                 </div>
+                <label htmlFor="mobile" className="form-label">Mobile Number *</label>
               </div>
               <div className="form-group mb-3">
-                <label htmlFor="email" className="form-label">Email *</label>
                 <input
                   type="email"
                   className="form-control"
@@ -129,10 +132,11 @@ const Partner = () => {
                   onChange={handleInputChange}
                   placeholder="Enter your email"
                   required
+                  aria-label="Email"
                 />
+                <label htmlFor="email" className="form-label">Email *</label>
               </div>
               <div className="form-group mb-3">
-                <label htmlFor="companyEmail" className="form-label">Company Email (Optional)</label>
                 <input
                   type="email"
                   className="form-control"
@@ -141,10 +145,11 @@ const Partner = () => {
                   value={formData.companyEmail}
                   onChange={handleInputChange}
                   placeholder="Enter company email"
+                  aria-label="Company email"
                 />
+                <label htmlFor="companyEmail" className="form-label">Company Email (Optional)</label>
               </div>
               <div className="form-group mb-3">
-                <label htmlFor="summary" className="form-label">Summary (Optional)</label>
                 <textarea
                   className="form-control"
                   id="summary"
@@ -153,7 +158,9 @@ const Partner = () => {
                   onChange={handleInputChange}
                   rows={4}
                   placeholder="Provide a brief summary"
+                  aria-label="Summary"
                 />
+                <label htmlFor="summary" className="form-label">Summary (Optional)</label>
               </div>
               {error && <p className="text-danger animate-error">{error}</p>}
               {success && <p className="text-success animate-success">{success}</p>}
@@ -167,3 +174,4 @@ const Partner = () => {
 };
 
 export default Partner;
+
