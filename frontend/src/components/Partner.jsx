@@ -53,7 +53,7 @@ const Partner = () => {
   return (
     <div className="partner-page">
       <div className="hero-section text-center">
-        <h1>Partner with RB Ideas</h1>
+        <h1>Partner with Rajan Business Ideas</h1>
         <p className="lead">Join our ecosystem and grow your business with us!</p>
       </div>
       <div className="container partner-container">
@@ -61,7 +61,7 @@ const Partner = () => {
           <div className="col-md-8 col-12">
             <h3 className="section-title">Partnership Application</h3>
             <form onSubmit={handleSubmit} className="partner-form">
-              <div className="form-group mb-3">
+              <div className={`form-group mb-3 ${formData.service ? 'has-value' : ''}`}>
                 <select
                   className="form-select"
                   id="service"
@@ -174,4 +174,3 @@ const Partner = () => {
 };
 
 export default Partner;
-
