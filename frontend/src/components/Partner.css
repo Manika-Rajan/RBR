@@ -54,7 +54,7 @@
 
 .partner-form .form-group {
   position: relative;
-  margin-bottom: 2rem;
+  margin-bottom: 2.5rem;
 }
 
 .partner-form .form-label {
@@ -72,7 +72,8 @@
 
 .partner-form .form-control:focus + .form-label,
 .partner-form .form-control:not(:placeholder-shown) + .form-label,
-.partner-form .form-select:focus + .form-label {
+.partner-form .form-select:focus + .form-label,
+.partner-form .has-value .form-label {
   transform: translateY(-2.2rem);
   font-size: 0.85rem;
   color: #0263C7;
@@ -82,7 +83,7 @@
 .partner-form .form-select {
   border-radius: 6px;
   border: 1px solid #ccc;
-  padding: 1rem 0.75rem 0.5rem;
+  padding: 1.2rem 0.75rem 0.5rem;
   transition: border-color 0.3s ease;
   width: 100%;
   box-sizing: border-box;
@@ -150,23 +151,25 @@
     padding: 1rem;
   }
   .partner-form .form-group {
-    margin-bottom: 1.5rem;
+    margin-bottom: 2rem;
   }
   .partner-form .form-label {
-    top: 0.5rem;
+    top: 0.6rem;
     left: 0.8rem;
   }
   .partner-form .form-control:focus + .form-label,
   .partner-form .form-control:not(:placeholder-shown) + .form-label,
-  .partner-form .form-select:focus + .form-label {
-    transform: translateY(-1.7rem);
+  .partner-form .form-select:focus + .form-label,
+  .partner-form .has-value .form-label {
+    transform: translateY(-1.8rem);
     font-size: 0.8rem;
   }
   .partner-form .form-control,
   .partner-form .form-select {
-    padding: 0.9rem 0.6rem 0.4rem;
+    padding: 1.1rem 0.6rem 0.4rem;
   }
   .partner-form .input-group .form-select {
     width: 80px;
   }
 }
+
