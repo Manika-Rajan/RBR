@@ -53,7 +53,7 @@ const Partner = () => {
   return (
     <div className="partner-page">
       <div className="hero-section text-center">
-        <h1>Partner with Rajan Business Ideas</h1>
+        <h1>Partner with RB Ideas</h1>
         <p className="lead">Join our ecosystem and grow your business with us!</p>
       </div>
       <div className="container partner-container">
@@ -92,7 +92,7 @@ const Partner = () => {
                 />
                 <label htmlFor="name" className="form-label">Name *</label>
               </div>
-              <div className="form-group mb-3">
+              <div className={`form-group mb-3 ${formData.mobile ? 'has-value' : ''}`}>
                 <div className="input-group">
                   <select
                     className="form-select w-auto"
@@ -119,8 +119,8 @@ const Partner = () => {
                     required
                     aria-label="Mobile number"
                   />
+                  <label htmlFor="mobile" className="form-label">Mobile Number *</label>
                 </div>
-                <label htmlFor="mobile" className="form-label">Mobile Number *</label>
               </div>
               <div className="form-group mb-3">
                 <input
