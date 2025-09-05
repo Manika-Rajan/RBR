@@ -54,7 +54,7 @@
 
 .partner-form .form-group {
   position: relative;
-  margin-bottom: 3.75rem;
+  margin-bottom: 5.6rem;
 }
 
 .partner-form .form-label {
@@ -141,7 +141,7 @@
     padding: 1rem;
   }
   .partner-form .form-group {
-    margin-bottom: 3rem;
+    margin-bottom: 4.5rem;
   }
   .partner-form .form-label {
     top: -1.8rem;
@@ -156,3 +156,4 @@
     width: 80px;
   }
 }
+
