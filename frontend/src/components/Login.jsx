@@ -21,15 +21,17 @@ const Login = React.memo(({ onClose, returnTo }) => {
   const phoneInputRef = useRef(null);
   const otpInputRef = useRef(null);
   const nameInputRef = useRef(null);
+  const hasRedirected = useRef(false); // Prevent redundant navigations
 
   // Check if user is already logged in and redirect appropriately
   useEffect(() => {
+    if (!isModalOpen || hasRedirected.current) return; // Skip if modal closed or already redirected
     const isLoggedIn = localStorage.getItem('isLogin') === 'true' && localStorage.getItem('authToken');
     if (isLoggedIn) {
       const redirectTo = location.pathname === '/' ? '/' : (returnTo === '/payment' || location.pathname.includes('/report-display') ? '/payment' : '/');
       if (location.pathname !== redirectTo) {
-        // Only navigate if not already on the target route
         console.log('User already logged in, redirecting to:', redirectTo);
+        hasRedirected.current = true;
         if (onClose) onClose();
         setIsModalOpen(false);
         navigate(redirectTo, {
@@ -43,27 +45,28 @@ const Login = React.memo(({ onClose, returnTo }) => {
     } else {
       setIsModalOpen(true);
     }
-    // Cleanup to prevent multiple executions
-    return () => {};
-  }, [state.report, returnTo, location, navigate, onClose]);
+  }, [state.report, returnTo, location, navigate, onClose, isModalOpen]);
 
   // Autofocus input when step changes
   useEffect(() => {
-    // Delay focus to ensure DOM is rendered
-    const timer = setTimeout(() => {
-      if (!otpSent && !showProfileForm && phoneInputRef.current) {
-        console.log('Attempting to focus phone input:', phoneInputRef.current);
+    console.log('Autofocus effect triggered, isLoading:', isLoading);
+    const focusInput = () => {
+      if (!otpSent && !showProfileForm && phoneInputRef.current && !isLoading) {
+        console.log('Focusing phone input:', phoneInputRef.current);
         phoneInputRef.current.focus();
-      } else if (otpSent && !showProfileForm && otpInputRef.current) {
-        console.log('Attempting to focus OTP input:', otpInputRef.current);
+      } else if (otpSent && !showProfileForm && otpInputRef.current && !isLoading) {
+        console.log('Focusing OTP input:', otpInputRef.current);
         otpInputRef.current.focus();
-      } else if (showProfileForm && nameInputRef.current) {
-        console.log('Attempting to focus name input:', nameInputRef.current);
+      } else if (showProfileForm && nameInputRef.current && !isLoading) {
+        console.log('Focusing name input:', nameInputRef.current);
         nameInputRef.current.focus();
+      } else {
+        console.log('No input to focus:', { phoneInputRef: !!phoneInputRef.current, otpInputRef: !!otpInputRef.current, nameInputRef: !!nameInputRef.current, isLoading });
       }
-    }, 100); // 100ms delay to ensure DOM readiness
+    };
+    const timer = setTimeout(focusInput, 200); // Increased delay
     return () => clearTimeout(timer);
-  }, [otpSent, showProfileForm, isModalOpen]);
+  }, [otpSent, showProfileForm, isModalOpen, isLoading]);
 
   const sendOtp = async () => {
     if (!phone || phone.length !== 10 || !/^\d+$/.test(phone)) {
@@ -163,7 +166,7 @@ const Login = React.memo(({ onClose, returnTo }) => {
             } catch (e) {
               console.error('Failed to parse profile body:', profileData.body);
               setError('Failed to parse profile data');
-              setShowProfileForm(true); // Show form on parse failure
+              setShowProfileForm(true);
               setIsLoading(false);
               return;
             }
@@ -188,7 +191,7 @@ const Login = React.memo(({ onClose, returnTo }) => {
           if (onClose) onClose();
           setIsModalOpen(false);
           const redirectTo = location.pathname === '/' ? '/' : (returnTo === '/payment' || location.pathname.includes('/report-display') ? '/payment' : '/');
-          console.log('Redirecting to:', redirectTo, { pathname: location.pathname, returnTo, state: location.state });
+          console.log('Redirecting to:', redirectTo);
           navigate(redirectTo, {
             replace: true,
             state: {
@@ -379,6 +382,7 @@ const Login = React.memo(({ onClose, returnTo }) => {
                 onChange={handleChange(setEmail)}
                 maxLength={100}
                 disabled={isLoading}
+                ref={nameInputRef}
               />
             </div>
           )}
