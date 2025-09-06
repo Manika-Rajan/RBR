@@ -21,11 +21,11 @@ const Login = React.memo(({ onClose, returnTo }) => {
   const phoneInputRef = useRef(null);
   const otpInputRef = useRef(null);
   const nameInputRef = useRef(null);
-  const hasRedirected = useRef(false); // Prevent redundant navigations
+  const emailInputRef = useRef(null);
+  const hasRedirected = useRef(false);
 
-  // Check if user is already logged in and redirect appropriately
   useEffect(() => {
-    if (!isModalOpen || hasRedirected.current) return; // Skip if modal closed or already redirected
+    if (!isModalOpen || hasRedirected.current) return;
     const isLoggedIn = localStorage.getItem('isLogin') === 'true' && localStorage.getItem('authToken');
     if (isLoggedIn) {
       const redirectTo = location.pathname === '/' ? '/' : (returnTo === '/payment' || location.pathname.includes('/report-display') ? '/payment' : '/');
@@ -47,7 +47,6 @@ const Login = React.memo(({ onClose, returnTo }) => {
     }
   }, [state.report, returnTo, location, navigate, onClose, isModalOpen]);
 
-  // Autofocus input when step changes
   useEffect(() => {
     console.log('Autofocus effect triggered, isLoading:', isLoading);
     const focusInput = () => {
@@ -64,7 +63,7 @@ const Login = React.memo(({ onClose, returnTo }) => {
         console.log('No input to focus:', { phoneInputRef: !!phoneInputRef.current, otpInputRef: !!otpInputRef.current, nameInputRef: !!nameInputRef.current, isLoading });
       }
     };
-    const timer = setTimeout(focusInput, 200); // Increased delay
+    const timer = setTimeout(focusInput, 200);
     return () => clearTimeout(timer);
   }, [otpSent, showProfileForm, isModalOpen, isLoading]);
 
@@ -382,7 +381,7 @@ const Login = React.memo(({ onClose, returnTo }) => {
                 onChange={handleChange(setEmail)}
                 maxLength={100}
                 disabled={isLoading}
-                ref={nameInputRef}
+                ref={emailInputRef}
               />
             </div>
           )}
