@@ -1,28 +1,34 @@
-/* .login-popup-container {
+
+### Updated `Login.css`
+Below is the merged `Login.css`, incorporating your provided styles, uncommenting `.login-popup-container`, and adding fixes for text styling and input focus.
+
+```css
+.login-popup-container {
   position: fixed;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
+  background: rgba(0, 0, 0, 0.5);
   display: flex;
   justify-content: center;
   align-items: center;
   z-index: 1000;
-} */
-
-/* .login-popup-container:not(.success-popup-container) {
-  background: rgba(0, 0, 0, 0.5);
-} */
+}
 
 .login-popup {
   margin: auto;
   text-align: center;
   background: white;
-  padding: 20px;
+  padding: 30px;
+  border-radius: 8px;
+  max-width: 400px;
+  width: 90%;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
 .login-title {
-  font-family: 'Baskerville Old Face';
+  font-family: 'Baskerville Old Face', serif;
   font-style: normal;
   font-weight: 400;
   font-size: 32px;
@@ -32,7 +38,7 @@
 }
 
 .login-paragraph {
-  font-family: 'Open Sans';
+  font-family: 'Open Sans', sans-serif;
   font-style: normal;
   font-weight: 400;
   font-size: 18px;
@@ -41,139 +47,119 @@
   color: #293750;
 }
 
-.login-button {
-  background: #0263C7;
-  box-shadow: 4px 4px 15px rgba(78, 78, 78, 0.25);
-  border-radius: 9px;
-  padding: 8px 16px;
-  gap: 10px;
-  width: 114px;
-  height: 38px;
-  border: none;
-  color: white;
-  text-align: center;
-  cursor: pointer;
-}
-
-.login-button:hover {
-  background: #0250a3;
-}
-
-.login-button:disabled {
-  background: #a3b8d5;
-  cursor: not-allowed;
-}
-
 .login-phone-input {
   display: flex;
-  justify-content: space-between;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 20px;
 }
 
 .otp-fields {
   display: flex;
-  justify-content: space-around;
-  width: 50%;
+  justify-content: center;
+  width: 80%;
   margin: auto;
   margin-bottom: 30px;
 }
 
 .otp-fields input {
-  width: 50%;
+  width: 100%;
   border: none;
   border-bottom: 1px solid grey;
   text-align: center;
+  font-family: 'Open Sans', sans-serif;
+  font-size: 16px;
 }
 
 .otp-fields input:focus {
   outline: none;
+  border-bottom: 1px solid #0263c7;
 }
 
-.user-details input {
+.profile-fields {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  width: 80%;
+  margin: auto;
+  margin-bottom: 20px;
+}
+
+.profile-fields input {
   border: none;
   border-bottom: 1px solid grey;
   text-align: center;
   width: 100%;
   padding: 8px;
-  margin-bottom: 10px;
+  font-family: 'Open Sans', sans-serif;
+  font-size: 16px;
 }
 
-.user-details input:focus {
+.profile-fields input:focus {
   outline: none;
   border-bottom: 1px solid #0263c7;
 }
 
-.success-popup-container {
-  background: none;
+.btn-primary {
+  background: #0263C7;
+  box-shadow: 4px 4px 15px rgba(78, 78, 78, 0.25);
+  border-radius: 9px;
+  padding: 8px 16px;
+  width: 50%;
+  border: none;
+  color: white;
+  font-family: 'Open Sans', sans-serif;
+  font-size: 16px;
+  cursor: pointer;
 }
 
-/* .success-popup {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  z-index: 1001;
-  background: transparent;
-  padding: 0;
-} */
-
-.success-message {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background-color: #e6f4ea;
-  padding: 15px;
-  border-radius: 8px;
-  margin: 20px auto;
-  width: 260px;
-  animation: fadeIn 0.5s ease-in;
+.btn-primary:hover {
+  background: #0250a3;
 }
 
-.success-message p {
-  font-family: 'Open Sans';
-  font-style: normal;
-  font-weight: 600;
-  font-size: 18px;
-  color: #28a745;
-  margin-left: 10px;
+.btn-primary:disabled {
+  background: #a3b8d5;
+  cursor: not-allowed;
 }
 
-.checkmark {
-  width: 40px;
-  height: 40px;
+.form-select {
+  font-family: 'Open Sans', sans-serif;
+  font-size: 16px;
 }
 
-.checkmark-circle {
-  stroke: #28a745;
-  stroke-width: 2;
-  stroke-miterlimit: 10;
-  stroke-dasharray: 166;
-  stroke-dashoffset: 166;
-  animation: stroke 0.6s cubic-bezier(0.65, 0, 0.45, 1) forwards;
+.form-control {
+  font-family: 'Open Sans', sans-serif;
+  font-size: 16px;
+  padding: 8px;
+  border-radius: 4px;
 }
 
-.checkmark-check {
-  stroke: #28a745;
-  stroke-width: 2;
-  stroke-miterlimit: 10;
-  stroke-dasharray: 48;
-  stroke-dashoffset: 48;
-  animation: stroke 0.3s cubic-bezier(0.65, 0, 0.45, 1) 0.8s forwards;
-}
-
-@keyframes stroke {
-  100% {
-    stroke-dashoffset: 0;
-  }
-}
-
-@keyframes fadeIn {
-  0% { opacity: 0; }
-  100% { opacity: 1; }
+.error-message {
+  font-family: 'Open Sans', sans-serif;
+  font-size: 16px;
+  color: #dc3545;
+  margin-top: 10px;
 }
 
 .loading-message {
-  font-family: 'Open Sans';
+  font-family: 'Open Sans', sans-serif;
   font-size: 16px;
   color: #293750;
   margin-top: 10px;
+}
+
+/* Font imports */
+@import url('https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600&display=swap');
+/* Note: Baskerville Old Face may need a custom import or fallback */
+@font-face {
+  font-family: 'Baskerville Old Face';
+  src: local('Baskerville Old Face'), local('BaskervilleOldFace'), serif;
+}
+
+/* Remove unused success styles if not needed */
+.success-message {
+  display: none; /* Hide unless used */
 }
