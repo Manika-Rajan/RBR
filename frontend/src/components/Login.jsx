@@ -7,7 +7,7 @@ const Login = React.memo(({ onClose, returnTo }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { state, dispatch: cxtDispatch } = useStore();
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [modalVisible, setModalVisible] = useState(false); // Local control
   const [phone, setPhone] = useState(
     state.userInfo?.phone ? state.userInfo.phone.replace('+91', '') : ''
   );
@@ -25,15 +25,16 @@ const Login = React.memo(({ onClose, returnTo }) => {
   const hasRedirected = useRef(false);
 
   useEffect(() => {
-    if (!isModalOpen || hasRedirected.current) return;
+    console.log('Login useEffect triggered, checking login status');
+    if (!modalVisible || hasRedirected.current) return;
     const isLoggedIn = localStorage.getItem('isLogin') === 'true' && localStorage.getItem('authToken');
     if (isLoggedIn) {
       const redirectTo = location.pathname === '/' ? '/' : (returnTo === '/payment' || location.pathname.includes('/report-display') ? '/payment' : '/');
       if (location.pathname !== redirectTo) {
-        console.log('User already logged in, redirecting to:', redirectTo);
+        console.log('User logged in, redirecting to:', redirectTo);
         hasRedirected.current = true;
         if (onClose) onClose();
-        setIsModalOpen(false);
+        setModalVisible(false);
         navigate(redirectTo, {
           replace: true,
           state: {
@@ -43,12 +44,13 @@ const Login = React.memo(({ onClose, returnTo }) => {
         });
       }
     } else {
-      console.log('Opening login modal');
-      setIsModalOpen(true);
+      console.log('No user logged in, setting modal visible');
+      setModalVisible(true);
     }
-  }, [state.report, returnTo, location, navigate, onClose, isModalOpen]);
+  }, [state.report, returnTo, location, navigate, onClose, modalVisible]);
 
   useEffect(() => {
+    console.log('Autofocus effect triggered, modalVisible:', modalVisible, 'isLoading:', isLoading);
     const focusInput = () => {
       if (!otpSent && !showProfileForm && phoneInputRef.current && !isLoading) {
         console.log('Focusing phone input:', phoneInputRef.current);
@@ -59,11 +61,13 @@ const Login = React.memo(({ onClose, returnTo }) => {
       } else if (showProfileForm && nameInputRef.current && !isLoading) {
         console.log('Focusing name input:', nameInputRef.current);
         nameInputRef.current.focus();
+      } else {
+        console.log('No input to focus, state:', { otpSent, showProfileForm, isLoading });
       }
     };
     const timer = setTimeout(focusInput, 200);
     return () => clearTimeout(timer);
-  }, [otpSent, showProfileForm, isModalOpen, isLoading]);
+  }, [otpSent, showProfileForm, modalVisible, isLoading]);
 
   const sendOtp = async () => {
     if (!phone || phone.length !== 10 || !/^\d+$/.test(phone)) {
@@ -186,7 +190,7 @@ const Login = React.memo(({ onClose, returnTo }) => {
           localStorage.setItem('userInfo', JSON.stringify(enrichedUser));
           console.log('enrichedUser dispatched:', enrichedUser);
           if (onClose) onClose();
-          setIsModalOpen(false);
+          setModalVisible(false);
           const redirectTo = location.pathname === '/' ? '/' : (returnTo === '/payment' || location.pathname.includes('/report-display') ? '/payment' : '/');
           console.log('Redirecting to:', redirectTo);
           navigate(redirectTo, {
@@ -261,7 +265,7 @@ const Login = React.memo(({ onClose, returnTo }) => {
         localStorage.setItem('userInfo', JSON.stringify(enrichedUser));
         console.log('enrichedUser dispatched after profile update:', enrichedUser);
         if (onClose) onClose();
-        setIsModalOpen(false);
+        setModalVisible(false);
         const redirectTo = location.pathname === '/' ? '/' : (returnTo === '/payment' || location.pathname.includes('/report-display') ? '/payment' : '/');
         console.log('Redirecting to:', redirectTo);
         navigate(redirectTo, {
@@ -299,7 +303,7 @@ const Login = React.memo(({ onClose, returnTo }) => {
     <div className="login-popup-container">
       <div
         className="login-popup"
-        style={{ display: isModalOpen ? 'block' : 'none' }}
+        style={{ display: modalVisible ? 'block' : 'none' }}
       >
         <div className="login-title">
           <h3>
@@ -399,4 +403,3 @@ const Login = React.memo(({ onClose, returnTo }) => {
 });
 
 export default Login;
-
