@@ -59,8 +59,6 @@ const Login = React.memo(({ onClose, returnTo }) => {
       } else if (showProfileForm && nameInputRef.current && !isLoading) {
         console.log('Focusing name input:', nameInputRef.current);
         nameInputRef.current.focus();
-      } else {
-        console.log('No input to focus:', { phoneInputRef: !!phoneInputRef.current, otpInputRef: !!otpInputRef.current, nameInputRef: !!nameInputRef.current, isLoading });
       }
     };
     const timer = setTimeout(focusInput, 200);
@@ -303,17 +301,15 @@ const Login = React.memo(({ onClose, returnTo }) => {
         className="login-popup"
         style={{ display: isModalOpen ? 'block' : 'none' }}
       >
-        {!isLoading && !error && (
-          <div className="login-title">
-            <h3>
-              {showProfileForm
-                ? 'Complete Your Profile'
-                : otpSent
-                ? 'Verify OTP'
-                : 'Please Enter Your Mobile Number'}
-            </h3>
-          </div>
-        )}
+        <div className="login-title">
+          <h3>
+            {showProfileForm
+              ? 'Complete Your Profile'
+              : otpSent
+              ? 'Verify OTP'
+              : 'Please Enter Your Mobile Number'}
+          </h3>
+        </div>
         <div className="login-paragraph">
           {!otpSent && !showProfileForm && (
             <p>
