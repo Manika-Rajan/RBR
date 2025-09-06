@@ -1,19 +1,15 @@
-
-### Updated `Login.css`
-Below is the merged `Login.css`, incorporating your provided styles, uncommenting `.login-popup-container`, and adding fixes for text styling and input focus.
-
-```css
+/* Restored original with uncommented .login-popup-container for visibility */
 .login-popup-container {
   position: fixed;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgba(0, 0, 0, 0.5);
   display: flex;
   justify-content: center;
   align-items: center;
   z-index: 1000;
+  background: rgba(0, 0, 0, 0.5);
 }
 
 .login-popup {
@@ -28,7 +24,7 @@ Below is the merged `Login.css`, incorporating your provided styles, uncommentin
 }
 
 .login-title {
-  font-family: 'Baskerville Old Face', serif;
+  font-family: 'Baskerville Old Face', 'Times New Roman', serif;
   font-style: normal;
   font-weight: 400;
   font-size: 32px;
@@ -58,7 +54,7 @@ Below is the merged `Login.css`, incorporating your provided styles, uncommentin
 .otp-fields {
   display: flex;
   justify-content: center;
-  width: 80%;
+  width: 50%;
   margin: auto;
   margin-bottom: 30px;
 }
@@ -125,16 +121,16 @@ Below is the merged `Login.css`, incorporating your provided styles, uncommentin
   cursor: not-allowed;
 }
 
-.form-select {
-  font-family: 'Open Sans', sans-serif;
-  font-size: 16px;
-}
-
 .form-control {
   font-family: 'Open Sans', sans-serif;
   font-size: 16px;
   padding: 8px;
   border-radius: 4px;
+}
+
+.form-select {
+  font-family: 'Open Sans', sans-serif;
+  font-size: 16px;
 }
 
 .error-message {
@@ -151,15 +147,60 @@ Below is the merged `Login.css`, incorporating your provided styles, uncommentin
   margin-top: 10px;
 }
 
-/* Font imports */
-@import url('https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600&display=swap');
-/* Note: Baskerville Old Face may need a custom import or fallback */
-@font-face {
-  font-family: 'Baskerville Old Face';
-  src: local('Baskerville Old Face'), local('BaskervilleOldFace'), serif;
+.success-message {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #e6f4ea;
+  padding: 15px;
+  border-radius: 8px;
+  margin: 20px auto;
+  width: 260px;
+  animation: fadeIn 0.5s ease-in;
 }
 
-/* Remove unused success styles if not needed */
-.success-message {
-  display: none; /* Hide unless used */
+.success-message p {
+  font-family: 'Open Sans', sans-serif;
+  font-style: normal;
+  font-weight: 600;
+  font-size: 18px;
+  color: #28a745;
+  margin-left: 10px;
 }
+
+.checkmark {
+  width: 40px;
+  height: 40px;
+}
+
+.checkmark-circle {
+  stroke: #28a745;
+  stroke-width: 2;
+  stroke-miterlimit: 10;
+  stroke-dasharray: 166;
+  stroke-dashoffset: 166;
+  animation: stroke 0.6s cubic-bezier(0.65, 0, 0.45, 1) forwards;
+}
+
+.checkmark-check {
+  stroke: #28a745;
+  stroke-width: 2;
+  stroke-miterlimit: 10;
+  stroke-dasharray: 48;
+  stroke-dashoffset: 48;
+  animation: stroke 0.3s cubic-bezier(0.65, 0, 0.45, 1) 0.8s forwards;
+}
+
+@keyframes stroke {
+  100% {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes fadeIn {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+/* Font import for Open Sans */
+@import url('https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600&display=swap');
