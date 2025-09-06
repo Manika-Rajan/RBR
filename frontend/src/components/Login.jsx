@@ -3,11 +3,11 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import './Login.css';
 import { useStore } from '../Store';
 
-const Login = React.memo(({ onClose, returnTo }) => {
+const Login = React.memo(({ isOpen, onClose, returnTo }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { state, dispatch: cxtDispatch } = useStore();
-  const [modalVisible, setModalVisible] = useState(false); // Local control
+  const [modalVisible, setModalVisible] = useState(isOpen || false); // Initialize from prop
   const [phone, setPhone] = useState(
     state.userInfo?.phone ? state.userInfo.phone.replace('+91', '') : ''
   );
@@ -25,7 +25,7 @@ const Login = React.memo(({ onClose, returnTo }) => {
   const hasRedirected = useRef(false);
 
   useEffect(() => {
-    console.log('Login useEffect triggered, checking login status');
+    console.log('Login useEffect triggered, modalVisible:', modalVisible, 'isLoggedIn:', localStorage.getItem('isLogin') === 'true' && localStorage.getItem('authToken'));
     if (!modalVisible || hasRedirected.current) return;
     const isLoggedIn = localStorage.getItem('isLogin') === 'true' && localStorage.getItem('authToken');
     if (isLoggedIn) {
@@ -43,14 +43,12 @@ const Login = React.memo(({ onClose, returnTo }) => {
           },
         });
       }
-    } else {
-      console.log('No user logged in, setting modal visible');
-      setModalVisible(true);
     }
-  }, [state.report, returnTo, location, navigate, onClose, modalVisible]);
+  }, [modalVisible, state.report, returnTo, location, navigate, onClose]);
 
   useEffect(() => {
     console.log('Autofocus effect triggered, modalVisible:', modalVisible, 'isLoading:', isLoading);
+    if (!modalVisible) return; // Skip if not visible
     const focusInput = () => {
       if (!otpSent && !showProfileForm && phoneInputRef.current && !isLoading) {
         console.log('Focusing phone input:', phoneInputRef.current);
@@ -403,3 +401,4 @@ const Login = React.memo(({ onClose, returnTo }) => {
 });
 
 export default Login;
+
