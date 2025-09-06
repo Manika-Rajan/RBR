@@ -9,7 +9,7 @@ const Login = React.memo(({ onClose, returnTo }) => {
   const { state, dispatch: cxtDispatch } = useStore();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [phone, setPhone] = useState(
-    state.phone ? state.phone.replace('+91', '') : ''
+    state.userInfo?.phone ? state.userInfo.phone.replace('+91', '') : ''
   );
   const [otp, setOtp] = useState('');
   const [otpSent, setOtpSent] = useState(false);
@@ -18,13 +18,14 @@ const Login = React.memo(({ onClose, returnTo }) => {
   const phoneInputRef = useRef(null);
   const otpInputRef = useRef(null);
 
-  // Check if user is already logged in and redirect to /payment
+  // Check if user is already logged in and redirect appropriately
   useEffect(() => {
-    if (state.isLogin && localStorage.getItem('authToken')) {
-      console.log('User already logged in, redirecting to:', returnTo || '/payment');
+    const isLoggedIn = localStorage.getItem('isLogin') === 'true' && localStorage.getItem('authToken');
+    if (isLoggedIn) {
+      console.log('User already logged in (localStorage), redirecting to:', location.pathname === '/' ? '/' : (returnTo || '/payment'));
       if (onClose) onClose();
       setIsModalOpen(false);
-      const redirectTo = returnTo === '/payment' || location.pathname.includes('/report-display') ? '/payment' : '/';
+      const redirectTo = location.pathname === '/' ? '/' : (returnTo === '/payment' || location.pathname.includes('/report-display') ? '/payment' : '/');
       navigate(redirectTo, {
         replace: true,
         state: {
@@ -35,7 +36,7 @@ const Login = React.memo(({ onClose, returnTo }) => {
     } else {
       setIsModalOpen(true);
     }
-  }, [state.isLogin, state.report, returnTo, location, navigate, onClose]);
+  }, [state.report, returnTo, location, navigate, onClose]);
 
   // Autofocus input when step changes
   useEffect(() => {
@@ -173,10 +174,7 @@ const Login = React.memo(({ onClose, returnTo }) => {
         if (onClose) onClose();
         setIsModalOpen(false);
         console.log('Redirect debug - returnTo:', returnTo, 'location.pathname:', location.pathname, 'location.state:', location.state);
-        let redirectTo = '/';
-        if (returnTo === '/payment' || location.pathname.includes('/report-display')) {
-          redirectTo = '/payment';
-        }
+        const redirectTo = location.pathname === '/' ? '/' : (returnTo === '/payment' || location.pathname.includes('/report-display') ? '/payment' : '/');
         console.log('Navigating to:', redirectTo);
         navigate(redirectTo, {
           replace: true,
