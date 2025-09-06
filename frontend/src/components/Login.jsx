@@ -26,32 +26,44 @@ const Login = React.memo(({ onClose, returnTo }) => {
   useEffect(() => {
     const isLoggedIn = localStorage.getItem('isLogin') === 'true' && localStorage.getItem('authToken');
     if (isLoggedIn) {
-      console.log('User already logged in (localStorage), redirecting to:', location.pathname === '/' ? '/' : (returnTo || '/payment'));
-      if (onClose) onClose();
-      setIsModalOpen(false);
       const redirectTo = location.pathname === '/' ? '/' : (returnTo === '/payment' || location.pathname.includes('/report-display') ? '/payment' : '/');
-      navigate(redirectTo, {
-        replace: true,
-        state: {
-          fileKey: location.state?.fileKey || state.report?.fileKey,
-          reportId: location.state?.reportId || state.report?.reportId,
-        },
-      });
+      if (location.pathname !== redirectTo) {
+        // Only navigate if not already on the target route
+        console.log('User already logged in, redirecting to:', redirectTo);
+        if (onClose) onClose();
+        setIsModalOpen(false);
+        navigate(redirectTo, {
+          replace: true,
+          state: {
+            fileKey: location.state?.fileKey || state.report?.fileKey,
+            reportId: location.state?.reportId || state.report?.reportId,
+          },
+        });
+      }
     } else {
       setIsModalOpen(true);
     }
+    // Cleanup to prevent multiple executions
+    return () => {};
   }, [state.report, returnTo, location, navigate, onClose]);
 
   // Autofocus input when step changes
   useEffect(() => {
-    if (!otpSent && !showProfileForm && phoneInputRef.current) {
-      phoneInputRef.current.focus();
-    } else if (otpSent && !showProfileForm && otpInputRef.current) {
-      otpInputRef.current.focus();
-    } else if (showProfileForm && nameInputRef.current) {
-      nameInputRef.current.focus();
-    }
-  }, [otpSent, showProfileForm]);
+    // Delay focus to ensure DOM is rendered
+    const timer = setTimeout(() => {
+      if (!otpSent && !showProfileForm && phoneInputRef.current) {
+        console.log('Attempting to focus phone input:', phoneInputRef.current);
+        phoneInputRef.current.focus();
+      } else if (otpSent && !showProfileForm && otpInputRef.current) {
+        console.log('Attempting to focus OTP input:', otpInputRef.current);
+        otpInputRef.current.focus();
+      } else if (showProfileForm && nameInputRef.current) {
+        console.log('Attempting to focus name input:', nameInputRef.current);
+        nameInputRef.current.focus();
+      }
+    }, 100); // 100ms delay to ensure DOM readiness
+    return () => clearTimeout(timer);
+  }, [otpSent, showProfileForm, isModalOpen]);
 
   const sendOtp = async () => {
     if (!phone || phone.length !== 10 || !/^\d+$/.test(phone)) {
@@ -150,10 +162,14 @@ const Login = React.memo(({ onClose, returnTo }) => {
               userProfile = JSON.parse(profileData.body);
             } catch (e) {
               console.error('Failed to parse profile body:', profileData.body);
+              setError('Failed to parse profile data');
+              setShowProfileForm(true); // Show form on parse failure
+              setIsLoading(false);
+              return;
             }
           }
           if (userProfile?.name === phoneNumber || Object.keys(userProfile).length === 0) {
-            // New user: show profile form
+            console.log('New user detected, showing profile form');
             setShowProfileForm(true);
             setIsLoading(false);
             return;
@@ -171,9 +187,8 @@ const Login = React.memo(({ onClose, returnTo }) => {
           console.log('enrichedUser dispatched:', enrichedUser);
           if (onClose) onClose();
           setIsModalOpen(false);
-          console.log('Redirect debug - returnTo:', returnTo, 'location.pathname:', location.pathname, 'location.state:', location.state);
           const redirectTo = location.pathname === '/' ? '/' : (returnTo === '/payment' || location.pathname.includes('/report-display') ? '/payment' : '/');
-          console.log('Navigating to:', redirectTo);
+          console.log('Redirecting to:', redirectTo, { pathname: location.pathname, returnTo, state: location.state });
           navigate(redirectTo, {
             replace: true,
             state: {
@@ -183,7 +198,8 @@ const Login = React.memo(({ onClose, returnTo }) => {
           });
         } catch (profileErr) {
           console.error('Profile fetch failed:', profileErr);
-          setShowProfileForm(true); // Show form on profile fetch failure (new user)
+          setError('Failed to fetch profile, please complete your profile');
+          setShowProfileForm(true);
           setIsLoading(false);
         }
       } else {
@@ -247,7 +263,7 @@ const Login = React.memo(({ onClose, returnTo }) => {
         if (onClose) onClose();
         setIsModalOpen(false);
         const redirectTo = location.pathname === '/' ? '/' : (returnTo === '/payment' || location.pathname.includes('/report-display') ? '/payment' : '/');
-        console.log('Navigating to:', redirectTo);
+        console.log('Redirecting to:', redirectTo);
         navigate(redirectTo, {
           replace: true,
           state: {
