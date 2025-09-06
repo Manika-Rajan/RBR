@@ -18,11 +18,26 @@ const Login = React.memo(({ onClose, returnTo }) => {
   const phoneInputRef = useRef(null);
   const otpInputRef = useRef(null);
 
+  // Check if user is already logged in and redirect to /payment
   useEffect(() => {
-    setIsModalOpen(true);
-  }, [returnTo]);
+    if (state.isLogin && localStorage.getItem('authToken')) {
+      console.log('User already logged in, redirecting to:', returnTo || '/payment');
+      if (onClose) onClose();
+      setIsModalOpen(false);
+      const redirectTo = returnTo === '/payment' || location.pathname.includes('/report-display') ? '/payment' : '/';
+      navigate(redirectTo, {
+        replace: true,
+        state: {
+          fileKey: location.state?.fileKey || state.report?.fileKey,
+          reportId: location.state?.reportId || state.report?.reportId,
+        },
+      });
+    } else {
+      setIsModalOpen(true);
+    }
+  }, [state.isLogin, state.report, returnTo, location, navigate, onClose]);
 
-  // ✅ Autofocus input when step changes
+  // Autofocus input when step changes
   useEffect(() => {
     if (!otpSent && phoneInputRef.current) {
       phoneInputRef.current.focus();
@@ -80,10 +95,8 @@ const Login = React.memo(({ onClose, returnTo }) => {
         }
       );
       const data = await response.json();
-      console.log('verify-otp response:', data); // Debug response
-
+      console.log('verify-otp response:', data);
       if (response.status === 200) {
-        // Parse the body string
         let parsedBody;
         try {
           parsedBody = JSON.parse(data.body);
@@ -93,7 +106,6 @@ const Login = React.memo(({ onClose, returnTo }) => {
           setIsLoading(false);
           return;
         }
-
         const { token } = parsedBody;
         if (!token) {
           console.error('No token in parsed body:', parsedBody);
@@ -101,8 +113,6 @@ const Login = React.memo(({ onClose, returnTo }) => {
           setIsLoading(false);
           return;
         }
-
-        // ✅ Step 1: Dispatch minimal login info with token
         const baseUser = {
           isLogin: true,
           userId: phoneNumber,
@@ -110,11 +120,9 @@ const Login = React.memo(({ onClose, returnTo }) => {
           token,
         };
         cxtDispatch({ type: 'USER_LOGIN', payload: baseUser });
-        localStorage.setItem('authToken', token); // Store token
+        localStorage.setItem('authToken', token);
         localStorage.setItem('userInfo', JSON.stringify(baseUser));
-        console.log('baseUser dispatched:', baseUser); // Debug dispatch
-
-        // ✅ Step 2: Immediately fetch full profile from DynamoDB
+        console.log('baseUser dispatched:', baseUser);
         try {
           const profileRes = await fetch(
             'https://eg3s8q87p7.execute-api.ap-south-1.amazonaws.com/default/manage-user-profile',
@@ -128,10 +136,8 @@ const Login = React.memo(({ onClose, returnTo }) => {
             }
           );
           const profileData = await profileRes.json();
-          console.log('manage-user-profile response:', profileData); // Debug profile response
+          console.log('manage-user-profile response:', profileData);
           let userProfile = profileData;
-
-          // 🔧 Fix: parse nested body JSON if exists
           if (profileData.body) {
             try {
               userProfile = JSON.parse(profileData.body);
@@ -139,7 +145,6 @@ const Login = React.memo(({ onClose, returnTo }) => {
               console.error('Failed to parse profile body:', profileData.body);
             }
           }
-
           const enrichedUser = {
             ...baseUser,
             name: userProfile.name || 'User Name',
@@ -150,8 +155,7 @@ const Login = React.memo(({ onClose, returnTo }) => {
           cxtDispatch({ type: 'USER_LOGIN', payload: enrichedUser });
           localStorage.setItem('authToken', token);
           localStorage.setItem('userInfo', JSON.stringify(enrichedUser));
-          console.log('enrichedUser dispatched:', enrichedUser); // Debug dispatch
-
+          console.log('enrichedUser dispatched:', enrichedUser);
         } catch (profileErr) {
           console.error('Profile fetch failed:', profileErr);
           const fallbackUser = {
@@ -164,24 +168,21 @@ const Login = React.memo(({ onClose, returnTo }) => {
           cxtDispatch({ type: 'USER_LOGIN', payload: fallbackUser });
           localStorage.setItem('authToken', token);
           localStorage.setItem('userInfo', JSON.stringify(fallbackUser));
-          console.log('fallbackUser dispatched:', fallbackUser); // Debug dispatch
+          console.log('fallbackUser dispatched:', fallbackUser);
         }
-
         if (onClose) onClose();
         setIsModalOpen(false);
-
-        // ✅ Conditional redirect logic for Buy Now
-        console.log('Redirect debug - returnTo:', returnTo, 'location.pathname:', location.pathname, 'location.state:', location.state); // Debug redirect
+        console.log('Redirect debug - returnTo:', returnTo, 'location.pathname:', location.pathname, 'location.state:', location.state);
         let redirectTo = '/';
         if (returnTo === '/payment' || location.pathname.includes('/report-display')) {
           redirectTo = '/payment';
         }
-        console.log('Navigating to:', redirectTo); // Debug navigation
+        console.log('Navigating to:', redirectTo);
         navigate(redirectTo, {
           replace: true,
           state: {
-            fileKey: location.state?.fileKey || state.fileKey,
-            reportId: location.state?.reportId || state.reportId,
+            fileKey: location.state?.fileKey || state.report?.fileKey,
+            reportId: location.state?.reportId || state.report?.reportId,
           },
         });
       } else {
@@ -221,7 +222,6 @@ const Login = React.memo(({ onClose, returnTo }) => {
             </p>
           )}
         </div>
-        {/* ✅ Form handles Enter key */}
         <form onSubmit={handleSubmit}>
           {!otpSent ? (
             <div
