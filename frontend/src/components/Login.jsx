@@ -15,37 +15,57 @@ const Login = React.memo(({ onClose, returnTo }) => {
   const [otpSent, setOtpSent] = useState(false);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [showProfileForm, setShowProfileForm] = useState(false);
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
   const phoneInputRef = useRef(null);
   const otpInputRef = useRef(null);
+  const nameInputRef = useRef(null);
+  const emailInputRef = useRef(null);
+  const hasRedirected = useRef(false);
 
-  // Check if user is already logged in and redirect appropriately
   useEffect(() => {
+    if (!isModalOpen || hasRedirected.current) return;
     const isLoggedIn = localStorage.getItem('isLogin') === 'true' && localStorage.getItem('authToken');
     if (isLoggedIn) {
-      console.log('User already logged in (localStorage), redirecting to:', location.pathname === '/' ? '/' : (returnTo || '/payment'));
-      if (onClose) onClose();
-      setIsModalOpen(false);
       const redirectTo = location.pathname === '/' ? '/' : (returnTo === '/payment' || location.pathname.includes('/report-display') ? '/payment' : '/');
-      navigate(redirectTo, {
-        replace: true,
-        state: {
-          fileKey: location.state?.fileKey || state.report?.fileKey,
-          reportId: location.state?.reportId || state.report?.reportId,
-        },
-      });
+      if (location.pathname !== redirectTo) {
+        console.log('User already logged in, redirecting to:', redirectTo);
+        hasRedirected.current = true;
+        if (onClose) onClose();
+        setIsModalOpen(false);
+        navigate(redirectTo, {
+          replace: true,
+          state: {
+            fileKey: location.state?.fileKey || state.report?.fileKey,
+            reportId: location.state?.reportId || state.report?.reportId,
+          },
+        });
+      }
     } else {
+      console.log('Opening login modal');
       setIsModalOpen(true);
     }
-  }, [state.report, returnTo, location, navigate, onClose]);
+  }, [state.report, returnTo, location, navigate, onClose, isModalOpen]);
 
-  // Autofocus input when step changes
   useEffect(() => {
-    if (!otpSent && phoneInputRef.current) {
-      phoneInputRef.current.focus();
-    } else if (otpSent && otpInputRef.current) {
-      otpInputRef.current.focus();
-    }
-  }, [otpSent, isModalOpen]);
+    const focusInput = () => {
+      if (!otpSent && !showProfileForm && phoneInputRef.current && !isLoading) {
+        console.log('Focusing phone input:', phoneInputRef.current);
+        phoneInputRef.current.focus();
+      } else if (otpSent && !showProfileForm && otpInputRef.current && !isLoading) {
+        console.log('Focusing OTP input:', otpInputRef.current);
+        otpInputRef.current.focus();
+      } else if (showProfileForm && nameInputRef.current && !isLoading) {
+        console.log('Focusing name input:', nameInputRef.current);
+        nameInputRef.current.focus();
+      } else {
+        console.log('No input to focus:', { phoneInputRef: !!phoneInputRef.current, otpInputRef: !!otpInputRef.current, nameInputRef: !!nameInputRef.current, isLoading });
+      }
+    };
+    const timer = setTimeout(focusInput, 200);
+    return () => clearTimeout(timer);
+  }, [otpSent, showProfileForm, isModalOpen, isLoading]);
 
   const sendOtp = async () => {
     if (!phone || phone.length !== 10 || !/^\d+$/.test(phone)) {
@@ -144,7 +164,17 @@ const Login = React.memo(({ onClose, returnTo }) => {
               userProfile = JSON.parse(profileData.body);
             } catch (e) {
               console.error('Failed to parse profile body:', profileData.body);
+              setError('Failed to parse profile data');
+              setShowProfileForm(true);
+              setIsLoading(false);
+              return;
             }
+          }
+          if (userProfile?.name === phoneNumber || Object.keys(userProfile).length === 0) {
+            console.log('New user detected, showing profile form');
+            setShowProfileForm(true);
+            setIsLoading(false);
+            return;
           }
           const enrichedUser = {
             ...baseUser,
@@ -157,25 +187,85 @@ const Login = React.memo(({ onClose, returnTo }) => {
           localStorage.setItem('authToken', token);
           localStorage.setItem('userInfo', JSON.stringify(enrichedUser));
           console.log('enrichedUser dispatched:', enrichedUser);
+          if (onClose) onClose();
+          setIsModalOpen(false);
+          const redirectTo = location.pathname === '/' ? '/' : (returnTo === '/payment' || location.pathname.includes('/report-display') ? '/payment' : '/');
+          console.log('Redirecting to:', redirectTo);
+          navigate(redirectTo, {
+            replace: true,
+            state: {
+              fileKey: location.state?.fileKey || state.report?.fileKey,
+              reportId: location.state?.reportId || state.report?.reportId,
+            },
+          });
         } catch (profileErr) {
           console.error('Profile fetch failed:', profileErr);
-          const fallbackUser = {
-            ...baseUser,
-            name: 'User Name',
-            email: '',
-            photo_url: null,
-            token,
-          };
-          cxtDispatch({ type: 'USER_LOGIN', payload: fallbackUser });
-          localStorage.setItem('authToken', token);
-          localStorage.setItem('userInfo', JSON.stringify(fallbackUser));
-          console.log('fallbackUser dispatched:', fallbackUser);
+          setError('Failed to fetch profile, please complete your profile');
+          setShowProfileForm(true);
+          setIsLoading(false);
         }
+      } else {
+        setError(`Error: ${data.error || 'Invalid OTP'}`);
+        setIsLoading(false);
+      }
+    } catch (err) {
+      console.error('verifyOtp error:', err);
+      setError(`An error occurred: ${err.message}`);
+      setIsLoading(false);
+    }
+  };
+
+  const handleProfileSubmit = async (e) => {
+    e.preventDefault();
+    if (!name || name.trim().length < 2) {
+      setError('Please enter a valid name (minimum 2 characters)');
+      return;
+    }
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setError('Please enter a valid email address');
+      return;
+    }
+    setIsLoading(true);
+    setError('');
+    const phoneNumber = `+91${phone}`;
+    const token = localStorage.getItem('authToken');
+    try {
+      const response = await fetch(
+        'https://eg3s8q87p7.execute-api.ap-south-1.amazonaws.com/default/manage-user-profile',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            action: 'update',
+            phone_number: phoneNumber,
+            name: name.trim(),
+            email: email.trim(),
+          }),
+        }
+      );
+      const profileData = await response.json();
+      console.log('manage-user-profile update response:', profileData);
+      if (response.ok) {
+        const enrichedUser = {
+          isLogin: true,
+          userId: phoneNumber,
+          phone: phoneNumber,
+          name: name.trim(),
+          email: email.trim(),
+          photo_url: null,
+          token,
+        };
+        cxtDispatch({ type: 'USER_LOGIN', payload: enrichedUser });
+        localStorage.setItem('authToken', token);
+        localStorage.setItem('userInfo', JSON.stringify(enrichedUser));
+        console.log('enrichedUser dispatched after profile update:', enrichedUser);
         if (onClose) onClose();
         setIsModalOpen(false);
-        console.log('Redirect debug - returnTo:', returnTo, 'location.pathname:', location.pathname, 'location.state:', location.state);
         const redirectTo = location.pathname === '/' ? '/' : (returnTo === '/payment' || location.pathname.includes('/report-display') ? '/payment' : '/');
-        console.log('Navigating to:', redirectTo);
+        console.log('Redirecting to:', redirectTo);
         navigate(redirectTo, {
           replace: true,
           state: {
@@ -184,10 +274,10 @@ const Login = React.memo(({ onClose, returnTo }) => {
           },
         });
       } else {
-        setError(`Error: ${data.error || 'Invalid OTP'}`);
+        setError(`Error: ${profileData.error || 'Failed to save profile'}`);
       }
     } catch (err) {
-      console.error('verifyOtp error:', err);
+      console.error('Profile update error:', err);
       setError(`An error occurred: ${err.message}`);
     } finally {
       setIsLoading(false);
@@ -196,8 +286,13 @@ const Login = React.memo(({ onClose, returnTo }) => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!otpSent) sendOtp();
-    else verifyOtp();
+    if (showProfileForm) {
+      handleProfileSubmit(e);
+    } else if (otpSent) {
+      verifyOtp();
+    } else {
+      sendOtp();
+    }
   };
 
   const handleChange = (setter) => (e) => setter(e.target.value);
@@ -210,18 +305,27 @@ const Login = React.memo(({ onClose, returnTo }) => {
       >
         {!isLoading && !error && (
           <div className="login-title">
-            <h3>{otpSent ? 'Verify OTP' : 'Please Enter Your Mobile Number'}</h3>
+            <h3>
+              {showProfileForm
+                ? 'Complete Your Profile'
+                : otpSent
+                ? 'Verify OTP'
+                : 'Please Enter Your Mobile Number'}
+            </h3>
           </div>
         )}
         <div className="login-paragraph">
-          {!otpSent && (
+          {!otpSent && !showProfileForm && (
             <p>
               We will send you a <strong>One Time Password</strong>
             </p>
           )}
+          {showProfileForm && (
+            <p>Please provide your name and email to complete your profile</p>
+          )}
         </div>
         <form onSubmit={handleSubmit}>
-          {!otpSent ? (
+          {!otpSent && !showProfileForm ? (
             <div
               className="login-phone-input d-flex justify-content-center align-items-center gap-2"
               style={{ width: '80%', margin: 'auto' }}
@@ -244,7 +348,7 @@ const Login = React.memo(({ onClose, returnTo }) => {
                 ref={phoneInputRef}
               />
             </div>
-          ) : (
+          ) : otpSent && !showProfileForm ? (
             <div className="otp-fields d-flex justify-content-center mt-3">
               <input
                 type="text"
@@ -257,6 +361,29 @@ const Login = React.memo(({ onClose, returnTo }) => {
                 ref={otpInputRef}
               />
             </div>
+          ) : (
+            <div className="profile-fields d-flex flex-column justify-content-center align-items-center gap-2 mt-3" style={{ width: '80%', margin: 'auto' }}>
+              <input
+                type="text"
+                className="form-control text-center"
+                placeholder="Enter Your Name"
+                value={name}
+                onChange={handleChange(setName)}
+                maxLength={50}
+                disabled={isLoading}
+                ref={nameInputRef}
+              />
+              <input
+                type="email"
+                className="form-control text-center"
+                placeholder="Enter Your Email"
+                value={email}
+                onChange={handleChange(setEmail)}
+                maxLength={100}
+                disabled={isLoading}
+                ref={emailInputRef}
+              />
+            </div>
           )}
           <div className="text-center mt-3">
             <button
@@ -264,7 +391,7 @@ const Login = React.memo(({ onClose, returnTo }) => {
               className="btn btn-primary w-50"
               disabled={isLoading}
             >
-              {otpSent ? 'VERIFY OTP' : 'SEND OTP'}
+              {showProfileForm ? 'SAVE PROFILE' : otpSent ? 'VERIFY OTP' : 'SEND OTP'}
             </button>
           </div>
         </form>
@@ -276,3 +403,4 @@ const Login = React.memo(({ onClose, returnTo }) => {
 });
 
 export default Login;
+
