@@ -43,6 +43,7 @@ const Login = React.memo(({ onClose, returnTo }) => {
         });
       }
     } else {
+      console.log('Opening login modal');
       setIsModalOpen(true);
     }
   }, [state.report, returnTo, location, navigate, onClose, isModalOpen]);
@@ -303,17 +304,15 @@ const Login = React.memo(({ onClose, returnTo }) => {
         className="login-popup"
         style={{ display: isModalOpen ? 'block' : 'none' }}
       >
-        {!isLoading && !error && (
-          <div className="login-title">
-            <h3>
-              {showProfileForm
-                ? 'Complete Your Profile'
-                : otpSent
-                ? 'Verify OTP'
-                : 'Please Enter Your Mobile Number'}
-            </h3>
-          </div>
-        )}
+        <div className="login-title">
+          <h3>
+            {showProfileForm
+              ? 'Complete Your Profile'
+              : otpSent
+              ? 'Verify OTP'
+              : 'Please Enter Your Mobile Number'}
+          </h3>
+        </div>
         <div className="login-paragraph">
           {!otpSent && !showProfileForm && (
             <p>
@@ -403,3 +402,4 @@ const Login = React.memo(({ onClose, returnTo }) => {
 });
 
 export default Login;
+
