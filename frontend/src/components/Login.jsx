@@ -266,6 +266,17 @@ const Login = React.memo(({ onClose, returnTo }) => {
     }
   };
 
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (showProfileForm) {
+      handleProfileSubmit(e);
+    } else if (otpSent) {
+      verifyOtp();
+    } else {
+      sendOtp();
+    }
+  };
+
   const handleChange = (setter) => (e) => setter(e.target.value);
 
   return (
@@ -295,7 +306,7 @@ const Login = React.memo(({ onClose, returnTo }) => {
             <p>Please provide your name and email to complete your profile</p>
           )}
         </div>
-        <form onSubmit={showProfileForm ? handleProfileSubmit : handleSubmit}>
+        <form onSubmit={handleSubmit}>
           {!otpSent && !showProfileForm ? (
             <div
               className="login-phone-input d-flex justify-content-center align-items-center gap-2"
