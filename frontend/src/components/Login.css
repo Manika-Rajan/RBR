@@ -1,4 +1,4 @@
-/* Restored original with uncommented .login-popup-container for visibility */
+/* Ensure visibility with min-height and explicit styling */
 .login-popup-container {
   position: fixed;
   top: 0;
@@ -20,7 +20,10 @@
   border-radius: 8px;
   max-width: 400px;
   width: 90%;
+  min-height: 300px; /* Added to prevent collapse */
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  position: relative;
+  z-index: 1001; /* Ensure above overlay */
 }
 
 .login-title {
@@ -30,7 +33,8 @@
   font-size: 32px;
   margin-bottom: 8px;
   letter-spacing: 0.01em;
-  color: #293750;
+  color: #293750 !important; /* Ensure visibility */
+  line-height: 1.2;
 }
 
 .login-paragraph {
@@ -40,7 +44,8 @@
   font-size: 18px;
   margin-bottom: 42px;
   letter-spacing: 0.03em;
-  color: #293750;
+  color: #293750 !important;
+  line-height: 1.5;
 }
 
 .login-phone-input {
@@ -49,6 +54,7 @@
   align-items: center;
   gap: 10px;
   margin-bottom: 20px;
+  min-width: 300px; /* Prevent collapse */
 }
 
 .otp-fields {
@@ -57,6 +63,7 @@
   width: 50%;
   margin: auto;
   margin-bottom: 30px;
+  min-width: 200px;
 }
 
 .otp-fields input {
@@ -66,6 +73,8 @@
   text-align: center;
   font-family: 'Open Sans', sans-serif;
   font-size: 16px;
+  background: transparent;
+  color: #293750 !important;
 }
 
 .otp-fields input:focus {
@@ -82,6 +91,7 @@
   width: 80%;
   margin: auto;
   margin-bottom: 20px;
+  min-width: 300px;
 }
 
 .profile-fields input {
@@ -92,6 +102,8 @@
   padding: 8px;
   font-family: 'Open Sans', sans-serif;
   font-size: 16px;
+  background: transparent;
+  color: #293750 !important;
 }
 
 .profile-fields input:focus {
@@ -106,7 +118,7 @@
   padding: 8px 16px;
   width: 50%;
   border: none;
-  color: white;
+  color: white !important;
   font-family: 'Open Sans', sans-serif;
   font-size: 16px;
   cursor: pointer;
@@ -126,81 +138,40 @@
   font-size: 16px;
   padding: 8px;
   border-radius: 4px;
+  background: transparent;
+  color: #293750 !important;
+  border: 1px solid #ced4da; /* Align with Bootstrap */
 }
 
 .form-select {
   font-family: 'Open Sans', sans-serif;
   font-size: 16px;
+  background: transparent;
+  color: #293750 !important;
 }
 
 .error-message {
   font-family: 'Open Sans', sans-serif;
   font-size: 16px;
-  color: #dc3545;
+  color: #dc3545 !important;
   margin-top: 10px;
 }
 
 .loading-message {
   font-family: 'Open Sans', sans-serif;
   font-size: 16px;
-  color: #293750;
+  color: #293750 !important;
   margin-top: 10px;
 }
 
 .success-message {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background-color: #e6f4ea;
-  padding: 15px;
-  border-radius: 8px;
-  margin: 20px auto;
-  width: 260px;
-  animation: fadeIn 0.5s ease-in;
-}
-
-.success-message p {
-  font-family: 'Open Sans', sans-serif;
-  font-style: normal;
-  font-weight: 600;
-  font-size: 18px;
-  color: #28a745;
-  margin-left: 10px;
-}
-
-.checkmark {
-  width: 40px;
-  height: 40px;
-}
-
-.checkmark-circle {
-  stroke: #28a745;
-  stroke-width: 2;
-  stroke-miterlimit: 10;
-  stroke-dasharray: 166;
-  stroke-dashoffset: 166;
-  animation: stroke 0.6s cubic-bezier(0.65, 0, 0.45, 1) forwards;
-}
-
-.checkmark-check {
-  stroke: #28a745;
-  stroke-width: 2;
-  stroke-miterlimit: 10;
-  stroke-dasharray: 48;
-  stroke-dashoffset: 48;
-  animation: stroke 0.3s cubic-bezier(0.65, 0, 0.45, 1) 0.8s forwards;
-}
-
-@keyframes stroke {
-  100% {
-    stroke-dashoffset: 0;
-  }
-}
-
-@keyframes fadeIn {
-  0% { opacity: 0; }
-  100% { opacity: 1; }
+  display: none; /* Hidden unless used */
 }
 
 /* Font import for Open Sans */
 @import url('https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600&display=swap');
+
+/* Debug borders to trace rendering */
+.login-popup { border: 1px solid red; } /* Remove after testing */
+.login-title { border: 1px solid blue; } /* Remove after testing */
+.login-paragraph { border: 1px solid green; } /* Remove after testing */
