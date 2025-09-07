@@ -15,7 +15,7 @@ const Login = React.memo(({ onClose, returnTo }) => {
   const [otpSent, setOtpSent] = useState(false);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [showProfileForm, setShowProfileForm] = useState(false);
+  const [requireDetails, setRequireDetails] = useState(false);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [emailError, setEmailError] = useState(false);
@@ -30,7 +30,9 @@ const Login = React.memo(({ onClose, returnTo }) => {
     if (isLoggedIn) {
       console.log(
         'User already logged in (localStorage), redirecting to:',
-        location.pathname === '/' ? '/' : returnTo || '/payment'
+        location.pathname === '/'
+          ? '/'
+          : returnTo || '/payment'
       );
       if (onClose) onClose();
       setIsModalOpen(false);
@@ -39,7 +41,7 @@ const Login = React.memo(({ onClose, returnTo }) => {
           ? '/'
           : returnTo === '/payment' || location.pathname.includes('/report-display')
           ? '/payment'
-          : '/';
+          : location.pathname;
       navigate(redirectTo, {
         replace: true,
         state: {
@@ -56,10 +58,10 @@ const Login = React.memo(({ onClose, returnTo }) => {
   useEffect(() => {
     if (!otpSent && phoneInputRef.current) {
       phoneInputRef.current.focus();
-    } else if (otpSent && !showProfileForm && otpInputRef.current) {
+    } else if (otpSent && !requireDetails && otpInputRef.current) {
       otpInputRef.current.focus();
     }
-  }, [otpSent, isModalOpen, showProfileForm]);
+  }, [otpSent, requireDetails, isModalOpen]);
 
   const sendOtp = async () => {
     if (!phone || phone.length !== 10 || !/^\d+$/.test(phone)) {
@@ -111,6 +113,7 @@ const Login = React.memo(({ onClose, returnTo }) => {
       );
       const data = await response.json();
       console.log('verify-otp response:', data);
+
       if (response.status === 200) {
         let parsedBody;
         try {
@@ -121,96 +124,43 @@ const Login = React.memo(({ onClose, returnTo }) => {
           setIsLoading(false);
           return;
         }
-        const { token, isExistingUser } = parsedBody;
+
+        const { token, name: userName, email: userEmail } = parsedBody;
         if (!token) {
           console.error('No token in parsed body:', parsedBody);
           setError('Authentication failed: No token received');
           setIsLoading(false);
           return;
         }
+
+        if (!userName || !userEmail) {
+          // New user → require details
+          setRequireDetails(true);
+          setIsLoading(false);
+          return;
+        }
+
+        // Existing user with details
         const baseUser = {
           isLogin: true,
           userId: phoneNumber,
           phone: phoneNumber,
           token,
+          name: userName,
+          email: userEmail,
         };
         cxtDispatch({ type: 'USER_LOGIN', payload: baseUser });
         localStorage.setItem('authToken', token);
         localStorage.setItem('userInfo', JSON.stringify(baseUser));
-        console.log('baseUser dispatched:', baseUser);
 
-        if (!isExistingUser) {
-          // New user → show profile form instead of redirect
-          setShowProfileForm(true);
-          setIsLoading(false);
-          return;
-        }
-
-        // Existing user → fetch profile
-        try {
-          const profileRes = await fetch(
-            'https://eg3s8q87p7.execute-api.ap-south-1.amazonaws.com/default/manage-user-profile',
-            {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${token}`,
-              },
-              body: JSON.stringify({ action: 'get', phone_number: phoneNumber }),
-            }
-          );
-          const profileData = await profileRes.json();
-          console.log('manage-user-profile response:', profileData);
-          let userProfile = profileData;
-          if (profileData.body) {
-            try {
-              userProfile = JSON.parse(profileData.body);
-            } catch (e) {
-              console.error('Failed to parse profile body:', profileData.body);
-            }
-          }
-          const enrichedUser = {
-            ...baseUser,
-            name: userProfile.name || 'User Name',
-            email: userProfile.email || '',
-            photo_url: userProfile.photo_url || null,
-            token,
-          };
-          cxtDispatch({ type: 'USER_LOGIN', payload: enrichedUser });
-          localStorage.setItem('authToken', token);
-          localStorage.setItem('userInfo', JSON.stringify(enrichedUser));
-          console.log('enrichedUser dispatched:', enrichedUser);
-        } catch (profileErr) {
-          console.error('Profile fetch failed:', profileErr);
-          const fallbackUser = {
-            ...baseUser,
-            name: 'User Name',
-            email: '',
-            photo_url: null,
-            token,
-          };
-          cxtDispatch({ type: 'USER_LOGIN', payload: fallbackUser });
-          localStorage.setItem('authToken', token);
-          localStorage.setItem('userInfo', JSON.stringify(fallbackUser));
-          console.log('fallbackUser dispatched:', fallbackUser);
-        }
         if (onClose) onClose();
         setIsModalOpen(false);
-        console.log(
-          'Redirect debug - returnTo:',
-          returnTo,
-          'location.pathname:',
-          location.pathname,
-          'location.state:',
-          location.state
-        );
         const redirectTo =
           location.state?.from === '/'
             ? '/'
             : returnTo === '/payment' || location.pathname.includes('/report-display')
             ? '/payment'
-            : '/';
-        console.log('Navigating to:', redirectTo);
+            : location.pathname;
         navigate(redirectTo, {
           replace: true,
           state: {
@@ -229,22 +179,23 @@ const Login = React.memo(({ onClose, returnTo }) => {
     }
   };
 
-  const submitProfile = async () => {
+  const saveUserDetails = async () => {
     if (!name.trim()) {
       setError('Name is required');
       return;
     }
-    if (!email.trim() || !email.includes('@') || !email.includes('.')) {
+    if (!email.includes('@') || !email.includes('.')) {
       setEmailError(true);
-      setError('Please enter a valid email');
+      setError('Please enter a valid email address');
       return;
     }
+
     setIsLoading(true);
     setError('');
-    const phoneNumber = `+91${phone}`;
-    const token = localStorage.getItem('authToken');
     try {
-      const profileRes = await fetch(
+      const token = localStorage.getItem('authToken');
+      const phoneNumber = `+91${phone}`;
+      const response = await fetch(
         'https://eg3s8q87p7.execute-api.ap-south-1.amazonaws.com/default/manage-user-profile',
         {
           method: 'POST',
@@ -260,20 +211,22 @@ const Login = React.memo(({ onClose, returnTo }) => {
           }),
         }
       );
-      const profileData = await profileRes.json();
-      console.log('Profile update response:', profileData);
+
+      const data = await response.json();
+      console.log('manage-user-profile update response:', data);
+
       const enrichedUser = {
         isLogin: true,
         userId: phoneNumber,
         phone: phoneNumber,
+        token,
         name,
         email,
-        token,
       };
       cxtDispatch({ type: 'USER_LOGIN', payload: enrichedUser });
       localStorage.setItem('authToken', token);
       localStorage.setItem('userInfo', JSON.stringify(enrichedUser));
-      console.log('newUser dispatched:', enrichedUser);
+
       if (onClose) onClose();
       setIsModalOpen(false);
       const redirectTo =
@@ -281,7 +234,7 @@ const Login = React.memo(({ onClose, returnTo }) => {
           ? '/'
           : returnTo === '/payment' || location.pathname.includes('/report-display')
           ? '/payment'
-          : '/';
+          : location.pathname;
       navigate(redirectTo, {
         replace: true,
         state: {
@@ -290,7 +243,7 @@ const Login = React.memo(({ onClose, returnTo }) => {
         },
       });
     } catch (err) {
-      console.error('Profile update failed:', err);
+      console.error('saveUserDetails error:', err);
       setError(`An error occurred: ${err.message}`);
     } finally {
       setIsLoading(false);
@@ -300,11 +253,14 @@ const Login = React.memo(({ onClose, returnTo }) => {
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!otpSent) sendOtp();
-    else if (otpSent && !showProfileForm) verifyOtp();
-    else if (otpSent && showProfileForm) submitProfile();
+    else if (requireDetails) saveUserDetails();
+    else verifyOtp();
   };
 
-  const handleChange = (setter) => (e) => setter(e.target.value);
+  const handleChange = (setter, clearError) => (e) => {
+    setter(e.target.value);
+    if (clearError) clearError(false);
+  };
 
   return (
     <div className="login-popup-container">
@@ -315,8 +271,8 @@ const Login = React.memo(({ onClose, returnTo }) => {
         {!isLoading && !error && (
           <div className="login-title">
             <h3>
-              {showProfileForm
-                ? 'Complete Your Profile'
+              {requireDetails
+                ? 'Enter Your Details'
                 : otpSent
                 ? 'Verify OTP'
                 : 'Please Enter Your Mobile Number'}
@@ -324,14 +280,14 @@ const Login = React.memo(({ onClose, returnTo }) => {
           </div>
         )}
         <div className="login-paragraph">
-          {!otpSent && (
+          {!otpSent && !requireDetails && (
             <p>
               We will send you a <strong>One Time Password</strong>
             </p>
           )}
         </div>
         <form onSubmit={handleSubmit}>
-          {!otpSent ? (
+          {!otpSent && !requireDetails ? (
             <div
               className="login-phone-input d-flex justify-content-center align-items-center gap-2"
               style={{ width: '80%', margin: 'auto' }}
@@ -354,30 +310,29 @@ const Login = React.memo(({ onClose, returnTo }) => {
                 ref={phoneInputRef}
               />
             </div>
-          ) : showProfileForm ? (
-            <div className="profile-form mt-3" style={{ width: '80%', margin: 'auto' }}>
-              <input
-                type="text"
-                placeholder="Enter your name"
-                value={name}
-                onChange={handleChange(setName)}
-                className="form-control mb-2"
-                disabled={isLoading}
-              />
-              <input
-                type="email"
-                placeholder="Enter your email"
-                value={email}
-                onChange={(e) => {
-                  setEmail(e.target.value);
-                  if (emailError) setEmailError(false); // ✅ clear red border immediately
-                }}
-                className={`form-control mb-2 ${
-                  emailError ? 'border border-danger' : ''
-                }`}
-                disabled={isLoading}
-              />
-            </div>
+          ) : requireDetails ? (
+            <>
+              <div className="d-flex flex-column align-items-center mt-3">
+                <input
+                  type="text"
+                  className="form-control text-center mb-2"
+                  placeholder="Enter Your Name"
+                  value={name}
+                  onChange={handleChange(setName)}
+                  disabled={isLoading}
+                />
+                <input
+                  type="email"
+                  className={`form-control text-center ${
+                    emailError ? 'border border-danger' : ''
+                  }`}
+                  placeholder="Enter Your Email"
+                  value={email}
+                  onChange={handleChange(setEmail, setEmailError)}
+                  disabled={isLoading}
+                />
+              </div>
+            </>
           ) : (
             <div className="otp-fields d-flex justify-content-center mt-3">
               <input
@@ -398,8 +353,8 @@ const Login = React.memo(({ onClose, returnTo }) => {
               className="btn btn-primary w-50"
               disabled={isLoading}
             >
-              {showProfileForm
-                ? 'SAVE PROFILE'
+              {requireDetails
+                ? 'SAVE DETAILS'
                 : otpSent
                 ? 'VERIFY OTP'
                 : 'SEND OTP'}
