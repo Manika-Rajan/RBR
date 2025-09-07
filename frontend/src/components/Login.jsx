@@ -22,11 +22,10 @@ const Login = React.memo(({ onClose, returnTo }) => {
   const phoneInputRef = useRef(null);
   const otpInputRef = useRef(null);
 
-  // Redirect if already logged in
+  // ✅ Redirect if already logged in
   useEffect(() => {
-    const isLoggedIn =
-      localStorage.getItem('isLogin') === 'true' &&
-      localStorage.getItem('authToken');
+    const token = localStorage.getItem('authToken');
+    const isLoggedIn = localStorage.getItem('isLogin') === 'true' && token;
     if (isLoggedIn) {
       if (onClose) onClose();
       setIsModalOpen(false);
@@ -128,20 +127,19 @@ const Login = React.memo(({ onClose, returnTo }) => {
         }
 
         if (!isExistingUser) {
-          // New user → require details
           setRequireDetails(true);
           setIsLoading(false);
           return;
         }
 
-        // Existing user → correctly use nested user object
+        // ✅ Patch: Include token in userInfo for store
         const existingUser = {
           isLogin: true,
           userId: user.userId || phoneNumber,
           phone: phoneNumber,
           name: user.name || '',
           email: user.email || '',
-          token,
+          token, // ✅ store token here
         };
 
         cxtDispatch({ type: 'USER_LOGIN', payload: existingUser });
@@ -216,6 +214,7 @@ const Login = React.memo(({ onClose, returnTo }) => {
       const data = await response.json();
       console.log('manage-user-profile update response:', data);
 
+      // ✅ Patch: Ensure token is included
       const enrichedUser = {
         isLogin: true,
         userId: phoneNumber,
@@ -230,6 +229,7 @@ const Login = React.memo(({ onClose, returnTo }) => {
       localStorage.setItem('userEmail', enrichedUser.email);
       localStorage.setItem('userPhone', enrichedUser.phone);
       localStorage.setItem('isLogin', 'true');
+      localStorage.setItem('authToken', token);
 
       if (onClose) onClose();
       setIsModalOpen(false);
@@ -245,7 +245,7 @@ const Login = React.memo(({ onClose, returnTo }) => {
         replace: true,
         state: {
           fileKey: location.state?.fileKey || state.report?.fileKey,
-          reportId: location.state?.reportId || state.report?.reportId,
+          reportId: location.state?.report?.reportId,
         },
       });
     } catch (err) {
