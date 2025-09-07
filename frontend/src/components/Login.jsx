@@ -15,8 +15,14 @@ const Login = React.memo(({ isOpen , onClose, returnTo }) => {
   const [otpSent, setOtpSent] = useState(false);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [showProfileForm, setShowProfileForm] = useState(false);
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
   const phoneInputRef = useRef(null);
   const otpInputRef = useRef(null);
+  const nameInputRef = useRef(null);
+  const emailInputRef = useRef(null);
+  const hasRedirected = useRef(false);
 
   // Check if user is already logged in and redirect appropriately
   useEffect(() => {
