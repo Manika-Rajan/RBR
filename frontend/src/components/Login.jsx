@@ -3,11 +3,11 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import './Login.css';
 import { useStore } from '../Store';
 
-const Login = React.memo(({ isOpen , onClose, returnTo }) => {
+const Login = React.memo(({ onClose, returnTo }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { state, dispatch: cxtDispatch } = useStore();
-  const [isModalOpen, setIsModalOpen] = useState(isOpen || false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [phone, setPhone] = useState(
     state.userInfo?.phone ? state.userInfo.phone.replace('+91', '') : ''
   );
@@ -15,24 +15,17 @@ const Login = React.memo(({ isOpen , onClose, returnTo }) => {
   const [otpSent, setOtpSent] = useState(false);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [showProfileForm, setShowProfileForm] = useState(false);
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
   const phoneInputRef = useRef(null);
   const otpInputRef = useRef(null);
-  const nameInputRef = useRef(null);
-  const emailInputRef = useRef(null);
-  const hasRedirected = useRef(false);
 
   // Check if user is already logged in and redirect appropriately
   useEffect(() => {
-  if (!isOpen || hasRedirected.current) return;
-  const isLoggedIn = localStorage.getItem('isLogin') === 'true' && localStorage.getItem('authToken');
-  if (isLoggedIn) {
-    console.log('User already logged in (localStorage), redirecting to:', location.pathname === '/' ? '/' : (returnTo || '/payment'));
-    const redirectTo = location.pathname === '/' ? '/' : (returnTo === '/payment' || location.pathname.includes('/report-display') ? '/payment' : '/');
-    setTimeout(() => {
-      if (isOpen && onClose) onClose(); // Only close if still open
+    const isLoggedIn = localStorage.getItem('isLogin') === 'true' && localStorage.getItem('authToken');
+    if (isLoggedIn) {
+      console.log('User already logged in (localStorage), redirecting to:', location.pathname === '/' ? '/' : (returnTo || '/payment'));
+      if (onClose) onClose();
+      setIsModalOpen(false);
+      const redirectTo = location.pathname === '/' ? '/' : (returnTo === '/payment' || location.pathname.includes('/report-display') ? '/payment' : '/');
       navigate(redirectTo, {
         replace: true,
         state: {
@@ -40,10 +33,10 @@ const Login = React.memo(({ isOpen , onClose, returnTo }) => {
           reportId: location.state?.reportId || state.report?.reportId,
         },
       });
-      hasRedirected.current = true;
-    }, 100); // Slight delay to ensure render
-  }
-}, [isOpen, state.report]);
+    } else {
+      setIsModalOpen(true);
+    }
+  }, [state.report, returnTo, location, navigate, onClose]);
 
   // Autofocus input when step changes
   useEffect(() => {
