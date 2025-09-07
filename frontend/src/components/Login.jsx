@@ -26,25 +26,22 @@ const Login = React.memo(({ isOpen , onClose, returnTo }) => {
 
   // Check if user is already logged in and redirect appropriately
   useEffect(() => {
-    console.log('Login useEffect triggered, isModalOpen:', isModalOpen, 'isLoading:', isLoading);
-    if (!isModalOpen) return;
-    const focusInput = () => {
-      if (!otpSent && !showProfileForm && phoneInputRef.current && !isLoading) {
-        console.log('Focusing phone input:', phoneInputRef.current);
-        phoneInputRef.current.focus();
-      } else if (otpSent && !showProfileForm && otpInputRef.current && !isLoading) {
-        console.log('Focusing OTP input:', otpInputRef.current);
-        otpInputRef.current.focus();
-      } else if (showProfileForm && nameInputRef.current && !isLoading) {
-        console.log('Focusing name input:', nameInputRef.current);
-        nameInputRef.current.focus();
-      } else {
-        console.log('No input to focus, state:', { otpSent, showProfileForm, isLoading });
-      }
-    };
-    const timer = setTimeout(focusInput, 200);
-    return () => clearTimeout(timer);
-  }, [otpSent, showProfileForm, isModalOpen, isLoading]);
+    if (!isOpen || hasRedirected.current) return;
+    const isLoggedIn = localStorage.getItem('isLogin') === 'true' && localStorage.getItem('authToken');
+    if (isLoggedIn) {
+      console.log('User already logged in (localStorage), redirecting to:', location.pathname === '/' ? '/' : (returnTo || '/payment'));
+      if (onClose) onClose();
+      const redirectTo = location.pathname === '/' ? '/' : (returnTo === '/payment' || location.pathname.includes('/report-display') ? '/payment' : '/');
+      navigate(redirectTo, {
+        replace: true,
+        state: {
+          fileKey: location.state?.fileKey || state.report?.fileKey,
+          reportId: location.state?.reportId || state.report?.reportId,
+        },
+      });
+      hasRedirected.current = true;
+    }
+  }, [isOpen, state.report, returnTo, location, navigate, onClose]);
 
   // Autofocus input when step changes
   useEffect(() => {
