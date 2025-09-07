@@ -26,33 +26,25 @@ const Login = React.memo(({ isOpen , onClose, returnTo }) => {
 
   // Check if user is already logged in and redirect appropriately
   useEffect(() => {
-    console.log('Login useEffect triggered, isModalOpen:', isModalOpen, 'isLoggedIn:', localStorage.getItem('isLogin') === 'true' && localStorage.getItem('authToken'));
-  if (!isModalOpen || hasRedirected.current) return;
-  const isLoggedIn = localStorage.getItem('isLogin') === 'true' && localStorage.getItem('authToken');
-  if (isLoggedIn && isModalOpen) {
-    const redirectTo = location.pathname === '/' ? '/' : (returnTo === '/payment' || location.pathname.includes('/report-display') ? '/payment' : '/');
-    if (location.pathname !== redirectTo) {
-      console.log('User logged in, redirecting to:', redirectTo);
-      hasRedirected.current = true;
-      // Delay setting isModalOpen to false until after navigation
-      const handleRedirect = () => {
-        if (onClose) onClose();
-        setIsModalOpen(false);
-        navigate(redirectTo, {
-          replace: true,
-          state: {
-            fileKey: location.state?.fileKey || state.report?.fileKey,
-            reportId: location.state?.reportId || state.report?.reportId,
-          },
-        });
-      };
-      // Use setTimeout to ensure UI update before navigation
-      setTimeout(handleRedirect, 0);
-    }
-  } else {
-      setIsModalOpen(true);
-    }
-  }, [state.report, returnTo, location, navigate, onClose]);
+    console.log('Login useEffect triggered, isModalOpen:', isModalOpen, 'isLoading:', isLoading);
+    if (!isModalOpen) return;
+    const focusInput = () => {
+      if (!otpSent && !showProfileForm && phoneInputRef.current && !isLoading) {
+        console.log('Focusing phone input:', phoneInputRef.current);
+        phoneInputRef.current.focus();
+      } else if (otpSent && !showProfileForm && otpInputRef.current && !isLoading) {
+        console.log('Focusing OTP input:', otpInputRef.current);
+        otpInputRef.current.focus();
+      } else if (showProfileForm && nameInputRef.current && !isLoading) {
+        console.log('Focusing name input:', nameInputRef.current);
+        nameInputRef.current.focus();
+      } else {
+        console.log('No input to focus, state:', { otpSent, showProfileForm, isLoading });
+      }
+    };
+    const timer = setTimeout(focusInput, 200);
+    return () => clearTimeout(timer);
+  }, [otpSent, showProfileForm, isModalOpen, isLoading]);
 
   // Autofocus input when step changes
   useEffect(() => {
