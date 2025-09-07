@@ -34,11 +34,20 @@ const ReportsDisplay = () => {
 
   const handlePayment = () => {
     console.log("handlePayment - isLogin:", isLogin, "fileKey:", localFileKey, "reportId:", localReportId);
-    
+
     // ✅ Save fileKey and reportId in Store for Payment
     cxtDispatch({ type: 'SET_FILE_REPORT', payload: { fileKey: localFileKey, reportId: localReportId } });
 
-    setOpenModel(true);
+    // ✅ Surgical edit: If user already logged in with token, go directly to payment
+    if (state.userInfo?.isLogin && state.userInfo?.token) {
+      console.log("User already logged in, redirecting to /payment");
+      navigate("/payment", {
+        replace: true,
+        state: { fileKey: localFileKey, reportId: localReportId },
+      });
+    } else {
+      setOpenModel(true);
+    }
   };
 
   const changeStatus = () => {
