@@ -22,6 +22,7 @@ const Login = React.memo(({ onClose, returnTo }) => {
   const phoneInputRef = useRef(null);
   const otpInputRef = useRef(null);
 
+  // Redirect if already logged in
   useEffect(() => {
     const isLoggedIn =
       localStorage.getItem('isLogin') === 'true' &&
@@ -47,6 +48,7 @@ const Login = React.memo(({ onClose, returnTo }) => {
     }
   }, [state.report, returnTo, location, navigate, onClose]);
 
+  // Autofocus input
   useEffect(() => {
     if (!otpSent && phoneInputRef.current) {
       phoneInputRef.current.focus();
@@ -102,7 +104,6 @@ const Login = React.memo(({ onClose, returnTo }) => {
           body: JSON.stringify({ phone_number: phoneNumber, otp }),
         }
       );
-
       const data = await response.json();
       console.log('verify-otp response:', data);
 
@@ -117,7 +118,7 @@ const Login = React.memo(({ onClose, returnTo }) => {
           return;
         }
 
-        const { token, name: userName, email: userEmail, isExistingUser } = parsedBody;
+        const { token, isExistingUser, user } = parsedBody;
 
         if (!token) {
           console.error('No token in parsed body:', parsedBody);
@@ -126,30 +127,30 @@ const Login = React.memo(({ onClose, returnTo }) => {
           return;
         }
 
-        localStorage.setItem('authToken', token);
-
         if (!isExistingUser) {
+          // New user → require details
           setRequireDetails(true);
           setIsLoading(false);
           return;
         }
 
+        // Existing user → correctly use nested user object
         const existingUser = {
           isLogin: true,
-          userId: phoneNumber,
+          userId: user.userId || phoneNumber,
           phone: phoneNumber,
-          name: userName || '',
-          email: userEmail || '',
+          name: user.name || '',
+          email: user.email || '',
           token,
         };
 
         cxtDispatch({ type: 'USER_LOGIN', payload: existingUser });
-
         localStorage.setItem('userId', existingUser.userId);
         localStorage.setItem('userName', existingUser.name);
         localStorage.setItem('userEmail', existingUser.email);
         localStorage.setItem('userPhone', existingUser.phone);
         localStorage.setItem('isLogin', 'true');
+        localStorage.setItem('authToken', token);
 
         if (onClose) onClose();
         setIsModalOpen(false);
@@ -215,7 +216,7 @@ const Login = React.memo(({ onClose, returnTo }) => {
       const data = await response.json();
       console.log('manage-user-profile update response:', data);
 
-      const newUser = {
+      const enrichedUser = {
         isLogin: true,
         userId: phoneNumber,
         phone: phoneNumber,
@@ -223,13 +224,11 @@ const Login = React.memo(({ onClose, returnTo }) => {
         email,
         token,
       };
-
-      cxtDispatch({ type: 'USER_LOGIN', payload: newUser });
-
-      localStorage.setItem('userId', newUser.userId);
-      localStorage.setItem('userName', newUser.name);
-      localStorage.setItem('userEmail', newUser.email);
-      localStorage.setItem('userPhone', newUser.phone);
+      cxtDispatch({ type: 'USER_LOGIN', payload: enrichedUser });
+      localStorage.setItem('userId', enrichedUser.userId);
+      localStorage.setItem('userName', enrichedUser.name);
+      localStorage.setItem('userEmail', enrichedUser.email);
+      localStorage.setItem('userPhone', enrichedUser.phone);
       localStorage.setItem('isLogin', 'true');
 
       if (onClose) onClose();
@@ -329,9 +328,7 @@ const Login = React.memo(({ onClose, returnTo }) => {
               />
               <input
                 type="email"
-                className={`form-control text-center ${
-                  emailError ? 'border border-danger' : ''
-                }`}
+                className={`form-control text-center ${emailError ? 'border border-danger' : ''}`}
                 placeholder="Enter Your Email"
                 value={email}
                 onChange={handleChange(setEmail, setEmailError)}
