@@ -26,12 +26,14 @@ const Login = React.memo(({ isOpen , onClose, returnTo }) => {
 
   // Check if user is already logged in and redirect appropriately
   useEffect(() => {
-    if (!isOpen || hasRedirected.current) return;
-    const isLoggedIn = localStorage.getItem('isLogin') === 'true' && localStorage.getItem('authToken');
-    if (isLoggedIn) {
-      console.log('User already logged in (localStorage), redirecting to:', location.pathname === '/' ? '/' : (returnTo || '/payment'));
+  if (!isOpen || hasRedirected.current) return;
+  const isLoggedIn = localStorage.getItem('isLogin') === 'true' && localStorage.getItem('authToken');
+  if (isLoggedIn) {
+    console.log('User already logged in (localStorage), redirecting to:', location.pathname === '/' ? '/' : (returnTo || '/payment'));
+    const redirectTo = location.pathname === '/' ? '/' : (returnTo === '/payment' || location.pathname.includes('/report-display') ? '/payment' : '/');
+    // Defer the close and navigation to allow modal to render briefly
+    setTimeout(() => {
       if (onClose) onClose();
-      const redirectTo = location.pathname === '/' ? '/' : (returnTo === '/payment' || location.pathname.includes('/report-display') ? '/payment' : '/');
       navigate(redirectTo, {
         replace: true,
         state: {
@@ -40,8 +42,9 @@ const Login = React.memo(({ isOpen , onClose, returnTo }) => {
         },
       });
       hasRedirected.current = true;
-    }
-  }, [isOpen, state.report, returnTo, location, navigate, onClose]);
+    }, 0); // 0ms delay queues it for next event loop
+  }
+}, [isOpen, state.report]); // Reduced dependencies
 
   // Autofocus input when step changes
   useEffect(() => {
