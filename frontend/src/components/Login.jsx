@@ -49,8 +49,7 @@ const Login = React.memo(({ isOpen , onClose, returnTo }) => {
       // Use setTimeout to ensure UI update before navigation
       setTimeout(handleRedirect, 0);
     }
-  }
-    } else {
+  } else {
       setIsModalOpen(true);
     }
   }, [state.report, returnTo, location, navigate, onClose]);
