@@ -26,6 +26,8 @@ const Login = React.memo(({ isOpen , onClose, returnTo }) => {
 
   // Check if user is already logged in and redirect appropriately
   useEffect(() => {
+    console.log('Login useEffect triggered, isModalOpen:', isModalOpen, 'isLoggedIn:', localStorage.getItem('isLogin') === 'true' && localStorage.getItem('authToken'));
+    if (!isModalOpen || hasRedirected.current) return;
     const isLoggedIn = localStorage.getItem('isLogin') === 'true' && localStorage.getItem('authToken');
     if (isLoggedIn) {
       console.log('User already logged in (localStorage), redirecting to:', location.pathname === '/' ? '/' : (returnTo || '/payment'));
