@@ -22,18 +22,11 @@ const Login = React.memo(({ onClose, returnTo }) => {
   const phoneInputRef = useRef(null);
   const otpInputRef = useRef(null);
 
-  // Check if user is already logged in and redirect appropriately
   useEffect(() => {
     const isLoggedIn =
       localStorage.getItem('isLogin') === 'true' &&
       localStorage.getItem('authToken');
     if (isLoggedIn) {
-      console.log(
-        'User already logged in (localStorage), redirecting to:',
-        location.pathname === '/'
-          ? '/'
-          : returnTo || '/payment'
-      );
       if (onClose) onClose();
       setIsModalOpen(false);
       const redirectTo =
@@ -54,7 +47,6 @@ const Login = React.memo(({ onClose, returnTo }) => {
     }
   }, [state.report, returnTo, location, navigate, onClose]);
 
-  // Autofocus input when step changes
   useEffect(() => {
     if (!otpSent && phoneInputRef.current) {
       phoneInputRef.current.focus();
@@ -82,7 +74,6 @@ const Login = React.memo(({ onClose, returnTo }) => {
       );
       const data = await response.json();
       if (response.ok) {
-        cxtDispatch({ type: 'SET_PHONE', payload: phoneNumber });
         setOtpSent(true);
       } else {
         setError(`Error: ${data.error || 'Failed to send OTP'}`);
@@ -111,6 +102,7 @@ const Login = React.memo(({ onClose, returnTo }) => {
           body: JSON.stringify({ phone_number: phoneNumber, otp }),
         }
       );
+
       const data = await response.json();
       console.log('verify-otp response:', data);
 
@@ -134,34 +126,41 @@ const Login = React.memo(({ onClose, returnTo }) => {
           return;
         }
 
+        localStorage.setItem('authToken', token);
+
         if (!isExistingUser) {
-          // New user → require details
           setRequireDetails(true);
           setIsLoading(false);
           return;
         }
 
-        // Existing user with details → skip profile form entirely
-        const baseUser = {
+        const existingUser = {
           isLogin: true,
           userId: phoneNumber,
           phone: phoneNumber,
+          name: userName || '',
+          email: userEmail || '',
           token,
-          name: userName,
-          email: userEmail,
         };
-        cxtDispatch({ type: 'USER_LOGIN', payload: baseUser });
-        localStorage.setItem('authToken', token);
-        localStorage.setItem('userInfo', JSON.stringify(baseUser));
+
+        cxtDispatch({ type: 'USER_LOGIN', payload: existingUser });
+
+        localStorage.setItem('userId', existingUser.userId);
+        localStorage.setItem('userName', existingUser.name);
+        localStorage.setItem('userEmail', existingUser.email);
+        localStorage.setItem('userPhone', existingUser.phone);
+        localStorage.setItem('isLogin', 'true');
 
         if (onClose) onClose();
         setIsModalOpen(false);
+
         const redirectTo =
           location.state?.from === '/'
             ? '/'
             : returnTo === '/payment' || location.pathname.includes('/report-display')
             ? '/payment'
             : location.pathname;
+
         navigate(redirectTo, {
           replace: true,
           state: {
@@ -216,26 +215,33 @@ const Login = React.memo(({ onClose, returnTo }) => {
       const data = await response.json();
       console.log('manage-user-profile update response:', data);
 
-      const enrichedUser = {
+      const newUser = {
         isLogin: true,
         userId: phoneNumber,
         phone: phoneNumber,
-        token,
         name,
         email,
+        token,
       };
-      cxtDispatch({ type: 'USER_LOGIN', payload: enrichedUser });
-      localStorage.setItem('authToken', token);
-      localStorage.setItem('userInfo', JSON.stringify(enrichedUser));
+
+      cxtDispatch({ type: 'USER_LOGIN', payload: newUser });
+
+      localStorage.setItem('userId', newUser.userId);
+      localStorage.setItem('userName', newUser.name);
+      localStorage.setItem('userEmail', newUser.email);
+      localStorage.setItem('userPhone', newUser.phone);
+      localStorage.setItem('isLogin', 'true');
 
       if (onClose) onClose();
       setIsModalOpen(false);
+
       const redirectTo =
         location.state?.from === '/'
           ? '/'
           : returnTo === '/payment' || location.pathname.includes('/report-display')
           ? '/payment'
           : location.pathname;
+
       navigate(redirectTo, {
         replace: true,
         state: {
@@ -312,28 +318,26 @@ const Login = React.memo(({ onClose, returnTo }) => {
               />
             </div>
           ) : requireDetails ? (
-            <>
-              <div className="d-flex flex-column align-items-center mt-3">
-                <input
-                  type="text"
-                  className="form-control text-center mb-2"
-                  placeholder="Enter Your Name"
-                  value={name}
-                  onChange={handleChange(setName)}
-                  disabled={isLoading}
-                />
-                <input
-                  type="email"
-                  className={`form-control text-center ${
-                    emailError ? 'border border-danger' : ''
-                  }`}
-                  placeholder="Enter Your Email"
-                  value={email}
-                  onChange={handleChange(setEmail, setEmailError)}
-                  disabled={isLoading}
-                />
-              </div>
-            </>
+            <div className="d-flex flex-column align-items-center mt-3">
+              <input
+                type="text"
+                className="form-control text-center mb-2"
+                placeholder="Enter Your Name"
+                value={name}
+                onChange={handleChange(setName)}
+                disabled={isLoading}
+              />
+              <input
+                type="email"
+                className={`form-control text-center ${
+                  emailError ? 'border border-danger' : ''
+                }`}
+                placeholder="Enter Your Email"
+                value={email}
+                onChange={handleChange(setEmail, setEmailError)}
+                disabled={isLoading}
+              />
+            </div>
           ) : (
             <div className="otp-fields d-flex justify-content-center mt-3">
               <input
