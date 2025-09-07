@@ -30,17 +30,20 @@ const Login = React.memo(({ isOpen , onClose, returnTo }) => {
     if (!isModalOpen || hasRedirected.current) return;
     const isLoggedIn = localStorage.getItem('isLogin') === 'true' && localStorage.getItem('authToken');
     if (isLoggedIn) {
-      console.log('User already logged in (localStorage), redirecting to:', location.pathname === '/' ? '/' : (returnTo || '/payment'));
-      if (onClose) onClose();
-      setIsModalOpen(false);
       const redirectTo = location.pathname === '/' ? '/' : (returnTo === '/payment' || location.pathname.includes('/report-display') ? '/payment' : '/');
-      navigate(redirectTo, {
-        replace: true,
-        state: {
-          fileKey: location.state?.fileKey || state.report?.fileKey,
-          reportId: location.state?.reportId || state.report?.reportId,
-        },
-      });
+      if (location.pathname !== redirectTo) {
+        console.log('User logged in, redirecting to:', redirectTo);
+        hasRedirected.current = true;
+        if (onClose) onClose();
+        setIsModalOpen(false);
+        navigate(redirectTo, {
+          replace: true,
+          state: {
+            fileKey: location.state?.fileKey || state.report?.fileKey,
+            reportId: location.state?.reportId || state.report?.reportId,
+          },
+        });
+      }
     } else {
       setIsModalOpen(true);
     }
