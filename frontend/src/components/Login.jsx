@@ -31,9 +31,8 @@ const Login = React.memo(({ isOpen , onClose, returnTo }) => {
   if (isLoggedIn) {
     console.log('User already logged in (localStorage), redirecting to:', location.pathname === '/' ? '/' : (returnTo || '/payment'));
     const redirectTo = location.pathname === '/' ? '/' : (returnTo === '/payment' || location.pathname.includes('/report-display') ? '/payment' : '/');
-    // Defer the close and navigation to allow modal to render briefly
     setTimeout(() => {
-      if (onClose) onClose();
+      if (isOpen && onClose) onClose(); // Only close if still open
       navigate(redirectTo, {
         replace: true,
         state: {
@@ -42,9 +41,9 @@ const Login = React.memo(({ isOpen , onClose, returnTo }) => {
         },
       });
       hasRedirected.current = true;
-    }, 0); // 0ms delay queues it for next event loop
+    }, 100); // Slight delay to ensure render
   }
-}, [isOpen, state.report]); // Reduced dependencies
+}, [isOpen, state.report]);
 
   // Autofocus input when step changes
   useEffect(() => {
