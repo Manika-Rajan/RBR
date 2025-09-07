@@ -125,7 +125,8 @@ const Login = React.memo(({ onClose, returnTo }) => {
           return;
         }
 
-        const { token, name: userName, email: userEmail } = parsedBody;
+        const { token, name: userName, email: userEmail, isExistingUser } = parsedBody;
+
         if (!token) {
           console.error('No token in parsed body:', parsedBody);
           setError('Authentication failed: No token received');
@@ -133,14 +134,14 @@ const Login = React.memo(({ onClose, returnTo }) => {
           return;
         }
 
-        if (!userName || !userEmail) {
+        if (!isExistingUser) {
           // New user → require details
           setRequireDetails(true);
           setIsLoading(false);
           return;
         }
 
-        // Existing user with details
+        // Existing user with details → skip profile form entirely
         const baseUser = {
           isLogin: true,
           userId: phoneNumber,
