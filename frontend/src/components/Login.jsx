@@ -26,11 +26,16 @@ const Login = React.memo(({ isOpen , onClose, returnTo }) => {
 
   // Check if user is already logged in and redirect appropriately
   useEffect(() => {
-    if (isLoggedIn) {
-      const redirectTo = location.pathname === '/' ? '/' : (returnTo === '/payment' || location.pathname.includes('/report-display') ? '/payment' : '/');
-      if (location.pathname !== redirectTo) {
-        console.log('User logged in, redirecting to:', redirectTo);
-        hasRedirected.current = true;
+    console.log('Login useEffect triggered, isModalOpen:', isModalOpen, 'isLoggedIn:', localStorage.getItem('isLogin') === 'true' && localStorage.getItem('authToken'));
+  if (!isModalOpen || hasRedirected.current) return;
+  const isLoggedIn = localStorage.getItem('isLogin') === 'true' && localStorage.getItem('authToken');
+  if (isLoggedIn && isModalOpen) {
+    const redirectTo = location.pathname === '/' ? '/' : (returnTo === '/payment' || location.pathname.includes('/report-display') ? '/payment' : '/');
+    if (location.pathname !== redirectTo) {
+      console.log('User logged in, redirecting to:', redirectTo);
+      hasRedirected.current = true;
+      // Delay setting isModalOpen to false until after navigation
+      const handleRedirect = () => {
         if (onClose) onClose();
         setIsModalOpen(false);
         navigate(redirectTo, {
@@ -40,7 +45,11 @@ const Login = React.memo(({ isOpen , onClose, returnTo }) => {
             reportId: location.state?.reportId || state.report?.reportId,
           },
         });
-      }
+      };
+      // Use setTimeout to ensure UI update before navigation
+      setTimeout(handleRedirect, 0);
+    }
+  }
     } else {
       setIsModalOpen(true);
     }
