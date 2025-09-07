@@ -7,7 +7,7 @@ const Login = React.memo(({ onClose, returnTo }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { state, dispatch: cxtDispatch } = useStore();
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(isOpen || false);
   const [phone, setPhone] = useState(
     state.userInfo?.phone ? state.userInfo.phone.replace('+91', '') : ''
   );
