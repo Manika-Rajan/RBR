@@ -9,6 +9,7 @@ const initialState = {
     name: localStorage.getItem("userName") || "",
     phone: localStorage.getItem("userPhone") || "",
     email: localStorage.getItem("userEmail") || "",
+    token: localStorage.getItem("authToken") || "", // ✅ Added token
   },
   totalPrice: 0,
   status: false,
@@ -32,6 +33,7 @@ const reducer = (state, action) => {
         name: action.payload.name || state.userInfo.name,
         email: action.payload.email || state.userInfo.email,
         phone: action.payload.phone || state.userInfo.phone,
+        token: action.payload.token || state.userInfo.token || "", // ✅ persist token
       };
 
       // ✅ persist to localStorage
@@ -40,10 +42,10 @@ const reducer = (state, action) => {
       localStorage.setItem("userName", updatedUser.name);
       localStorage.setItem("userEmail", updatedUser.email);
       localStorage.setItem("userPhone", updatedUser.phone);
+      localStorage.setItem("authToken", updatedUser.token); // ✅ persist token
 
       console.log("🔑 USER_LOGIN reducer applied, updatedUser:", updatedUser);
 
-      // ✅ preserve existing report object
       return { ...state, userInfo: updatedUser, report: { ...state.report } };
     }
 
@@ -59,7 +61,7 @@ const reducer = (state, action) => {
 
       return {
         ...state,
-        userInfo: { isLogin: false, userId: "", name: "", phone: "", email: "" },
+        userInfo: { isLogin: false, userId: "", name: "", phone: "", email: "", token: "" },
         report: { fileKey: "", reportId: "" },
       };
 
@@ -78,7 +80,6 @@ const reducer = (state, action) => {
       };
     }
 
-    // ✅ New action to store fileKey + reportId when BUY NOW is clicked
     case "SET_FILE_REPORT": {
       localStorage.setItem("reportFileKey", action.payload.fileKey || "");
       localStorage.setItem("reportId", action.payload.reportId || "");
