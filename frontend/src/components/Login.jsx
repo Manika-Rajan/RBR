@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import './Login.css';
 import { useStore } from '../Store';
 
-const Login = React.memo(({ onClose, returnTo }) => {
+const Login = React.memo(({ isOpen , onClose, returnTo }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { state, dispatch: cxtDispatch } = useStore();
