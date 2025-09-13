@@ -262,6 +262,58 @@ const Reports = () => {
     });
   };
 
+  const handleSearch = async (query) => {
+   const trimmed = query.trim();
+
+      if (!trimmed) {
+        alert("Please enter text to search.");
+        return;
+      }
+  
+    try {
+      console.log("Sending search query:", trimmed);
+  
+      const payload = {
+        search_query: trimmed,
+        user: {
+              name: state.userInfo?.name || "Unknown",
+              email: state.userInfo?.email || "",
+              phone: state.userInfo?.phone || "", // ✅ include phone here
+              userId: state.userInfo?.userId || state.userInfo?.phone || ""
+            }
+      };
+  
+      const response = await fetch(
+        "https://ypoucxtxgh.execute-api.ap-south-1.amazonaws.com/default/search-log",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        }
+      );
+  
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Failed with status ${response.status}, body: ${errorText}`);
+      }
+  
+      const data = await response.json();
+      console.log("Search log API response:", data);
+  
+      // (Optional) parse query into filters like before
+        if (trimmed.toLowerCase().includes("ceramic")) setSelect_industry(["Ceramics"]);
+        if (trimmed.toLowerCase().includes("steel")) setSelect_industry(["Steel"]);
+        if (trimmed.toLowerCase().includes("india")) setSelect_city(["India"]);
+        if (trimmed.toLowerCase().includes("delhi")) setSelect_city(["Delhi"]);
+      setNoSearch(false);
+  
+    } catch (err) {
+      console.error("Error logging search:", err);
+      alert(`Search failed: ${err.message}`);
+    }
+  };
+
+
   return (
     <>
       <Navbar reports />
@@ -277,18 +329,23 @@ const Reports = () => {
                 placeholder={placeholder}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') {
-                    // handle parsing into filters...
+                    const query = e.target.value.trim().toLowerCase();
+                    if (!query) {
+                      alert("Please enter text to search");
+                      return;
+                    }
+                    handleSearch(query);
                   }
                 }}
               />
               <button
                 onClick={() => {
-                  const query = document.querySelector('.search-hero-bar input').value.toLowerCase();
-                  if (query.includes('ceramic')) setSelect_industry(['Ceramics']);
-                  if (query.includes('steel')) setSelect_industry(['Steel']);
-                  if (query.includes('india')) setSelect_city(['India']);
-                  if (query.includes('delhi')) setSelect_city(['Delhi']);
-                  setNoSearch(false);
+                  const query = document.querySelector('.search-hero-bar input').value.trim().toLowerCase();
+                  if (!query) {
+                    alert("Please enter text to search");
+                    return;
+                  }
+                  handleSearch(query);
                 }}
               >
                 <svg className="search-icon" viewBox="0 0 24 24">
