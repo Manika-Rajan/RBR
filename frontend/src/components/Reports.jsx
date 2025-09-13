@@ -12,6 +12,15 @@ import black from '../assets/black.svg';
 import { useNavigate } from 'react-router-dom';
 import { Store } from '../Store';
 
+const placeholderExamples = [
+  "How much demand is there for paper cups in Hyderabad?",
+  "List of raw material suppliers for car manufacturing",
+  "Top-selling ceramic products in Delhi",
+  "Demand for LED lights in Bangalore and Mumbai"
+];
+
+
+
 const Reports = () => {
   const navigate = useNavigate();
   const { state, dispatch: cxtDispatch } = useContext(Store);
@@ -40,8 +49,9 @@ const Reports = () => {
   const [nogenerate, setNoGenerate] = useState(false);
   const [price, setPrice] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
-  const [lastReportId, setLastReportId] = useState(0); // Track the last used ID
-
+  const [lastReportId, setLastReportId] = useState(0); // Track the last used ID 
+  const [placeholder, setPlaceholder] = useState(placeholderExamples[0]);
+  
   useEffect(() => {
     const filters = {
       industry: select_industry,
@@ -53,6 +63,7 @@ const Reports = () => {
     setSelectedFilters(filters);
     console.log('Updated selectedFilters:', filters);
 
+
     const hasFilters =
       select_industry.length > 0 ||
       select_city.length > 0 ||
@@ -62,6 +73,19 @@ const Reports = () => {
     setGenerate(hasFilters);
   }, [select_industry, select_city, select_competitors, select_market, select_pain]);
 
+    useEffect(() => {
+      const interval = setInterval(() => {
+        setPlaceholder((prev) => {
+          let nextIndex = placeholderExamples.indexOf(prev) + 1;
+          if (nextIndex >= placeholderExamples.length) nextIndex = 0;
+          return placeholderExamples[nextIndex];
+        });
+      }, 5000); // change every 5 seconds
+    
+      return () => clearInterval(interval);
+    }, []);
+
+  
   const generateReport = async () => {
     setIsLoading(true);
     try {
@@ -241,6 +265,42 @@ const Reports = () => {
   return (
     <>
       <Navbar reports />
+          <div className="search-hero">
+            <h2 className="search-hero-heading">All Your Market Questions, Answered Instantly</h2>
+            <p className="search-hero-sub">
+            From suppliers to sales trends, uncover data that powers smarter business decisions — no waiting, no guesswork.
+            </p>
+            <p className="example-text">e.g., {placeholder}</p>
+            <div className="search-hero-bar">
+              <input
+                type="text"
+                placeholder={placeholder}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    // handle parsing into filters...
+                  }
+                }}
+              />
+              <button
+                onClick={() => {
+                  const query = document.querySelector('.search-hero-bar input').value.toLowerCase();
+                  if (query.includes('ceramic')) setSelect_industry(['Ceramics']);
+                  if (query.includes('steel')) setSelect_industry(['Steel']);
+                  if (query.includes('india')) setSelect_city(['India']);
+                  if (query.includes('delhi')) setSelect_city(['Delhi']);
+                  setNoSearch(false);
+                }}
+              >
+                <svg className="search-icon" viewBox="0 0 24 24">
+                  <path d="M10,2A8,8 0 1,0 18,10A8,8 0 0,0 10,2M22,22L17,17" />
+                </svg>
+                Search
+              </button>
+            </div>
+          </div>          
+
+
+      
       {popup && (
         <div className="nav-popup row">
           <div className="col-md-11 col-sm-10 col-10">
