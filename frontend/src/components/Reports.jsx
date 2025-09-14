@@ -12,6 +12,7 @@ import black from '../assets/black.svg';
 import { useNavigate } from 'react-router-dom';
 import { Store } from '../Store';
 
+
 const placeholderExamples = [
   "How much demand is there for paper cups in Hyderabad?",
   "List of raw material suppliers for car manufacturing",
@@ -25,6 +26,10 @@ const Reports = () => {
   const navigate = useNavigate();
   const { state, dispatch: cxtDispatch } = useContext(Store);
   const { totalPrice } = state;
+
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [searchMessage, setSearchMessage] = useState("");
+
 
   const [generate, setGenerate] = useState(false);
   const [select_industry, setSelect_industry] = useState([]);
@@ -269,6 +274,9 @@ const Reports = () => {
         alert("Please enter text to search.");
         return;
       }
+
+      setSearchLoading(true);
+      setSearchMessage(""); // reset before new search
   
     try {
       console.log("Sending search query:", trimmed);
@@ -299,6 +307,11 @@ const Reports = () => {
   
       const data = await response.json();
       console.log("Search log API response:", data);
+
+      // ✅ professional confirmation message
+      setSearchMessage(
+          "⚠️ We’re sorry, the specific data you requested isn’t available right now. Our research team has logged your query, these insights will be added within the next 72 hours. Please revisit soon—we’ll make sure it’s worth your while."
+        );
   
       // (Optional) parse query into filters like before
         if (trimmed.toLowerCase().includes("ceramic")) setSelect_industry(["Ceramics"]);
@@ -309,8 +322,10 @@ const Reports = () => {
   
     } catch (err) {
       console.error("Error logging search:", err);
-      alert(`Search failed: ${err.message}`);
-    }
+      setSearchMessage("⚠️ Something went wrong while processing your request. Please try again later.");
+      } finally {
+        setSearchLoading(false);
+      }
   };
 
 
@@ -353,10 +368,49 @@ const Reports = () => {
                 </svg>
                 Search
               </button>
+              
+              {/* Popup overlay for loader */}
+              {searchLoading && (
+                <div className="popup-overlay">
+                  <div className="popup-box">
+                    <svg className="spinner" viewBox="0 0 50 50">
+                      <circle
+                        className="path"
+                        cx="25"
+                        cy="25"
+                        r="20"
+                        fill="none"
+                        strokeWidth="5"
+                      />
+                    </svg>
+                    <p>Fetching your request...</p>
+                  </div>
+                </div>
+              )}
+              
+             {/* Popup overlay for response */}
+              {!searchLoading && searchMessage && (
+                <div className="popup-overlay">
+                  <div className="popup-box enhanced">
+                    <h2 className="popup-title">📊 We’re Working on It</h2>
+                    <p className="popup-message">
+                      {searchMessage}
+                    </p>
+                    <div className="popup-footer">
+                      <button
+                        className="popup-button"
+                        onClick={() => setSearchMessage("")}
+                      >
+                        Okay, I’ll check back
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+
             </div>
-          </div>          
-
-
+          </div> {/* ✅ closes .search-hero */}
       
       {popup && (
         <div className="nav-popup row">
