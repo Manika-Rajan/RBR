@@ -20,6 +20,32 @@ const placeholderExamples = [
   "Demand for LED lights in Bangalore and Mumbai"
 ];
 
+const LoaderRing = () => (
+  <svg className="loader-ring" viewBox="0 0 100 100">
+    <circle
+      className="loader-ring__bg"
+      cx="50"
+      cy="50"
+      r="45"
+      fill="none"
+      stroke="#e6e6e6"
+      strokeWidth="8"
+    />
+    <circle
+      className="loader-ring__progress"
+      cx="50"
+      cy="50"
+      r="45"
+      fill="none"
+      stroke="#0263c7"
+      strokeWidth="8"
+      strokeLinecap="round"
+      strokeDasharray="283"    /* 2πr (r=45 → circumference ≈ 283) */
+      strokeDashoffset="75"
+    />
+  </svg>
+);
+
 
 
 const Reports = () => {
@@ -310,7 +336,7 @@ const Reports = () => {
 
       // ✅ professional confirmation message
       setSearchMessage(
-          "⚠️ We’re sorry, the specific data you requested isn’t available right now. Our research team has logged your query, these insights will be added within the next 72 hours. Please revisit soon—we’ll make sure it’s worth your while."
+          "ℹ️ We’re sorry, the specific data you requested isn’t available right now. Our research team has logged your query, these insights will be added within the next 72 hours. Please revisit soon—we’ll make sure it’s worth your while."
         );
   
       // (Optional) parse query into filters like before
@@ -373,26 +399,21 @@ const Reports = () => {
               {searchLoading && (
                 <div className="popup-overlay">
                   <div className="popup-box">
-                    <svg className="spinner" viewBox="0 0 50 50">
-                      <circle
-                        className="path"
-                        cx="25"
-                        cy="25"
-                        r="20"
-                        fill="none"
-                        strokeWidth="5"
-                      />
-                    </svg>
-                    <p>Fetching your request...</p>
+                    <LoaderRing />
+              
+                    <p style={{ marginTop: "12px", fontSize: "14px", color: "#333" }}>
+                      Fetching your request...
+                    </p>
                   </div>
                 </div>
               )}
+
               
              {/* Popup overlay for response */}
               {!searchLoading && searchMessage && (
                 <div className="popup-overlay">
                   <div className="popup-box enhanced">
-                    <h2 className="popup-title">📊 We’re Working on It</h2>
+                    <h2 className="popup-title">📊 This Data is coming soon</h2>
                     <p className="popup-message">
                       {searchMessage}
                     </p>
