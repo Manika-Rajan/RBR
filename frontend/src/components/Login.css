@@ -1,19 +1,3 @@
-/* .login-popup-container {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
-} */
-
-/* .login-popup-container:not(.success-popup-container) {
-  background: rgba(0, 0, 0, 0.5);
-} */
-
 .login-popup {
   margin: auto;
   text-align: center;
@@ -41,7 +25,8 @@
   color: #293750;
 }
 
-.login-button {
+.login-button,
+.profile-completion-form button {
   background: #0263C7;
   box-shadow: 4px 4px 15px rgba(78, 78, 78, 0.25);
   border-radius: 9px;
@@ -55,11 +40,13 @@
   cursor: pointer;
 }
 
-.login-button:hover {
+.login-button:hover,
+.profile-completion-form button:hover {
   background: #0250a3;
 }
 
-.login-button:disabled {
+.login-button:disabled,
+.profile-completion-form button:disabled {
   background: #a3b8d5;
   cursor: not-allowed;
 }
@@ -78,7 +65,7 @@
 }
 
 .otp-fields input {
-  width: 50%;
+  width: 75%;
   border: none;
   border-bottom: 1px solid grey;
   text-align: center;
@@ -105,16 +92,6 @@
 .success-popup-container {
   background: none;
 }
-
-/* .success-popup {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  z-index: 1001;
-  background: transparent;
-  padding: 0;
-} */
 
 .success-message {
   display: flex;
@@ -176,4 +153,78 @@
   font-size: 16px;
   color: #293750;
   margin-top: 10px;
+}
+
+/* Profile form styled same as OTP form */
+.profile-completion-form {
+  margin-top: 20px;
+  text-align: center;
+}
+
+.profile-completion-form input {
+  border: none;
+  border-bottom: 1px solid grey;
+  text-align: center;
+  width: 80%;
+  padding: 10px;
+  margin: 8px auto;
+  font-size: 16px;
+}
+
+.profile-completion-form input:focus {
+  outline: none;
+  border-bottom: 1px solid #0263c7;
+}
+
+
+/* Toast styling */
+.toast-message {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #28a745;
+  color: white;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-weight: bold;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+  animation: fadeInOut 3s forwards;
+}
+
+@keyframes fadeInOut {
+  0% { opacity: 0; transform: translateX(-50%) translateY(20px); }
+  10% { opacity: 1; transform: translateX(-50%) translateY(0); }
+  90% { opacity: 1; }
+  100% { opacity: 0; transform: translateX(-50%) translateY(20px); }
+}
+
+/* Profile form styled same as OTP form */
+.profile-completion-form {
+  margin-top: 20px;
+  text-align: center;
+}
+
+.profile-completion-form h4 {
+  font-family: 'Baskerville Old Face';
+  font-weight: 400;
+  font-size: 28px;
+  margin-bottom: 16px;
+  color: #293750;
+}
+
+.profile-completion-form input {
+  border: none;
+  border-bottom: 1px solid grey;
+  text-align: center;
+  width: 80%;
+  padding: 10px;
+  margin: 12px auto;
+  font-size: 16px;
+  font-family: 'Open Sans';
+}
+
+.profile-completion-form input:focus {
+  outline: none;
+  border-bottom: 1px solid #0263c7;
 }
