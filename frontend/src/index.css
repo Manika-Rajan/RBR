@@ -12,6 +12,18 @@ body {
 }
 
 code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-    monospace;
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New', monospace;
+}
+
+
+
+/* Always show the collapsed area on desktop/laptop widths */
+@media (min-width: 768px) {
+  .navbar .navbar-collapse {
+    /*display: flex !important;*/
+    /*flex-basis: auto !important;*/
+    visibility: visible !important;
+    /*opacity: 1 !important;*/
+  }
+
 }
