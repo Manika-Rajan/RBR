@@ -1,45 +1,43 @@
-// --- Navbar.jsx ---
+// Navbar.jsx
 import React, { useContext, useState, useEffect } from "react";
 import logo from "../assets/logo.svg";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { NavLink, Link, useLocation, useNavigate } from "react-router-dom";
 import Login from "./Login";
 import { Modal, ModalBody } from "reactstrap";
 import { Store } from "../Store";
 import avatar from "../assets/avatar.svg";
+import './Navbar.css';
 
-const Navbar = (props) => {
+const Navbar = () => {
   const [openModel, setOpenModel] = useState(false);
   const [login, setLogin] = useState(true);
-  const { state, dispatch } = useContext(Store);
-  const { isLogin } = state.userInfo;
-
-  // ✅ Track name separately to ensure updates
-  const [currentName, setCurrentName] = useState(
-    state.userInfo.name || localStorage.getItem("userName") || "User"
-  );
+  const [otp, sendOtp] = useState(false);
+  const [verify, setVerify] = useState(false);
+  const { state, dispatch: cxtDispatch } = useContext(Store);
+  const userInfo = state?.userInfo || {};
+  const { name = "", isLogin = false } = userInfo;
 
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
 
   useEffect(() => {
-    // Update name whenever store or localStorage changes
-    setCurrentName(state.userInfo.name || localStorage.getItem("userName") || "User");
-    console.log("Navbar rerendered - isLogin:", isLogin, "name:", state.userInfo.name);
-  }, [state.userInfo.name, isLogin]);
+    console.log("Navbar rerendered - isLogin:", isLogin, "name:", name);
+  }, [isLogin, name]);
 
   const hideNavbar = location.pathname === "/report-display";
-
-  const toggleDropdown = () => setDropdownOpen(!dropdownOpen);
+  const toggleDropdown = () => setDropdownOpen((v) => !v);
 
   const handleLogout = () => {
-    dispatch({ type: "LOGOUT" });
+    cxtDispatch?.({ type: "LOGOUT" });
     setDropdownOpen(false);
     navigate("/");
   };
 
   const resetModal = () => {
     setLogin(true);
+    sendOtp(false);
+    setVerify(false);
   };
 
   if (hideNavbar) return null;
@@ -47,21 +45,25 @@ const Navbar = (props) => {
   return (
     <>
       <div className="header">
-        <nav className="navbar navbar-expand-lg bg-light fixed-top">
+        <nav className="navbar navbar-expand-md navbar-light bg-light fixed-top">
           <div className="container-fluid">
-            <div className="nav-left">
-              <div className="logo">
-                <Link to="/" className="navbar-brand">
-                  <img src={logo} alt="" style={{ width: "60px", height: "60px" }} />
-                </Link>
-              </div>
-              <div className="text">
-                <p className="nav-title">Rajan Business Report Services</p>
-                <p className="text-desc" style={{ marginTop: "-20px" }}>
+            {/* Brand */}
+            <Link to="/" className="navbar-brand d-flex align-items-center">
+              <img
+                src={logo}
+                alt="Logo"
+                style={{ width: 48, height: 48 }}
+                className="me-2"
+              />
+              <div className="d-flex flex-column">
+                <span className="fw-semibold">Rajan Business Report Services</span>
+                <small className="text-muted d-none d-lg-block">
                   A product by Rajan Business Ideas
-                </p>
+                </small>
               </div>
-            </div>
+            </Link>
+
+            {/* Toggler */}
             <button
               className="navbar-toggler"
               type="button"
@@ -71,37 +73,61 @@ const Navbar = (props) => {
               aria-expanded="false"
               aria-label="Toggle navigation"
             >
-              <span className="navbar-toggler-icon"></span>
+              <span className="navbar-toggler-icon" />
             </button>
+
+            {/* Collapsible content */}
             <div className="collapse navbar-collapse" id="navbarSupportedContent">
-              <ul className="navbar-nav ms-auto">
-                <li className="nav-item" style={{ marginRight: "80px" }}>
-                  <Link to="/about" className="nav-link" aria-current="page">
+              <ul className="navbar-nav ms-auto align-items-md-center mt-3 mt-md-0">
+                <li className="nav-item me-md-4">
+                  <NavLink
+                    to="/about"
+                    className={({ isActive }) => "nav-link" + (isActive ? " active" : "")}
+                  >
                     About
-                  </Link>
-                  <div className={props.about ? "active" : ""}></div>
+                  </NavLink>
                 </li>
-                <li className="nav-item" style={{ marginRight: "80px" }}>
-                  <Link to="/" className="nav-link">
+
+                <li className="nav-item me-md-4">
+                  <NavLink
+                    to="/"
+                    end
+                    className={({ isActive }) => "nav-link" + (isActive ? " active" : "")}
+                  >
                     Reports
-                  </Link>
-                  <div className={props.reports ? "active" : ""}></div>
+                  </NavLink>
                 </li>
-                <li className="nav-item" style={{ marginRight: "80px" }}>
-                  <Link to="/contact" className="nav-link">
+
+                <li className="nav-item me-md-4">
+                  <NavLink
+                    to="/contact"
+                    className={({ isActive }) => "nav-link" + (isActive ? " active" : "")}
+                  >
                     Contact
-                  </Link>
-                  <div className={props.contact ? "active" : ""}></div>
+                  </NavLink>
                 </li>
+
                 {isLogin ? (
                   <li className="nav-item dropdown">
-                    <div className="dropdown-toggle user-menu" onClick={toggleDropdown}>
-                      <img src={avatar} className="avatar" alt="User Avatar" />
-                      {/* ✅ Always show latest name */}
-                      <span className="user-name">{currentName.trim() || "User"}</span>
-                    </div>
+                    <button
+                      className="btn btn-link nav-link d-flex align-items-center p-0"
+                      onClick={toggleDropdown}
+                      aria-expanded={dropdownOpen ? "true" : "false"}
+                    >
+                      <img
+                        src={avatar}
+                        alt="User"
+                        className="rounded-circle me-2"
+                        style={{ width: 32, height: 32 }}
+                      />
+                      <span className="text-nowrap">{name?.trim() || "User"}</span>
+                    </button>
                     {dropdownOpen && (
-                      <ul className="dropdown-menu show">
+                      <ul
+                        className="dropdown-menu dropdown-menu-end show"
+                        style={{ position: "absolute" }}
+                        onMouseLeave={() => setDropdownOpen(false)}
+                      >
                         <li>
                           <Link
                             to="/profile"
@@ -112,7 +138,7 @@ const Navbar = (props) => {
                           </Link>
                         </li>
                         <li>
-                          <button className="dropdown-item logout-btn" onClick={handleLogout}>
+                          <button className="dropdown-item" onClick={handleLogout}>
                             Logout
                           </button>
                         </li>
@@ -122,7 +148,7 @@ const Navbar = (props) => {
                 ) : (
                   <li className="nav-item">
                     <button
-                      className="nav-link login-btn"
+                      className="btn btn-primary"
                       onClick={() => {
                         resetModal();
                         setOpenModel(true);
@@ -137,6 +163,7 @@ const Navbar = (props) => {
           </div>
         </nav>
       </div>
+
       <Modal
         isOpen={openModel}
         toggle={() => {
