@@ -1,5 +1,7 @@
 // RBR/frontend/src/components/ReportsMobile.jsx
-// Mobile landing page — logs searches and then navigates to the mobile report display
+// Mobile landing — logs searches; navigates only if a known report's preview exists.
+// If no exact match, calls /suggest (POST) and shows a classic “Did you mean…?” popup (ice-blue).
+// Tapping a suggestion now navigates directly to the report (no re-search loop).
 
 import React, {
   useMemo,
@@ -10,11 +12,11 @@ import React, {
   useContext,
 } from "react";
 import { createPortal } from "react-dom";
-import { useNavigate } from "react-router-dom";            // ⬅️ added
-import { Store } from "../Store"; // ⬅️ to pull user info for payload
+import { useNavigate } from "react-router-dom";
+import { Store } from "../Store";
 
 const EXAMPLES = [
-  "Paper Manufacturing in India",
+  "Paper industry in India",
   "FMCG market report",
   "IT industry analysis India",
   "EV charging stations India",
@@ -32,58 +34,47 @@ const SUGGESTIONS = [
   "Pharma competitor analysis",
 ];
 
-// Simple preview mapping for quick demo navigation (⛳ now using bucket ROOT keys)
-const PREVIEW_MAP = [
-  {
-    match: "ev charging",
-    fileKey: "ev_charging_preview.pdf",   // ⬅️ moved to root
-    id: "RBR1001",
-  },
-  {
-    match: "fmcg",
-    fileKey: "fmcg_preview.pdf",          // ⬅️ moved to root
-    id: "RBR1002",
-  },
-  {
-    match: "pharma",
-    fileKey: "pharma_preview.pdf",        // ⬅️ moved to root
-    id: "RBR1003",
-  },
+// Router of known reports — navigate only if query clearly matches one of these.
+const ROUTER = [
+  { slug: "ev_charging",    keywords: ["ev charging", "charging station"] },
+  { slug: "fmcg",           keywords: ["fmcg"] },
+  { slug: "pharma",         keywords: ["pharma", "pharmaceutical"] },
+  // No plain "paper" (so "paper clip" doesn’t auto-resolve)
+  { slug: "paper_industry", keywords: ["paper industry", "paper manufacturing"] },
 ];
 
-const DEFAULT_PREVIEW = {
-  fileKey: "paper_industry_preview.pdf",  // ⬅️ moved to root
-  id: "RBR1999",
-};
+// Endpoints
+const SEARCH_LOG_URL = "https://ypoucxtxgh.execute-api.ap-south-1.amazonaws.com/default/search-log";
+const PRESIGN_URL    = "https://vtwyu7hv50.execute-api.ap-south-1.amazonaws.com/default/RBR_report_pre-signed_URL";
+const SUGGEST_URL    = "https://vtwyu7hv50.execute-api.ap-south-1.amazonaws.com/default/suggest";
 
-// Small loader ring (tailwind-friendly)
+// Loader
 const LoaderRing = () => (
   <svg viewBox="0 0 100 100" className="w-14 h-14 animate-spin-slow">
     <circle cx="50" cy="50" r="45" fill="none" stroke="#e6e6e6" strokeWidth="8" />
     <circle
-      cx="50"
-      cy="50"
-      r="45"
-      fill="none"
-      stroke="#0263c7"
-      strokeWidth="8"
-      strokeLinecap="round"
-      strokeDasharray="283"
-      strokeDashoffset="75"
+      cx="50" cy="50" r="45"
+      fill="none" stroke="#0263c7" strokeWidth="8"
+      strokeLinecap="round" strokeDasharray="283" strokeDashoffset="75"
     />
     <style>{`.animate-spin-slow{animation:spin 1.4s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}`}</style>
   </svg>
 );
 
 const ReportsMobile = () => {
-  const { state } = useContext(Store); // ⬅️ has userInfo (name, email, phone, userId)
-  const navigate = useNavigate();      // ⬅️ added
+  const { state } = useContext(Store);
+  const navigate = useNavigate();
 
   const [q, setQ] = useState("");
   const [openModal, setOpenModal] = useState(false);
   const [modalMsg, setModalMsg] = useState("");
-
   const [searchLoading, setSearchLoading] = useState(false);
+
+  // Suggestion modal (classic)
+  const [suggestOpen, setSuggestOpen] = useState(false);
+  // items: [{title, slug}]
+  const [suggestItems, setSuggestItems] = useState([]);
+  const [lastQuery, setLastQuery] = useState("");
 
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [dropdownRect, setDropdownRect] = useState({ left: 0, top: 0, width: 0 });
@@ -92,14 +83,13 @@ const ReportsMobile = () => {
   const dropdownRef = useRef(null);
   const modalBtnRef = useRef(null);
 
-  // Filter suggestions
+  // Autocomplete (static) chips under the input
   const matches = useMemo(() => {
     const v = q.trim().toLowerCase();
     if (v.length < 2) return [];
     return SUGGESTIONS.filter((s) => s.toLowerCase().includes(v)).slice(0, 6);
   }, [q]);
 
-  // Compute screen position of input (for body-portal dropdown)
   const computeDropdownPos = useCallback(() => {
     const el = inputRef.current;
     if (!el) return;
@@ -111,22 +101,105 @@ const ReportsMobile = () => {
     });
   }, []);
 
+  // Helper: resolve a slug from the free-text query (case-insensitive)
+  const resolveSlug = (query) => {
+    const ql = query.toLowerCase();
+    for (const entry of ROUTER) {
+      if (entry.keywords.some((kw) => ql.includes(kw))) {
+        return entry.slug;
+      }
+    }
+    return null;
+  };
+
+  // 🔎 ask /suggest for up to 3 items
+  const fetchSuggestions = async (query) => {
+    try {
+      const resp = await fetch(SUGGEST_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ q: query, limit: 3 }),
+      });
+      if (!resp.ok) return { items: [], exact_match: false };
+      const data = await resp.json();
+      const body = typeof data.body === "string" ? JSON.parse(data.body) : data;
+      const items = (body.items || []).slice(0, 3);
+      return { items, exact_match: !!body.exact_match };
+    } catch (e) {
+      console.error("suggest error:", e);
+      return { items: [], exact_match: false };
+    }
+  };
+
+  // 🔗 Given a slug, verify preview existence and navigate
+  const goToReportBySlug = async (reportSlug) => {
+    if (!reportSlug) return;
+    setSearchLoading(true);
+    try {
+      const reportId = `RBR1${Math.floor(Math.random() * 900 + 100)}`;
+      const previewKey = `${reportSlug}_preview.pdf`;
+
+      const presignResp = await fetch(PRESIGN_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ file_key: previewKey }),
+      });
+
+      if (!presignResp.ok) {
+        setModalMsg("📢 This report preview isn’t ready yet. Our team is adding it shortly.");
+        setOpenModal(true);
+        return;
+      }
+
+      const presignData = await presignResp.json();
+      const url = presignData?.presigned_url;
+      if (!url) {
+        setModalMsg("📢 This report preview isn’t ready yet. Please check back soon.");
+        setOpenModal(true);
+        return;
+      }
+
+      // Small probe (be lenient; navigate even if probe fails network-wise)
+      try {
+        const probe = await fetch(url, { method: "GET", headers: { Range: "bytes=0-1" } });
+        const ct = (probe.headers.get("content-type") || "").toLowerCase();
+        if (!probe.ok || !(probe.status === 200 || probe.status === 206) || !ct.includes("pdf")) {
+          setModalMsg("📢 This report preview isn’t ready yet. Please check back soon.");
+          setOpenModal(true);
+          return;
+        }
+      } catch {
+        // ignore transient probe errors; still navigate
+      }
+
+      navigate("/report-display", { state: { reportSlug, reportId } });
+    } catch (e) {
+      console.error("goToReportBySlug error:", e);
+      setModalMsg("⚠️ Something went wrong while opening the report. Please try again.");
+      setOpenModal(true);
+    } finally {
+      setSearchLoading(false);
+    }
+  };
+
+  // log → (resolve) → navigate OR suggest
   const handleSearch = async (query) => {
     const trimmed = query.trim();
     if (!trimmed) return;
 
+    setLastQuery(trimmed);
     setSearchLoading(true);
     setModalMsg("");
+    setSuggestOpen(false);
     try {
-      if (window.gtag) {
-        window.gtag("event", "report_search", {
-          event_category: "engagement",
-          event_label: "mobile_reports_search",
-          value: 1,
-          search_term: trimmed,
-        });
-      }
+      window.gtag?.("event", "report_search", {
+        event_category: "engagement",
+        event_label: "mobile_reports_search",
+        value: 1,
+        search_term: trimmed,
+      });
 
+      // log to your search-log Lambda
       const payload = {
         search_query: trimmed,
         user: {
@@ -136,35 +209,43 @@ const ReportsMobile = () => {
           userId: state?.userInfo?.userId || state?.userInfo?.phone || "",
         },
       };
+      const logResp = await fetch(SEARCH_LOG_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (!logResp.ok) {
+        const t = await logResp.text();
+        throw new Error(`Failed search-log ${logResp.status}, body: ${t}`);
+      }
+      await logResp.json();
 
-      const resp = await fetch(
-        "https://ypoucxtxgh.execute-api.ap-south-1.amazonaws.com/default/search-log",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
+      // 1) Try strict router first (no fallback)
+      const reportSlug = resolveSlug(trimmed);
+      if (!reportSlug) {
+        // 1a) Ask suggest API
+        const { items } = await fetchSuggestions(trimmed);
+        if (items && items.length > 0) {
+          // Map API -> modal items with slug (so clicks can jump straight to report)
+          const mapped = items.map((it) => ({
+            title: it.title || it.slug,
+            slug: it.slug, // crucial
+          }));
+          setSuggestItems(mapped.slice(0, 3));
+          setSuggestOpen(true);
+          return;
         }
-      );
-
-      if (!resp.ok) {
-        const t = await resp.text();
-        throw new Error(`Failed with status ${resp.status}, body: ${t}`);
+        // 1b) Nothing to suggest → coming soon
+        setModalMsg("📢 We don’t have a ready-made report for that yet. We’ve logged your request and will add it soon.");
+        setOpenModal(true);
+        return;
       }
 
-      await resp.json(); // confirms success
-
-      // 🔁 After a successful log, pick a preview and navigate to the viewer
-      const ql = trimmed.toLowerCase();
-      const match = PREVIEW_MAP.find((m) => ql.includes(m.match));
-      const { fileKey, id: reportId } = match || DEFAULT_PREVIEW;
-
-      navigate("/report-display", { state: { fileKey, reportId } });
-      return; // Stop here; no modal on success
+      // 2) We have a slug → go open the report
+      await goToReportBySlug(reportSlug);
     } catch (e) {
-      console.error("Error logging search (mobile):", e);
-      setModalMsg(
-        "⚠️ Something went wrong while processing your request. Please try again later."
-      );
+      console.error("Error during search flow:", e);
+      setModalMsg("⚠️ Something went wrong while processing your request. Please try again later.");
       setOpenModal(true);
     } finally {
       setSearchLoading(false);
@@ -173,10 +254,10 @@ const ReportsMobile = () => {
 
   const onSubmit = (e) => {
     e.preventDefault();
-    if (searchLoading) return; // prevent double submit
+    if (searchLoading) return;
     const query = q.trim();
     if (!query) return;
-    setShowSuggestions(false); // close suggestions on submit
+    setShowSuggestions(false);
     handleSearch(query);
   };
 
@@ -185,13 +266,12 @@ const ReportsMobile = () => {
     setTimeout(() => inputRef.current?.focus(), 0);
   };
 
-  // Open suggestions on focus and position them
   const handleFocus = () => {
     computeDropdownPos();
     setShowSuggestions(true);
   };
 
-  // Close suggestions on outside click (portal -> body)
+  // close suggestions when clicking out
   useEffect(() => {
     const handleClick = (e) => {
       const insideDropdown = dropdownRef.current?.contains(e.target);
@@ -206,7 +286,7 @@ const ReportsMobile = () => {
     };
   }, []);
 
-  // Recompute position on resize; close on scroll for tidiness
+  // reposition on resize; close on scroll
   useEffect(() => {
     const onResize = () => computeDropdownPos();
     const onScroll = () => setShowSuggestions(false);
@@ -218,25 +298,24 @@ const ReportsMobile = () => {
     };
   }, [computeDropdownPos]);
 
-  // ESC to close modal
+  // ESC to close modal/sheet
   useEffect(() => {
     const onKey = (ev) => {
-      if (ev.key === "Escape") closeModal();
+      if (ev.key === "Escape") {
+        if (suggestOpen) setSuggestOpen(false);
+        if (openModal) setOpenModal(false);
+      }
     };
-    if (openModal) document.addEventListener("keydown", onKey);
+    if (openModal || suggestOpen) document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
-  }, [openModal]);
+  }, [openModal, suggestOpen]);
 
   return (
     <div className="min-h-screen bg-white flex flex-col items-center px-4 pt-6 pb-10">
       {/* Header */}
       <header className="w-full flex justify-between items-center mb-6">
         <div className="text-xl font-extrabold text-gray-900 tracking-tight">RBR</div>
-        <button
-          className="text-gray-700 text-2xl p-2 leading-none"
-          aria-label="Open menu"
-          type="button"
-        >
+        <button className="text-gray-700 text-2xl p-2 leading-none" aria-label="Open menu" type="button">
           ☰
         </button>
       </header>
@@ -246,15 +325,12 @@ const ReportsMobile = () => {
         Get Instant Market &amp; Business Reports
       </h1>
       <p className="text-gray-600 text-center mb-6 text-sm sm:text-base px-2">
-        Search 1000+ industry reports. Accurate. Reliable. Ready for your
-        business.
+        Search 1000+ industry reports. Accurate. Reliable. Ready for your business.
       </p>
 
       {/* Search */}
       <form onSubmit={onSubmit} className="w-full mb-3">
-        <label htmlFor="mobile-search" className="sr-only">
-          Search reports
-        </label>
+        <label htmlFor="mobile-search" className="sr-only">Search reports</label>
         <div className="w-full flex">
           <input
             ref={inputRef}
@@ -263,7 +339,7 @@ const ReportsMobile = () => {
             value={q}
             onChange={(e) => setQ(e.target.value)}
             onFocus={handleFocus}
-            placeholder="e.g., FMCG market report, IT industry analysis…"
+            placeholder="e.g., paper industry, FMCG, pharma…"
             inputMode="search"
             enterKeyHint="search"
             className="flex-grow px-3 py-3 border border-gray-300 rounded-l-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base"
@@ -296,43 +372,19 @@ const ReportsMobile = () => {
         ))}
       </div>
 
-      {/* Sample Reports */}
-      <section className="w-full mb-8">
-        <h2 className="text-lg sm:text-xl font-semibold text-gray-800 mb-3">Sample Reports</h2>
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-          {[1, 2, 3].map((i) => (
-            <article
-              key={i}
-              className="border border-gray-200 rounded-xl p-3 shadow-sm flex flex-col items-center"
-            >
-              <div className="w-full h-0 pb-[140%] bg-gray-200 rounded-md mb-2" />
-              <button type="button" className="text-blue-600 text-sm sm:text-base font-medium">
-                View Summary
-              </button>
-            </article>
-          ))}
-        </div>
-      </section>
-
-      {/* === Suggestions via PORTAL (never affects layout) === */}
-      {showSuggestions &&
-        matches.length > 0 &&
+      {/* Inline autocomplete suggestions via PORTAL */}
+      {showSuggestions && matches.length > 0 &&
         createPortal(
           <div
             ref={dropdownRef}
             className="z-[9999] border border-gray-200 bg-white shadow-lg max-h-48 overflow-auto rounded-b-xl"
-            style={{
-              position: "fixed",
-              left: dropdownRect.left,
-              top: dropdownRect.top,
-              width: dropdownRect.width,
-            }}
+            style={{ position: "fixed", left: dropdownRect.left, top: dropdownRect.top, width: dropdownRect.width }}
           >
             {matches.map((m) => (
               <button
                 key={m}
                 type="button"
-                onMouseDown={(e) => e.preventDefault()} // prevent blur before click
+                onMouseDown={(e) => e.preventDefault()}
                 onClick={() => {
                   setQ(m);
                   setShowSuggestions(false);
@@ -345,42 +397,102 @@ const ReportsMobile = () => {
             ))}
           </div>,
           document.body
-        )}
+        )
+      }
 
       {/* Loader overlay */}
       {searchLoading && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div className="absolute inset-0 bg-black/40" />
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
           <div className="relative z-10 bg-white rounded-2xl p-6 shadow-xl w-[90%] max-w-xs text-center">
-            <div className="flex items-center justify-center mb-3">
-              <LoaderRing />
-            </div>
+            <div className="flex items-center justify-center mb-3"><LoaderRing /></div>
             <div className="text-gray-800 text-sm">Fetching your request…</div>
           </div>
         </div>
       )}
 
-      {/* Modal: Error only (success navigates) */}
+      {/* Error / Coming soon modal */}
       {openModal && (
+        <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-end sm:items-center justify-center" onClick={closeModal}>
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
+          <div className="relative z-10 w-full sm:w-[420px] bg-white rounded-t-2xl sm:rounded-2xl p-5 shadow-lg" onClick={(e) => e.stopPropagation()}>
+            <div className="text-lg font-semibold mb-2">📊 This data is coming soon</div>
+            <p className="text-gray-700 text-sm leading-relaxed mb-4">
+              {modalMsg || "We’re adding this report to our catalog. Please check back soon!"}
+            </p>
+            <button ref={modalBtnRef} onClick={closeModal} className="w-full bg-blue-600 text-white font-semibold py-2.5 rounded-xl active:scale-[0.98]">
+              Okay
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Did you mean modal (classic, max 3 suggestions) */}
+      {suggestOpen && (
         <div
           role="dialog"
           aria-modal="true"
-          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center"
-          onClick={closeModal}
+          className="fixed inset-0 z-50 flex items-center justify-center"
+          onClick={() => setSuggestOpen(false)}
         >
-          <div className="absolute inset-0 bg-black/40" />
+          {/* Backdrop */}
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px]" />
+
+          {/* Centered modal */}
           <div
-            className="relative z-10 w-full sm:w-[420px] bg-white rounded-t-2xl sm:rounded-2xl p-5 shadow-lg"
+            className="relative z-10 w-[92%] max-w-sm rounded-2xl shadow-2xl border border-blue-100 bg-[#EAF6FF] p-4"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="text-lg font-semibold mb-2">Notice</div>
-            <p className="text-gray-700 text-sm leading-relaxed mb-4">{modalMsg}</p>
+            <div className="flex items-start justify-between mb-2">
+              <h3 className="text-base font-semibold text-blue-900">Did you mean…</h3>
+              <button
+                onClick={() => setSuggestOpen(false)}
+                className="h-8 w-8 rounded-full bg-white/70 hover:bg-white text-blue-700 flex items-center justify-center"
+                aria-label="Close suggestions"
+              >
+                ×
+              </button>
+            </div>
+
+            <p className="text-xs text-blue-800/80 mb-3">
+              You searched: <strong>{lastQuery}</strong>
+            </p>
+
+            <div className="space-y-2">
+              {suggestItems.map((s) => (
+                <button
+                  key={s.slug || s.title}
+                  type="button"
+                  className="w-full text-left rounded-xl border border-blue-100 bg-white/80 hover:bg-white hover:border-blue-200 hover:shadow-md active:scale-[0.99] transition-all p-3 flex items-center gap-3"
+                  onClick={() => {
+                    setSuggestOpen(false);
+                    // Navigate directly using the slug
+                    goToReportBySlug(s.slug || resolveSlug(s.title || ""));
+                  }}
+                >
+                  <div className="shrink-0 h-8 w-8 rounded-lg bg-blue-50 flex items-center justify-center">
+                    <span>📊</span>
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="text-sm font-medium text-gray-900 truncate">
+                      {s.title}
+                    </div>
+                  </div>
+                  <div className="shrink-0 text-blue-400">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                      <path d="M9 18l6-6-6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  </div>
+                </button>
+              ))}
+            </div>
+
             <button
-              ref={modalBtnRef}
-              onClick={closeModal}
-              className="w-full bg-blue-600 text-white font-semibold py-2.5 rounded-xl active:scale-[0.98]"
+              type="button"
+              onClick={() => setSuggestOpen(false)}
+              className="mt-3 w-full border border-blue-100 hover:border-blue-200 bg-[#DFF1FF] hover:bg-[#D6ECFF] text-blue-900 font-semibold py-2.5 rounded-xl active:scale-[0.98] transition-all"
             >
-              Okay
+              None of these
             </button>
           </div>
         </div>
