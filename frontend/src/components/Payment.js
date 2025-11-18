@@ -1,3 +1,4 @@
+// RBR/frontend/src/components/Payment.js
 import React, { useEffect, useState, useContext } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Store } from '../Store';
@@ -363,8 +364,7 @@ const Payment = () => {
       const orderCurrency = parsedBody?.razorpay_response?.currency || 'INR';
       const keyFromOrder = parsedBody?.key_id || null;
 
-      // ✅ Critical fix: prefer the key_id returned by the order API.
-      //    Only if it's missing, fall back to env/window/localStorage.
+      // Prefer the key_id returned by the order API.
       const razorpayKey =
         keyFromOrder ||
         process.env.REACT_APP_RAZORPAY_KEY_ID ||
@@ -469,7 +469,17 @@ const Payment = () => {
             });
 
             await saveUserDetails();
-            navigate('/profile', { state: { showSuccess: true } });
+
+            // ✅ Redirect to purchase success page instead of profile
+            navigate('/purchase-success', {
+              replace: true,
+              state: {
+                amount: Number(amount),
+                reportId,
+                fileKey: file_key,
+                razorpayPaymentId: response.razorpay_payment_id,
+              },
+            });
           } catch (err) {
             console.error('Payment verification error:', err.message, err.stack);
             setError(`Payment verification failed: ${err.message}`);
