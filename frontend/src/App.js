@@ -22,6 +22,8 @@ import { BrowserRouter as Router, Route, Routes, Navigate, useLocation } from 'r
 import PrivateRoute from "./components/PrivateRoute";
 import AnalyticsDashboard from "./components/AnalyticsDashboard";
 import ReportsDisplayMobile from './components/ReportsDisplayMobile';
+import PurchaseSuccess from './components/PurchaseSuccess';
+
 
 
 function AppContent() {
@@ -55,6 +57,14 @@ function AppContent() {
             <Payment />
           </ProtectedRoute>
         } />
+        <Route
+          path="/purchase-success"
+          element={
+            <ProtectedRoute>
+              <PurchaseSuccess />
+            </ProtectedRoute>
+          }
+        />  
         <Route path='/commingSoon' element={<CommingSoon />} />
         <Route path='/not-found' element={<Invalid />} />
         <Route path="/profile" element={
