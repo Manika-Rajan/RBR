@@ -18,7 +18,7 @@ const PurchaseSuccess = () => {
 
     // Auto-redirect to My Profile after a few seconds
     const timer = setTimeout(() => {
-      navigate("/my-profile"); // 🔁 update if your My Profile route is different
+      navigate("/profile"); // 🔁 update if your My Profile route is different
     }, 5000);
 
     return () => clearTimeout(timer);
@@ -96,7 +96,7 @@ const PurchaseSuccess = () => {
         </p>
 
         <button
-          onClick={() => navigate("/my-profile")} // 🔁 change if needed
+          onClick={() => navigate("/profile")} // 🔁 change if needed
           style={{
             width: "100%",
             padding: "10px 14px",
