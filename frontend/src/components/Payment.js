@@ -469,17 +469,9 @@ const Payment = () => {
             });
 
             await saveUserDetails();
+            navigate('/profile', { state: { showSuccess: true } });
 
-            // ✅ Redirect to purchase success page instead of profile
-            navigate('/purchase-success', {
-              replace: true,
-              state: {
-                amount: Number(amount),
-                reportId,
-                fileKey: file_key,
-                razorpayPaymentId: response.razorpay_payment_id,
-              },
-            });
+
           } catch (err) {
             console.error('Payment verification error:', err.message, err.stack);
             setError(`Payment verification failed: ${err.message}`);
