@@ -36,11 +36,12 @@ function fireGoogleAdsPurchase({ paymentId, valueINR }) {
 }
 
 const Payment = () => {
-  const Payment = () => {
+  // 🔍 Debug: see what React sees from .env at runtime
   console.log(
-    "FRONTEND RAZORPAY KEY FROM ENV (process.env):",
+    'FRONTEND RAZORPAY KEY FROM ENV (process.env):',
     process.env.REACT_APP_RAZORPAY_KEY_ID
   );
+
   // Pull userInfo and report from state
   const {
     state: { userInfo, report },
@@ -99,7 +100,7 @@ const Payment = () => {
   const amount = resolvedAmount;
   const file_key = resolvedFileKey;
 
-  // Persist payment context so refresh doesn't lose it (and optionally into store if you add actions later)
+  // Persist payment context so refresh doesn't lose it
   useEffect(() => {
     if (reportId) {
       localStorage.setItem('reportId', reportId);
@@ -368,14 +369,13 @@ const Payment = () => {
       const orderCurrency = parsedBody?.razorpay_response?.currency || 'INR';
       const keyFromOrder = parsedBody?.key_id || null;
 
-      // ✅ Critical fix: prefer the key_id returned by the order API.
-      //    Only if it's missing, fall back to env/window/localStorage.
       const razorpayKey =
         keyFromOrder ||
         process.env.REACT_APP_RAZORPAY_KEY_ID ||
         (typeof window !== 'undefined' && window._env_?.RAZORPAY_KEY_ID) ||
         localStorage.getItem('razorpayKey') ||
         null;
+
       console.log(
         'ENV RAZORPAY KEY (inside handlePayment):',
         process.env.REACT_APP_RAZORPAY_KEY_ID
