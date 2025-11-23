@@ -477,8 +477,19 @@ const Payment = () => {
               valueINR: Number(amount),
             });
 
+            // ✅ Save user details then go to Purchase Success screen
             await saveUserDetails();
-            navigate('/profile', { state: { showSuccess: true } });
+
+            navigate('/purchase-success', {
+              replace: true,
+              state: {
+                amount: Number(amount),
+                reportId,
+                fileKey: file_key,
+                razorpayPaymentId: response.razorpay_payment_id,
+                loggedIn: true,
+              },
+            });
           } catch (err) {
             console.error('Payment verification error:', err.message, err.stack);
             setError(`Payment verification failed: ${err.message}`);
