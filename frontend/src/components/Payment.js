@@ -36,6 +36,11 @@ function fireGoogleAdsPurchase({ paymentId, valueINR }) {
 }
 
 const Payment = () => {
+  const Payment = () => {
+  console.log(
+    "FRONTEND RAZORPAY KEY FROM ENV (process.env):",
+    process.env.REACT_APP_RAZORPAY_KEY_ID
+  );
   // Pull userInfo and report from state
   const {
     state: { userInfo, report },
@@ -371,7 +376,11 @@ const Payment = () => {
         (typeof window !== 'undefined' && window._env_?.RAZORPAY_KEY_ID) ||
         localStorage.getItem('razorpayKey') ||
         null;
-
+      console.log(
+        'ENV RAZORPAY KEY (inside handlePayment):',
+        process.env.REACT_APP_RAZORPAY_KEY_ID
+      );
+      console.log('keyFromOrder:', keyFromOrder);
       console.log('Resolved Razorpay key:', razorpayKey, 'Order ID:', orderId);
 
       if (!razorpayKey) {
