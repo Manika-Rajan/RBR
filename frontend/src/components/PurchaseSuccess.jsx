@@ -22,13 +22,33 @@ const PurchaseSuccess = () => {
   const amount = stateAmount ?? (amountParam ? Number(amountParam) : 2249);
 
   useEffect(() => {
-    // Auto-redirect to My Profile after a few seconds
+    // 🔹 1) FIRE GOOGLE ADS CONVERSION ON PAGE LOAD
+    try {
+      if (window.gtag) {
+        window.gtag("event", "conversion", {
+          send_to: "AW-824378442/NWTVCJbO_bobEMqIjIkD", // your conversion ID + label
+          value: amount || 2249,                        // use dynamic amount when available
+          currency: "INR",
+          transaction_id: razorpayPaymentId || "",      // optional, good for deduping
+        });
+        console.log("Google Ads conversion fired on /purchase-success", {
+          amount,
+          razorpayPaymentId,
+        });
+      } else {
+        console.warn("gtag not found – Google Ads conversion not sent");
+      }
+    } catch (e) {
+      console.error("Error sending Google Ads conversion", e);
+    }
+
+    // 🔹 2) Auto-redirect to My Profile after a few seconds
     const timer = setTimeout(() => {
       navigate("/profile");
     }, 5000);
 
     return () => clearTimeout(timer);
-  }, [navigate]);
+  }, [amount, razorpayPaymentId, navigate]);
 
   return (
     <div
