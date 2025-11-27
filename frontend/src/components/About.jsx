@@ -13,6 +13,8 @@ import  team1 from '../assets/team1.png';
 import team2 from '../assets/team2.png';
 import team3 from '../assets/team3.png';
 import team4 from '../assets/team4.jpg';
+import team5 from '../assets/team5.jpeg';   // 🔹 added
+
 const About = () => {
   return (
     <div>
@@ -84,6 +86,8 @@ It has been observed that every year only 8% of the startups are able to sustain
      <div className='row what-we-do head'>
       <p >Meet Our Team.The Professionals!</p>
      </div>
+
+     {/* 🔹 First row: original 4 members, untouched */}
      <div className='d-flex justify-content-between team-div'>
       <div className='team'>
       <div className='team-image'>
@@ -122,6 +126,19 @@ It has been observed that every year only 8% of the startups are able to sustain
      </div>
     </div>
      </div>
+
+     {/* 🔹 Second row: only Sushmita, centered */}
+      <div className='d-flex justify-content-start team-div'>
+        <div className='team'>
+          <div className='team-image'>
+            <img src={team5} style={{width:"85%",borderRadius:"45%"}}></img>
+          </div>
+          <div className='team-info'>
+            <p><strong>Sushmita Pati</strong><br/>Backend Developer (Intern)</p>
+          </div>
+        </div>
+      </div>
+
      </div>
   )
 }
