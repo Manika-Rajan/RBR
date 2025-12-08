@@ -1,4 +1,3 @@
-// RBR/frontend/src/components/ProfilePage.jsx
 import React, { useState, useEffect, useContext, useMemo } from 'react';
 import './ProfilePage.css';
 import { Store } from '../Store';
@@ -77,44 +76,20 @@ const ProfilePage = () => {
       setLoading(true);
       setError(null);
       try {
-        // 🔍 Log what we are sending
-        console.log('Calling getUserProfile with:', {
-          user_id: storedUserId,
-          authTokenPresent: !!authToken,
-        });
-
         const response = await fetch(
           'https://kwkxhezrsj.execute-api.ap-south-1.amazonaws.com/getUserProfile-RBRmain-APIgateway',
           {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              // ✅ Restore Authorization header (backend expects this)
-              ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
+              Authorization: `Bearer ${authToken}`,
             },
             body: JSON.stringify({ user_id: storedUserId }),
           }
         );
 
-        // Try to parse JSON, but fall back to text for better debugging
-        let data;
-        let rawText = '';
-        try {
-          rawText = await response.text();
-          data = rawText ? JSON.parse(rawText) : {};
-        } catch (e) {
-          console.warn('Profile API: JSON parse failed, raw response:', rawText);
-          data = {};
-        }
-
+        const data = await response.json();
         if (!isActive) return;
-
-        console.log('Profile API response:', {
-          status: response.status,
-          ok: response.ok,
-          data,
-          rawText,
-        });
 
         if (response.ok) {
           setPurchasedReports(Array.isArray(data.reports) ? data.reports : []);
@@ -149,28 +124,15 @@ const ProfilePage = () => {
             localStorage.setItem('userInfo', JSON.stringify(next));
           }
         } else {
-          // ❗Surface real server error
-          const serverMsg =
-            (data && (data.error || data.message)) || rawText || 'No message';
           throw new Error(
-            `Server returned HTTP ${response.status}: ${serverMsg}`
+            data.error ||
+              `Failed to fetch profile (Status: ${response.status}) - ${data.message || 'No additional details'}`
           );
         }
       } catch (err) {
         if (!isActive) return;
-        console.error('Error fetching profile:', err);
-
-        // Distinguish network/CORS vs normal server error
-        if (err instanceof TypeError) {
-          // fetch network error, often CORS
-          setError(
-            `Failed to load profile data: ${err.message}. This looks like a browser network/CORS issue. Check API Gateway CORS for this route and allowed origins.`
-          );
-        } else {
-          setError(
-            `Failed to load profile data: ${err.message}.`
-          );
-        }
+        console.error('Error fetching profile:', err.message, err.stack);
+        setError(`Failed to load profile data: ${err.message}. Check CORS configuration on the server.`);
       } finally {
         if (isActive) setLoading(false);
       }
@@ -184,11 +146,6 @@ const ProfilePage = () => {
 
   // Use existing presigned-URL Lambda
   const fetchPresignedUrl = async (fileKey) => {
-    if (!fileKey) {
-      alert('File key is missing for this report. Please contact support.');
-      return;
-    }
-
     try {
       setSelectedUrl(null);
       setLoadingFileKey(fileKey);
@@ -229,23 +186,7 @@ const ProfilePage = () => {
 
   // Fallback: sample row if no purchased reports
   const displayReports = useMemo(() => {
-    if (purchasedReports && purchasedReports.length > 0) {
-      // Normalize in case any Dynamo-style "M" objects ever slip through
-      const normalize = (r) => {
-        if (r && r.M) {
-          const m = r.M;
-          const val = (x) => (x && x.S) || (x && x.N) || x;
-          const flat = {};
-          Object.keys(m).forEach((k) => {
-            flat[k] = val(m[k]);
-          });
-          return flat;
-        }
-        return r;
-      };
-      return purchasedReports.map(normalize);
-    }
-
+    if (purchasedReports && purchasedReports.length > 0) return purchasedReports;
     return [
       {
         file_key: SAMPLE_FILE_KEY,
@@ -382,10 +323,7 @@ const ProfilePage = () => {
         'https://kwkxhezrsj.execute-api.ap-south-1.amazonaws.com/saveUserProfile-RBRmain-APIgateway',
         {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${localStorage.getItem('authToken') || ''}`,
-          },
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('authToken') || ''}` },
           body: JSON.stringify(profileData),
         }
       );
@@ -415,12 +353,7 @@ const ProfilePage = () => {
   if (error) return <div className="error-message">{error}</div>;
 
   const renderPurchasedOn = (r) => {
-    const d =
-      r.purchased_on ||
-      r.granted_on ||
-      r.granted_at ||
-      r.created_at ||
-      null;
+    const d = r.purchased_on || r.granted_on || r.granted_at || r.created_at || null;
     if (!d) return '—';
     const dt = new Date(d);
     return isNaN(dt.getTime()) ? String(d) : dt.toLocaleString();
@@ -456,24 +389,16 @@ const ProfilePage = () => {
                   className="profile-photo"
                   onError={(e) => {
                     console.error('Default image failed to load:', e);
-                    e.target.src =
-                      'https://via.placeholder.com/120?text=Default+Avatar';
+                    e.target.src = 'https://via.placeholder.com/120?text=Default+Avatar';
                   }}
                 />
               )}
             </div>
             <div className="info-section">
               <h2 className="user-name">{nameInput || 'Not Available'}</h2>
-              <p className="user-detail">
-                <strong>Phone:</strong> {userInfo?.phone || 'Not Available'}
-              </p>
-              <p className="user-detail">
-                <strong>Email:</strong> {emailInput || 'Not Available'}
-              </p>
-              <button
-                className="edit-profile-button"
-                onClick={() => setShowEditModal(true)}
-              >
+              <p className="user-detail"><strong>Phone:</strong> {userInfo?.phone || 'Not Available'}</p>
+              <p className="user-detail"><strong>Email:</strong> {emailInput || 'Not Available'}</p>
+              <button className="edit-profile-button" onClick={() => setShowEditModal(true)}>
                 Edit Profile
               </button>
             </div>
@@ -492,39 +417,25 @@ const ProfilePage = () => {
                     <th style={{ minWidth: 220 }}>Report</th>
                     <th>Version</th>
                     <th>Purchased on</th>
-                    <th style={{ width: 160, textAlign: 'right' }}>Action</th>
+                    <th style={{ width: 120, textAlign: 'right' }}>Action</th>
                   </tr>
                 </thead>
                 <tbody>
                   {displayReports.map((r) => {
-                    const reportId = r.report_id || r.reportId || '';
-                    const fileName =
-                      r.title ||
-                      (r.file_key && r.file_key.split('/').pop()) ||
-                      reportId ||
-                      'report.pdf';
-                    const fileKeyForView = r.file_key || r.fileKey || null;
-                    const rowKey = fileKeyForView || reportId || fileName;
-                    const isRowLoading = loadingFileKey === fileKeyForView;
-
+                    const fileName = r.title || r.file_key?.split('/').pop() || 'report.pdf';
+                    const isRowLoading = loadingFileKey === r.file_key;
                     return (
-                      <tr key={rowKey}>
+                      <tr key={r.file_key || fileName}>
                         <td>{fileName}</td>
                         <td>{r.report_version || 'N/A'}</td>
                         <td>{renderPurchasedOn(r)}</td>
                         <td style={{ textAlign: 'right' }}>
                           <button
                             className="btn btn-sm btn-primary"
-                            onClick={() =>
-                              fileKeyForView && fetchPresignedUrl(fileKeyForView)
-                            }
-                            disabled={isRowLoading || !fileKeyForView}
+                            onClick={() => fetchPresignedUrl(r.file_key)}
+                            disabled={isRowLoading}
                           >
-                            {isRowLoading
-                              ? 'Opening…'
-                              : fileKeyForView
-                              ? 'View'
-                              : 'File missing'}
+                            {isRowLoading ? 'Opening…' : 'View'}
                           </button>
                         </td>
                       </tr>
@@ -534,8 +445,7 @@ const ProfilePage = () => {
               </table>
               {purchasedReports.length === 0 && (
                 <p className="text-muted" style={{ marginTop: 8 }}>
-                  This is a sample preview added for new accounts. Your purchased
-                  reports will appear here automatically.
+                  This is a sample preview added for new accounts. Your purchased reports will appear here automatically.
                 </p>
               )}
             </div>
@@ -552,31 +462,21 @@ const ProfilePage = () => {
           size="xl"
           contentClassName="rbr-viewer-content"
         >
-          <ModalHeader toggle={() => setSelectedUrl(null)}>
-            Report Viewer
-          </ModalHeader>
+          <ModalHeader toggle={() => setSelectedUrl(null)}>Report Viewer</ModalHeader>
           <ModalBody className="rbr-viewer-body">
             {selectedUrl ? (
-              <div
-                className="rbr-viewer-scroll"
-                onContextMenu={(e) => e.preventDefault()}
-              >
+              <div className="rbr-viewer-scroll" onContextMenu={(e) => e.preventDefault()}>
                 <Worker workerUrl="https://unpkg.com/pdfjs-dist@3.4.120/build/pdf.worker.min.js">
                   <Viewer
                     fileUrl={selectedUrl}
                     renderTextLayer={false}
                     renderAnnotationLayer={false}
-                    onDocumentLoadFailed={(e) =>
-                      console.error('PDF load failed:', e)
-                    }
+                    onDocumentLoadFailed={(e) => console.error('PDF load failed:', e)}
                   />
                 </Worker>
               </div>
             ) : (
-              <div
-                className="d-flex align-items-center justify-content-center"
-                style={{ height: '100%' }}
-              >
+              <div className="d-flex align-items-center justify-content-center" style={{ height: '100%' }}>
                 Loading…
               </div>
             )}
@@ -584,14 +484,8 @@ const ProfilePage = () => {
         </Modal>
 
         {/* Edit Profile Modal */}
-        <Modal
-          isOpen={showEditModal}
-          toggle={() => setShowEditModal(false)}
-          className="full-page-modal"
-        >
-          <ModalHeader toggle={() => setShowEditModal(false)}>
-            Edit Profile
-          </ModalHeader>
+        <Modal isOpen={showEditModal} toggle={() => setShowEditModal(false)} className="full-page-modal">
+          <ModalHeader toggle={() => setShowEditModal(false)}>Edit Profile</ModalHeader>
           <ModalBody>
             <div className="edit-form">
               <div className="form-group">
@@ -627,31 +521,17 @@ const ProfilePage = () => {
                   disabled={photoUploading}
                 />
                 {photoUploading && <p>Uploading...</p>}
-                {!photoUrl && !photoUploading && (
-                  <p>No photo uploaded. Upload to set a profile picture.</p>
-                )}
+                {!photoUrl && !photoUploading && <p>No photo uploaded. Upload to set a profile picture.</p>}
                 {photoUrl && (
-                  <button
-                    className="btn btn-danger"
-                    onClick={handleRemovePhoto}
-                    disabled={isSaving}
-                  >
+                  <button className="btn btn-danger" onClick={handleRemovePhoto} disabled={isSaving}>
                     {isSaving ? 'Removing...' : 'Remove Photo'}
                   </button>
                 )}
               </div>
-              <button
-                className="btn btn-primary"
-                onClick={saveProfile}
-                disabled={isSaving}
-              >
+              <button className="btn btn-primary" onClick={saveProfile} disabled={isSaving}>
                 {isSaving ? 'Saving...' : 'Save'}
               </button>
-              <button
-                className="btn btn-secondary"
-                onClick={() => setShowEditModal(false)}
-                disabled={isSaving}
-              >
+              <button className="btn btn-secondary" onClick={() => setShowEditModal(false)} disabled={isSaving}>
                 Cancel
               </button>
             </div>
