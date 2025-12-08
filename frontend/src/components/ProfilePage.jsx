@@ -77,25 +77,46 @@ const ProfilePage = () => {
       setLoading(true);
       setError(null);
       try {
+        // 🔍 Log what we are sending
+        console.log('Calling getUserProfile with:', {
+          user_id: storedUserId,
+          authTokenPresent: !!authToken,
+        });
+
         const response = await fetch(
           'https://kwkxhezrsj.execute-api.ap-south-1.amazonaws.com/getUserProfile-RBRmain-APIgateway',
           {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              // ❌ IMPORTANT: no Authorization header here to avoid CORS issues
+              // ✅ Restore Authorization header (backend expects this)
+              ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
             },
             body: JSON.stringify({ user_id: storedUserId }),
           }
         );
 
-        const data = await response.json().catch(() => ({}));
+        // Try to parse JSON, but fall back to text for better debugging
+        let data;
+        let rawText = '';
+        try {
+          rawText = await response.text();
+          data = rawText ? JSON.parse(rawText) : {};
+        } catch (e) {
+          console.warn('Profile API: JSON parse failed, raw response:', rawText);
+          data = {};
+        }
+
         if (!isActive) return;
 
-        console.log('Profile API response:', response.status, data);
+        console.log('Profile API response:', {
+          status: response.status,
+          ok: response.ok,
+          data,
+          rawText,
+        });
 
         if (response.ok) {
-          // Expect data.reports as a plain JS array
           setPurchasedReports(Array.isArray(data.reports) ? data.reports : []);
           setNameInput(data.name || '');
           setEmailInput(data.email || '');
@@ -128,19 +149,28 @@ const ProfilePage = () => {
             localStorage.setItem('userInfo', JSON.stringify(next));
           }
         } else {
+          // ❗Surface real server error
+          const serverMsg =
+            (data && (data.error || data.message)) || rawText || 'No message';
           throw new Error(
-            data.error ||
-              `Failed to fetch profile (Status: ${response.status}) - ${
-                data.message || 'No additional details'
-              }`
+            `Server returned HTTP ${response.status}: ${serverMsg}`
           );
         }
       } catch (err) {
         if (!isActive) return;
-        console.error('Error fetching profile:', err.message, err.stack);
-        setError(
-          `Failed to load profile data: ${err.message}. Check CORS / network configuration on the server.`
-        );
+        console.error('Error fetching profile:', err);
+
+        // Distinguish network/CORS vs normal server error
+        if (err instanceof TypeError) {
+          // fetch network error, often CORS
+          setError(
+            `Failed to load profile data: ${err.message}. This looks like a browser network/CORS issue. Check API Gateway CORS for this route and allowed origins.`
+          );
+        } else {
+          setError(
+            `Failed to load profile data: ${err.message}.`
+          );
+        }
       } finally {
         if (isActive) setLoading(false);
       }
