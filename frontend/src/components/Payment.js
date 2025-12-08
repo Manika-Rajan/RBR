@@ -97,7 +97,7 @@ const Payment = () => {
 
   // Local reactive copies for logging & validation
   const reportId = resolvedReportId;
-  const amount = resolvedAmount;
+  const amount = 1;
   const file_key = resolvedFileKey;
 
   // Persist payment context so refresh doesn't lose it
