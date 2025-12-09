@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useContext, useMemo } from 'react';
-import './ProfilePage.css'; // or a separate ProfilePageMobile.css if you prefer
+import './ProfilePage.css';            // shared styles (viewer, etc.)
+import './ProfilePageMobile.css';      // mobile-specific styles
 import { Store } from '../Store';
 import { Modal, ModalBody, ModalHeader } from 'reactstrap';
 import { Worker, Viewer } from '@react-pdf-viewer/core';
@@ -429,89 +430,6 @@ const ProfilePageMobile = () => {
 
   return (
     <div className="profile-page-mobile">
-      <style>{`
-        .profile-page-mobile {
-          padding: 12px 12px 80px;
-          background: #f5f6fa;
-        }
-        .profile-mobile-card {
-          background: #ffffff;
-          border-radius: 14px;
-          padding: 16px;
-          box-shadow: 0 2px 8px rgba(0,0,0,0.04);
-          margin-bottom: 16px;
-        }
-        .profile-mobile-header {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-        }
-        .profile-mobile-photo {
-          width: 64px;
-          height: 64px;
-          border-radius: 50%;
-          object-fit: cover;
-          border: 2px solid #e0e7ff;
-        }
-        .profile-mobile-name {
-          font-size: 1.1rem;
-          font-weight: 600;
-        }
-        .profile-mobile-detail {
-          font-size: 0.9rem;
-          color: #555;
-        }
-        .profile-mobile-edit-btn {
-          margin-top: 8px;
-          width: 100%;
-          border-radius: 999px;
-          font-weight: 500;
-        }
-        .profile-mobile-section-title {
-          font-size: 1.05rem;
-          font-weight: 600;
-          margin-bottom: 8px;
-        }
-        .profile-mobile-report-card {
-          background: #ffffff;
-          border-radius: 12px;
-          padding: 12px 14px;
-          margin-bottom: 10px;
-          box-shadow: 0 1px 4px rgba(0,0,0,0.04);
-        }
-        .profile-mobile-report-title {
-          font-size: 0.98rem;
-          font-weight: 500;
-          margin-bottom: 4px;
-        }
-        .profile-mobile-report-id {
-          font-size: 0.78rem;
-          color: #6c757d;
-        }
-        .profile-mobile-report-meta {
-          display: flex;
-          justify-content: space-between;
-          font-size: 0.8rem;
-          color: #666;
-          margin: 4px 0 6px;
-        }
-        .profile-mobile-report-btn {
-          width: 100%;
-          border-radius: 999px;
-          padding-block: 6px;
-        }
-        .profile-mobile-recent-pill {
-          display: inline-block;
-          margin: 4px 4px 0 0;
-          padding: 4px 10px;
-          border-radius: 999px;
-          background: #eef2ff;
-          font-size: 0.78rem;
-          border: none;
-          color: #1d4ed8;
-        }
-      `}</style>
-
       {/* Top profile card */}
       <div className="profile-mobile-card">
         <div className="profile-mobile-header">
