@@ -113,3 +113,21 @@
   border: none;
   color: #1d4ed8;
 }
+.profile-mobile-report-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.profile-mobile-badge-recent {
+  font-size: 0.7rem;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: #fff4e6;      /* soft warm tag */
+  color: #b45309;           /* rich amber text */
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-weight: 600;
+  white-space: nowrap;
+}
