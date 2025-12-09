@@ -1,8 +1,9 @@
 /* ProfilePageMobile.css */
 
+/* Page background */
 .profile-page-mobile {
   padding: 12px 12px 80px;
-  background: #f5f6fa;
+  background: #eef2f7; /* slightly cooler to make cards pop */
 }
 
 /* Generic loading / error states for mobile profile */
@@ -17,13 +18,32 @@
   color: #b91c1c; /* subtle red */
 }
 
-/* Card container reused for profile, purchased, recent */
+/* Base card container reused for profile, purchased, recent */
 .profile-mobile-card {
   background: #ffffff;
   border-radius: 14px;
   padding: 16px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.06);
   margin-bottom: 16px;
+}
+
+/* PROFILE card – softer, muted */
+.profile-mobile-card--profile {
+  background: #f5f7fb;
+  border: 1px solid #e2e8f0;
+}
+
+/* PURCHASED card – hero section */
+.profile-mobile-card--purchased {
+  background: #ffffff;
+  border: 1px solid #bfdbfe;
+  box-shadow: 0 4px 18px rgba(37, 99, 235, 0.12);
+}
+
+/* RECENT card – neutral, separated */
+.profile-mobile-card--recent {
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
 }
 
 /* Top profile header */
@@ -68,11 +88,20 @@
 
 /* Individual purchased report card */
 .profile-mobile-report-card {
+  position: relative;
   background: #ffffff;
   border-radius: 12px;
   padding: 12px 14px;
   margin-bottom: 10px;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.06);
+}
+
+/* Title row with badge */
+.profile-mobile-report-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
 }
 
 .profile-mobile-report-title {
@@ -113,21 +142,25 @@
   border: none;
   color: #1d4ed8;
 }
-.profile-mobile-report-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 8px;
-}
 
+/* 💥 Recent purchase badge – stronger visual weight */
 .profile-mobile-badge-recent {
-  font-size: 0.7rem;
-  padding: 3px 8px;
+  position: relative;
+  top: 0;
+  right: 0;
+  background: linear-gradient(135deg, #f97316, #facc15);
+  color: #111827;
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 3px 10px;
   border-radius: 999px;
-  background: #fff4e6;      /* soft warm tag */
-  color: #b45309;           /* rich amber text */
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  font-weight: 600;
   white-space: nowrap;
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.9),
+    0 4px 12px rgba(0, 0, 0, 0.12);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
 }
