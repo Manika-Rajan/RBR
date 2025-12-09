@@ -517,7 +517,7 @@ const ProfilePageMobile = () => {
                   </div>
                   {isLatest && (
                     <span className="profile-mobile-badge-recent">
-                      ✨ Recent purchase
+                      ✨ Recently purchased
                     </span>
                   )}
                 </div>
