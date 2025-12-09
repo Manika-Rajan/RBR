@@ -12,7 +12,12 @@ const SAMPLE_VERSION = '1.0';
 
 // ---- Helpers ----
 const parseDateSafe = (r) => {
-  const d = r.purchased_on || r.granted_on || r.granted_at || r.created_at || null;
+  const d =
+    r.purchased_on ||
+    r.granted_on ||
+    r.granted_at ||
+    r.created_at ||
+    null;
   if (!d) return 0;
   const dt = new Date(d);
   return isNaN(dt.getTime()) ? 0 : dt.getTime();
@@ -126,7 +131,9 @@ const ProfilePageMobile = () => {
           const reportsArray = Array.isArray(data.reports) ? data.reports : [];
 
           // sort newest-first for mobile
-          const sorted = [...reportsArray].sort((a, b) => parseDateSafe(b) - parseDateSafe(a));
+          const sorted = [...reportsArray].sort(
+            (a, b) => parseDateSafe(b) - parseDateSafe(a)
+          );
           setPurchasedReports(sorted);
 
           setNameInput(data.name || '');
@@ -168,8 +175,14 @@ const ProfilePageMobile = () => {
         }
       } catch (err) {
         if (!isActive) return;
-        console.error('Error fetching profile (mobile):', err.message, err.stack);
-        setError(`Failed to load profile data: ${err.message}. Check CORS configuration on the server.`);
+        console.error(
+          'Error fetching profile (mobile):',
+          err.message,
+          err.stack
+        );
+        setError(
+          `Failed to load profile data: ${err.message}. Check CORS configuration on the server.`
+        );
       } finally {
         if (isActive) setLoading(false);
       }
@@ -208,7 +221,12 @@ const ProfilePageMobile = () => {
   const hasPurchases = purchasedReports && purchasedReports.length > 0;
 
   const renderPurchasedOn = (r) => {
-    const d = r.purchased_on || r.granted_on || r.granted_at || r.created_at || null;
+    const d =
+      r.purchased_on ||
+      r.granted_on ||
+      r.granted_at ||
+      r.created_at ||
+      null;
     if (!d) return '—';
     const dt = new Date(d);
     return isNaN(dt.getTime()) ? String(d) : dt.toLocaleString();
@@ -237,7 +255,10 @@ const ProfilePageMobile = () => {
           (r) => !(r.report_id === base.report_id && r.file_key === base.file_key)
         );
 
-        const next = [{ ...base, viewed_at: new Date().toISOString() }, ...filtered].slice(0, 5);
+        const next = [
+          { ...base, viewed_at: new Date().toISOString() },
+          ...filtered,
+        ].slice(0, 5);
         localStorage.setItem(key, JSON.stringify(next));
         return next;
       });
@@ -269,7 +290,9 @@ const ProfilePageMobile = () => {
 
       if (!resp.ok) {
         const t = await resp.text().catch(() => '');
-        throw new Error(`Failed to get presigned URL. HTTP ${resp.status}. Body: ${t}`);
+        throw new Error(
+          `Failed to get presigned URL. HTTP ${resp.status}. Body: ${t}`
+        );
       }
 
       const data = await resp.json().catch(() => ({}));
@@ -338,7 +361,9 @@ const ProfilePageMobile = () => {
       );
       if (!response.ok) {
         const errorText = await response.text();
-        throw new Error(`Failed to get presigned URL: ${response.status} - ${errorText}`);
+        throw new Error(
+          `Failed to get presigned URL: ${response.status} - ${errorText}`
+        );
       }
       const { presignedPutUrl, presignedGetUrl } = await response.json();
 
@@ -349,7 +374,9 @@ const ProfilePageMobile = () => {
       });
       if (!uploadResponse.ok) {
         const uploadErrorText = await uploadResponse.text();
-        throw new Error(`Failed to upload to S3: ${uploadResponse.status} - ${uploadErrorText}`);
+        throw new Error(
+          `Failed to upload to S3: ${uploadResponse.status} - ${uploadErrorText}`
+        );
       }
 
       setPhotoUrl(presignedGetUrl);
@@ -385,7 +412,7 @@ const ProfilePageMobile = () => {
       photo_url: photoUrl || '',
     };
 
-  setIsSaving(true);
+    setIsSaving(true);
     try {
       const response = await fetch(
         'https://kwkxhezrsj.execute-api.ap-south-1.amazonaws.com/saveUserProfile-RBRmain-APIgateway',
@@ -393,7 +420,9 @@ const ProfilePageMobile = () => {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            Authorization: `Bearer ${localStorage.getItem('authToken') || ''}`,
+            Authorization: `Bearer ${
+              localStorage.getItem('authToken') || ''
+            }`,
           },
           body: JSON.stringify(profileData),
         }
@@ -431,7 +460,7 @@ const ProfilePageMobile = () => {
   return (
     <div className="profile-page-mobile">
       {/* Top profile card */}
-      <div className="profile-mobile-card">
+      <div className="profile-mobile-card profile-mobile-card--profile">
         <div className="profile-mobile-header">
           <img
             src={photoUrl || DEFAULT_PROFILE_ICON}
@@ -443,7 +472,9 @@ const ProfilePageMobile = () => {
             }}
           />
           <div>
-            <div className="profile-mobile-name">{nameInput || 'Not Available'}</div>
+            <div className="profile-mobile-name">
+              {nameInput || 'Not Available'}
+            </div>
             <div className="profile-mobile-detail">
               📱 {userInfo?.phone || 'Not Available'}
             </div>
@@ -461,7 +492,7 @@ const ProfilePageMobile = () => {
       </div>
 
       {/* Purchased reports list */}
-      <div className="profile-mobile-card">
+      <div className="profile-mobile-card profile-mobile-card--purchased">
         <div className="profile-mobile-section-title">Purchased reports</div>
 
         {hasPurchases ? (
@@ -481,10 +512,12 @@ const ProfilePageMobile = () => {
                 className="profile-mobile-report-card"
               >
                 <div className="profile-mobile-report-header">
-                  <div className="profile-mobile-report-title">{displayTitle}</div>
+                  <div className="profile-mobile-report-title">
+                    {displayTitle}
+                  </div>
                   {isLatest && (
                     <span className="profile-mobile-badge-recent">
-                      Recent purchase
+                      ✨ Recent purchase
                     </span>
                   )}
                 </div>
@@ -528,7 +561,10 @@ const ProfilePageMobile = () => {
                   : 'View sample'}
               </button>
             </div>
-            <p className="text-muted" style={{ marginTop: 6, fontSize: '0.8rem' }}>
+            <p
+              className="text-muted"
+              style={{ marginTop: 6, fontSize: '0.8rem' }}
+            >
               This is a sample report. Your purchased reports will appear here
               automatically after you buy them.
             </p>
@@ -537,7 +573,7 @@ const ProfilePageMobile = () => {
       </div>
 
       {/* Recently viewed reports */}
-      <div className="profile-mobile-card">
+      <div className="profile-mobile-card profile-mobile-card--recent">
         <div className="profile-mobile-section-title">Recently viewed</div>
         {recentlyViewed && recentlyViewed.length > 0 ? (
           <div>
