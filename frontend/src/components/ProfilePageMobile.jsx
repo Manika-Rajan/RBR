@@ -385,7 +385,7 @@ const ProfilePageMobile = () => {
       photo_url: photoUrl || '',
     };
 
-    setIsSaving(true);
+  setIsSaving(true);
     try {
       const response = await fetch(
         'https://kwkxhezrsj.execute-api.ap-south-1.amazonaws.com/saveUserProfile-RBRmain-APIgateway',
@@ -465,7 +465,7 @@ const ProfilePageMobile = () => {
         <div className="profile-mobile-section-title">Purchased reports</div>
 
         {hasPurchases ? (
-          purchasedReports.map((r) => {
+          purchasedReports.map((r, idx) => {
             const isRowLoading = loadingFileKey === r.file_key;
             const displayTitle =
               r.report_title ||
@@ -473,12 +473,22 @@ const ProfilePageMobile = () => {
               beautifyFileName(r.file_key) ||
               'Report';
 
+            const isLatest = idx === 0; // newest purchase
+
             return (
               <div
                 key={r.file_key || displayTitle}
                 className="profile-mobile-report-card"
               >
-                <div className="profile-mobile-report-title">{displayTitle}</div>
+                <div className="profile-mobile-report-header">
+                  <div className="profile-mobile-report-title">{displayTitle}</div>
+                  {isLatest && (
+                    <span className="profile-mobile-badge-recent">
+                      Recent purchase
+                    </span>
+                  )}
+                </div>
+
                 {r.report_id && (
                   <div className="profile-mobile-report-id">
                     ID: {r.report_id}
