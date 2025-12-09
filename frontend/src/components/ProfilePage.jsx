@@ -675,10 +675,10 @@ const ProfilePage = () => {
                   <table className="table table-striped align-middle rbr-table">
                     <thead>
                       <tr>
-                        <th style={{ minWidth: 260 }}>Report</th>
-                        <th>Version</th>
-                        <th>Purchased on</th>
-                        <th style={{ width: 120, textAlign: 'right' }}>Action</th>
+                        <th style={{ minWidth: 260, textAlign: 'left' }}>Report</th>
+                        <th style={{ textAlign: 'center' }}>Version</th>
+                        <th style={{ textAlign: 'center' }}>Purchased on</th>
+                        <th style={{ width: 120, textAlign: 'center' }}>Action</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -711,9 +711,13 @@ const ProfilePage = () => {
                                 </div>
                               </div>
                             </td>
-                            <td>{r.report_version || 'N/A'}</td>
-                            <td>{renderPurchasedOn(r)}</td>
-                            <td style={{ textAlign: 'right' }}>
+                            <td style={{ textAlign: 'center' }}>
+                              {r.report_version || 'N/A'}
+                            </td>
+                            <td style={{ textAlign: 'center' }}>
+                              {renderPurchasedOn(r)}
+                            </td>
+                            <td style={{ textAlign: 'center' }}>
                               <button
                                 className="btn btn-sm btn-primary"
                                 onClick={() => fetchPresignedUrl(r)}
@@ -740,10 +744,10 @@ const ProfilePage = () => {
               <table className="table table-striped align-middle rbr-table">
                 <thead>
                   <tr>
-                    <th style={{ minWidth: 260 }}>Report</th>
-                    <th>Version</th>
-                    <th>Purchased on</th>
-                    <th style={{ width: 120, textAlign: 'right' }}>Action</th>
+                    <th style={{ minWidth: 260, textAlign: 'left' }}>Report</th>
+                    <th style={{ textAlign: 'center' }}>Version</th>
+                    <th style={{ textAlign: 'center' }}>Purchased on</th>
+                    <th style={{ width: 120, textAlign: 'center' }}>Action</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -757,9 +761,11 @@ const ProfilePage = () => {
                             <div>{r._displayTitle}</div>
                           </div>
                         </td>
-                        <td>{r.report_version || 'N/A'}</td>
-                        <td>—</td>
-                        <td style={{ textAlign: 'right' }}>
+                        <td style={{ textAlign: 'center' }}>
+                          {r.report_version || 'N/A'}
+                        </td>
+                        <td style={{ textAlign: 'center' }}>—</td>
+                        <td style={{ textAlign: 'center' }}>
                           <button
                             className="btn btn-sm btn-primary"
                             onClick={() => fetchPresignedUrl(r)}
