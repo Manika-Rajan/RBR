@@ -22,7 +22,9 @@
   padding: 10px 20px;
   box-shadow: var(--shadow-md);
   border-bottom: 1px solid rgba(15, 23, 42, 0.06);
-  transition: background var(--speed) ease, box-shadow var(--speed) ease, transform var(--speed) ease;
+  transition: background var(--speed) ease,
+              box-shadow var(--speed) ease,
+              transform var(--speed) ease;
 }
 
 /* optional: add/remove .scrolled via JS if desired */
@@ -31,14 +33,33 @@
   box-shadow: var(--shadow-lg);
 }
 
-/* Container spacing */
-.container-fluid {
+/* Container spacing + flex alignment (only for navbar) */
+.navbar .container-fluid {
   padding-left: 32px !important;
   padding-right: 32px !important;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: nowrap; /* keeps logo + title + burger in one row */
+}
+
+/* ===== BRAND AREA (LOGO + TEXT) ===== */
+.navbar-brand {
+  display: flex;
+  align-items: center;
+  min-width: 0;         /* allow text to shrink */
+}
+
+.navbar-brand .d-flex.flex-column {
+  min-width: 0;         /* allows ellipsis to work */
 }
 
 /* ===== LEFT: LOGO + TEXT ===== */
-.nav-left { display: flex; align-items: center; gap: 12px; }
+.nav-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
 
 .logo img {
   width: 52px;
@@ -47,14 +68,21 @@
   box-shadow: 0 2px 10px rgba(2,6,23,0.08);
 }
 
-.text { margin-left: 2px; }
+.text {
+  margin-left: 2px;
+}
 
-.nav-title {
+.nav-title,
+.navbar-brand .fw-semibold {
   font-size: 18px;
   font-weight: 700;
   margin: 0;
   color: var(--ink-900);
   letter-spacing: 0.2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 260px;     /* desktop max width */
 }
 
 .text-desc {
@@ -63,14 +91,16 @@
   margin: 2px 0 0 0;
 }
 
-/* ===== NAV LINKS ===== */
+/* ===== NAV LINKS (DESKTOP DEFAULT) ===== */
 .navbar-nav {
   display: flex;
   align-items: center;
-  gap: 28px; /* works fine with your current JSX */
+  gap: 28px;
 }
 
-.nav-item { margin-right: 0; }
+.nav-item {
+  margin-right: 0;
+}
 
 .nav-link {
   position: relative;
@@ -83,34 +113,23 @@
   outline: none;
 }
 
-/* animated underline — scoped to anchors to avoid styling the avatar button */
+/* No underline animation (simple, clean tabs) */
 a.nav-link::after {
-  content: "";
-  position: absolute;
-  left: 0;
-  bottom: 4px;
-  width: 100%;
-  height: 2px;
-  background: linear-gradient(90deg, var(--brand-500), var(--brand-600));
-  transform: scaleX(0);
-  transform-origin: left;
-  transition: transform var(--speed) ease;
-  border-radius: 2px;
-  opacity: 0.95;
+  content: none !important;
 }
 
+/* Hover/focus */
 a.nav-link:hover,
 a.nav-link:focus-visible {
   color: var(--ink-900) !important;
 }
 
-a.nav-link:hover::after,
-a.nav-link:focus-visible::after,
-a.nav-link.active::after {
-  transform: scaleX(1);
+/* Active page link: theme blue */
+a.nav-link.active {
+  color: var(--brand-600) !important;
 }
 
-/* focus ring for accessibility (anchors only) */
+/* Focus ring (anchors only) */
 a.nav-link:focus-visible {
   box-shadow: 0 0 0 6px var(--ring);
   border-radius: 10px;
@@ -125,17 +144,25 @@ button.btn.btn-primary {
   border: none;
   background: linear-gradient(90deg, var(--brand-500), var(--brand-600));
   box-shadow: 0 8px 20px rgba(37, 99, 235, 0.25);
-  transition: transform var(--speed) ease, box-shadow var(--speed) ease, filter var(--speed) ease;
+  transition: transform var(--speed) ease,
+              box-shadow var(--speed) ease,
+              filter var(--speed) ease;
 }
+
 .btn.btn-primary:hover {
   transform: translateY(-1px);
   box-shadow: 0 10px 26px rgba(37, 99, 235, 0.35);
   filter: saturate(1.05);
 }
-.btn.btn-primary:active { transform: translateY(0); }
 
-/* ===== USER PROFILE ===== */
-.nav-item.dropdown { position: relative; }
+.btn.btn-primary:active {
+  transform: translateY(0);
+}
+
+/* ===== USER PROFILE (DESKTOP DROPDOWN) ===== */
+.nav-item.dropdown {
+  position: relative;
+}
 
 .dropdown-toggle.user-menu {
   display: flex;
@@ -146,6 +173,7 @@ button.btn.btn-primary {
   border-radius: 12px;
   transition: background var(--speed) ease, box-shadow var(--speed) ease;
 }
+
 .dropdown-toggle.user-menu:hover {
   background: rgba(2, 6, 23, 0.03);
   box-shadow: 0 2px 12px rgba(2, 6, 23, 0.06) inset;
@@ -170,28 +198,37 @@ button.btn.btn-primary {
   text-overflow: ellipsis;
 }
 
-/* ===== DROPDOWN MENU ===== */
+/* ===== DROPDOWN MENU (FORCE LIGHT) ===== */
 @keyframes fadeSlide {
   from { opacity: 0; transform: translateY(6px) scale(0.98); }
   to   { opacity: 1; transform: translateY(0)    scale(1); }
 }
+
 .navbar-nav .nav-item.dropdown .dropdown-menu {
   position: absolute;
   top: calc(100% + 8px);
-  right: 0 !important; left: auto !important;
+  right: 0 !important;
+  left: auto !important;
   display: block;
-  opacity: 0; pointer-events: none;
+  opacity: 0;
+  pointer-events: none;
   transform: translateY(6px) scale(0.98);
   transform-origin: top right;
-  background: var(--surface);
+  background: #ffffff !important;          /* ✅ always light */
+  color: var(--ink-900);
   border: 1px solid rgba(2, 6, 23, 0.06);
   border-radius: 12px;
   box-shadow: var(--shadow-lg);
-  min-width: 180px; padding: 8px; z-index: 1000;
+  min-width: 180px;
+  padding: 8px;
+  z-index: 1000;
   transition: opacity var(--speed) ease, transform var(--speed) ease;
 }
+
 .navbar-nav .nav-item.dropdown .dropdown-menu.show {
-  opacity: 1; pointer-events: auto; animation: fadeSlide var(--speed) ease;
+  opacity: 1;
+  pointer-events: auto;
+  animation: fadeSlide var(--speed) ease;
 }
 
 .dropdown-item {
@@ -201,159 +238,117 @@ button.btn.btn-primary {
   font-weight: 600;
   transition: background var(--speed) ease, color var(--speed) ease;
 }
+
 .dropdown-item:hover,
-.dropdown-item:focus-visible { background: rgba(2, 6, 23, 0.04); color: var(--ink-900); }
-
-.logout-btn {
-  border: none; background: transparent; width: 100%; text-align: left;
-  cursor: pointer; color: #dc2626; font-weight: 700;
-  padding: 10px 12px; border-radius: 10px;
-  transition: background var(--speed) ease, transform var(--speed) ease;
+.dropdown-item:focus-visible {
+  background: rgba(2, 6, 23, 0.04);
+  color: var(--ink-900);
 }
-.logout-btn:hover { background: rgba(220, 38, 38, 0.08); }
 
-/* ===== BOOTSTRAP TOGGLER (visual touch) ===== */
+/* ===== TOGGLER BUTTON ===== */
 .navbar-toggler {
-  border-radius: 12px; border-color: rgba(2,6,23,0.12) !important; padding: 6px 9px;
-}
-.navbar-toggler:focus { box-shadow: 0 0 0 6px var(--ring) !important; }
-
-/* ===== RESPONSIVE ===== */
-@media (max-width: 991px) {
-  .container-fluid { padding-left: 16px !important; padding-right: 16px !important; }
-  .navbar-nav { align-items: flex-start; gap: 8px; padding: 10px 2px; }
-  .nav-link { padding: 10px 0; }
-  .dropdown-toggle.user-menu { padding-left: 0; }
-  .navbar-nav .nav-item.dropdown .dropdown-menu {
-    right: 0 !important; left: 0 !important; width: 100%; transform-origin: top center;
-  }
+  border-radius: 12px;
+  border-color: rgba(2,6,23,0.12) !important;
+  padding: 6px 9px;
+  flex-shrink: 0; /* never shrink burger */
 }
 
-/* ===== DARK MODE (system) ===== */
-@media (prefers-color-scheme: dark) {
-  :root {
-    --glass: rgba(17, 24, 39, 0.55);
-    --surface: #0b1220;
-    --ink-900: #e5e7eb;
-    --ink-700: #cbd5e1;
-    --ink-500: #94a3b8;
-    --ring: rgba(59,130,246,0.35);
-  }
-  .navbar { border-bottom-color: rgba(148,163,184,0.12); }
-  .logo img { box-shadow: 0 2px 10px rgba(0,0,0,0.45); }
-  .dropdown-item:hover { background: rgba(255,255,255,0.06); }
-  .logout-btn:hover { background: rgba(220, 38, 38, 0.18); }
+.navbar-toggler:focus {
+  box-shadow: 0 0 0 6px var(--ring) !important;
 }
 
-/* ===== MOTION PREFERENCES ===== */
-@media (prefers-reduced-motion: reduce) {
-  .navbar, a.nav-link, .dropdown-menu, .btn.btn-primary {
-    transition: none !important; animation: none !important;
-  }
-}
-
-/* === RESTORE the spacing that looked good === */
-.navbar-nav {
-  gap: 28px;            /* you were using gap instead of me-md-4 */
-}
-
-/* === RESTORE the alignment lock so labels never slip/wrap === */
+/* ===== DESKTOP ALIGNMENT LOCK ===== */
 .navbar .navbar-nav { 
-  flex-wrap: nowrap;    /* keep About/Reports/Contact on one row */
+  flex-wrap: nowrap;
 }
+
 .navbar .nav-item {
   display: flex;
   align-items: center;
 }
+
 .navbar .nav-link {
-  display: inline-flex;          /* anchor behaves as one pill-ish unit */
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  white-space: nowrap;           /* never break the label */
-  line-height: 1;                /* avoid tall line box */
-  min-height: 36px;              /* consistent click target */
-  padding: 10px 14px;            /* inner space you liked */
+  white-space: nowrap;
+  line-height: 1;
+  min-height: 36px;
+  padding: 10px 14px;
 }
 
-/* === RESTORE the original gradient underline (full width, from left) === */
-.nav-link::after {
-  content: "";
-  position: absolute;
-  left: 0;
-  bottom: 4px;
-  width: 100%;
-  height: 2px;
-  background: linear-gradient(90deg, var(--brand-500), var(--brand-600));
-  transform: scaleX(0);
-  transform-origin: left;
-  transition: transform var(--speed) ease;
-  border-radius: 2px;
-  opacity: 0.95;
-}
-.nav-link:hover,
-.nav-link:focus-visible {
-  color: var(--ink-900) !important;
-}
-.nav-link:hover::after,
-.nav-link:focus-visible::after,
-.nav-link.active::after {
-  transform: scaleX(1);
+/* ===== MOBILE: CUSTOM SLIDE-DOWN NAV (NO BOOTSTRAP COLLAPSE) ===== */
+@media (max-width: 991.98px) {
+  .navbar .container-fluid {
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+  }
+
+  /* Shorter title on small screens */
+  .navbar-brand .fw-semibold {
+    max-width: 180px; /* tighter so burger fits on the same row */
+    font-size: 16px;
+  }
+
+  /* Panel that opens under the fixed navbar on mobile */
+  .rbr-nav-links {
+    position: absolute;
+    top: 60px; /* approx navbar height; tweak if needed */
+    left: 0;
+    right: 0;
+    background: #ffffff !important;      /* ✅ always white */
+    color: var(--ink-900);
+    box-shadow: 0 16px 40px rgba(15, 23, 42, 0.18);
+    padding: 8px 0 10px;
+    z-index: 1040;
+    display: none; /* hidden by default */
+  }
+
+  .rbr-nav-links.rbr-nav-links-open {
+    display: block; /* show when burger state is true */
+  }
+
+  .rbr-nav-links .navbar-nav {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+    padding: 0 8px;
+    width: 100%;
+  }
+
+  .rbr-nav-links .nav-item {
+    width: 100%;
+    display: block;
+  }
+
+  .rbr-nav-links .nav-link {
+    width: 100%;
+    justify-content: flex-start;
+    padding: 10px 16px;
+    color: var(--ink-900) !important;
+    text-align: left;
+  }
+
+  .rbr-nav-links .nav-link.active {
+    background: rgba(59,130,246,0.06);
+    border-radius: 10px;
+  }
+
+  /* Keep brand + burger on the same row */
+  .navbar-brand {
+    max-width: calc(100% - 56px); /* leave room for burger */
+  }
 }
 
-/* === Tabs: always bold, no underline; active = theme blue === */
-/* Only target the three page links (anchors), not the avatar button */
-a.nav-link {
-  font-weight: 700;                 /* always bold */
-  color: var(--ink-700) !important; /* default text */
-}
+/* 🚫 Removed dark-mode override so we don't turn menus black */
 
-/* kill the underline animation */
-a.nav-link::after {
-  display: none !important;
-  content: none !important;
-}
-
-/* hover/focus: darker text, still bold */
-a.nav-link:hover,
-a.nav-link:focus-visible {
-  color: var(--ink-900) !important;
-}
-
-/* active page link: theme blue, still bold */
-a.nav-link.active {
-  color: var(--brand-600) !important;   /* or var(--brand-500) if you prefer lighter */
-}
-
-/* Force bold on the three page links (anchors) */
-a.nav-link {
-  font-weight: 700 !important;  /* make it stick */
-}
-
-/* Active stays blue + bold */
-a.nav-link.active {
-  color: var(--brand-600) !important;
-  font-weight: 700 !important;
-}
-
-/* === Tabs: semibold (600), no underline; active = theme blue === */
-a.nav-link {
-  font-weight: 600 !important;         /* semibold, not heavy */
-  color: var(--ink-700) !important;     /* default */
-}
-
-/* remove any underline pseudo */
-a.nav-link::after {
-  content: none !important;
-}
-
-/* hover/focus: a bit darker */
-a.nav-link:hover,
-a.nav-link:focus-visible {
-  color: var(--ink-900) !important;
-}
-
-/* active page: theme blue, still semibold */
-a.nav-link.active {
-  color: var(--brand-600) !important;
-  font-weight: 600 !important;
+/* ===== MOTION PREFERENCES ===== */
+@media (prefers-reduced-motion: reduce) {
+  .navbar,
+  a.nav-link,
+  .dropdown-menu,
+  .btn.btn-primary {
+    transition: none !important;
+    animation: none !important;
+  }
 }
