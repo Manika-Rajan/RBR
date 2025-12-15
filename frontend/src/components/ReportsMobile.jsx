@@ -287,7 +287,7 @@ const ReportsMobile = () => {
           // (This ensures it still fires even if confirm API is slow.)
           fireGoogleAdsPrebookConversion({
             paymentId: response?.razorpay_payment_id,
-            valueINR: 499,
+            valueINR: 1,
           });
 
           try {
@@ -397,7 +397,7 @@ const ReportsMobile = () => {
           reportTitle: trimmed,
           searchQuery: trimmed,
           notes: "",
-          // amountOptional: 100, // for ₹1 test (paise)
+          amountOptional: 100, // for ₹1 test (paise)
         }),
       });
 
