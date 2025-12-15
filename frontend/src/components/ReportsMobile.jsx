@@ -62,9 +62,40 @@ const PREBOOK_API_BASE =
   "https://jp1bupouyl.execute-api.ap-south-1.amazonaws.com/prod";
 
 // ⭐ Single Pre-booking API URL (same path for create + confirm)
-// This matches your working curl:
-//   POST .../prod/prebook/create-order
 const PREBOOK_API_URL = `${PREBOOK_API_BASE}/prebook/create-order`;
+
+// ✅ Google Ads conversion for PREBOOK (₹499) — hardcoded
+const PREBOOK_CONV_SEND_TO = "AW-824378442/X8klCKyRw9EbEMqIjIkD";
+
+
+// Fire Google Ads conversion safely (once per paymentId)
+function fireGoogleAdsPrebookConversion({ paymentId, valueINR }) {
+  try {
+
+    if (!paymentId) return;
+
+    const guardKey = `ads_prebook_conv_fired_${paymentId}`;
+    if (sessionStorage.getItem(guardKey)) {
+      console.log("[Ads] Prebook conversion already fired for", paymentId);
+      return;
+    }
+
+    if (typeof window !== "undefined" && typeof window.gtag === "function") {
+      window.gtag("event", "conversion", {
+        send_to: PREBOOK_CONV_SEND_TO,
+        value: Number(valueINR) || 499.0,
+        currency: "INR",
+        transaction_id: paymentId, // use Razorpay payment_id as transaction id
+      });
+      sessionStorage.setItem(guardKey, "1");
+      console.log("[Ads] Prebook conversion fired:", { paymentId, valueINR });
+    } else {
+      console.warn("[Ads] gtag not available; skip prebook conversion fire.");
+    }
+  } catch (e) {
+    console.error("[Ads] Prebook conversion fire error:", e);
+  }
+}
 
 // ⭐ Razorpay loader
 const RAZORPAY_SCRIPT_ID = "razorpay-checkout-js";
@@ -116,18 +147,22 @@ const ReportsMobile = () => {
   // ⭐ new: loading for pre-booking/payment flow
   const [prebookLoading, setPrebookLoading] = useState(false);
 
+  // ✅ Retry modal state + context (same details used for retry)
+  const [retryOpen, setRetryOpen] = useState(false);
+  const [retryCtx, setRetryCtx] = useState(null);
+  // retryCtx shape:
+  // {
+  //   prebookId, razorpayOrderId, amount, currency, razorpayKeyId,
+  //   trimmed, userName, userPhone
+  // }
+
   // Suggestion modal (classic)
   const [suggestOpen, setSuggestOpen] = useState(false);
-  // items: [{title, slug}]
   const [suggestItems, setSuggestItems] = useState([]);
   const [lastQuery, setLastQuery] = useState("");
 
   const [showSuggestions, setShowSuggestions] = useState(false);
-  const [dropdownRect, setDropdownRect] = useState({
-    left: 0,
-    top: 0,
-    width: 0,
-  });
+  const [dropdownRect, setDropdownRect] = useState({ left: 0, top: 0, width: 0 });
 
   const inputRef = useRef(null);
   const dropdownRef = useRef(null);
@@ -139,9 +174,8 @@ const ReportsMobile = () => {
   const [prebookName, setPrebookName] = useState("");
   const [prebookPhone, setPrebookPhone] = useState("");
   const [prebookError, setPrebookError] = useState("");
-  const [prebookHasKnownUser, setPrebookHasKnownUser] = useState(false); // 🔹 logged-in vs guest
+  const [prebookHasKnownUser, setPrebookHasKnownUser] = useState(false);
 
-  // Autocomplete (static) chips under the input
   const matches = useMemo(() => {
     const v = q.trim().toLowerCase();
     if (v.length < 2) return [];
@@ -159,18 +193,14 @@ const ReportsMobile = () => {
     });
   }, []);
 
-  // Helper: resolve a slug from the free-text query (case-insensitive)
   const resolveSlug = (query) => {
     const ql = query.toLowerCase();
     for (const entry of ROUTER) {
-      if (entry.keywords.some((kw) => ql.includes(kw))) {
-        return entry.slug;
-      }
+      if (entry.keywords.some((kw) => ql.includes(kw))) return entry.slug;
     }
     return null;
   };
 
-  // 🔎 ask /suggest for up to 3 items
   const fetchSuggestions = async (query) => {
     try {
       const resp = await fetch(SUGGEST_URL, {
@@ -189,7 +219,6 @@ const ReportsMobile = () => {
     }
   };
 
-  // When no matching report exists, queue a “create this report” request
   const requestNewReport = async (query) => {
     if (!REQUEST_REPORT_URL) return;
     try {
@@ -216,88 +245,25 @@ const ReportsMobile = () => {
     }
   };
 
-  // ⭐ Pre-booking flow – now receives name + phone explicitly
-  // Uses a single backend URL (PREBOOK_API_URL) for both create + confirm.
-  const startPrebookFlow = async (query, userName, userPhoneRaw) => {
-    const trimmed = query.trim();
-    const userPhone = (userPhoneRaw || "").trim();
-
-    if (!trimmed || !userPhone) {
-      setModalMsg(
-        "⚠️ Missing details for pre-booking. Please enter a valid name and phone."
-      );
-      setOpenModal(true);
-      return;
-    }
-
-    // 🔹 Graceful fail if API URL is not configured
-    if (!PREBOOK_API_URL) {
-      console.error("PREBOOK_API_URL is not configured");
-      setModalMsg(
-        "⚠️ Pre-booking is temporarily unavailable. Please contact us on WhatsApp or try again in a few minutes."
-      );
-      setOpenModal(true);
-      return;
-    }
-
-    setPrebookLoading(true);
+  // ✅ open Razorpay with an existing order (used for both first attempt and retry)
+  const openRazorpayForPrebook = async ({
+    prebookId,
+    razorpayOrderId,
+    amount,
+    currency,
+    razorpayKeyId,
+    trimmed,
+    userName,
+    userPhone,
+  }) => {
     try {
-      // 1) Hit backend to create prebooking + Razorpay order
-      const resp = await fetch(PREBOOK_API_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          userPhone,
-          userName: userName || "RBR User",
-          reportTitle: trimmed,
-          searchQuery: trimmed,
-          notes: "",
-          // amountOptional: 100, // 🔧 for ₹1 test (100 paise). Comment out in prod.
-        }),
-      });
-
-      if (!resp.ok) {
-        const text = await resp.text();
-        console.error("prebook create-order failed", resp.status, text);
-        setPrebookLoading(false);
-        setModalMsg(
-          "⚠️ Could not start the pre-booking right now. Please try again in a few minutes."
-        );
-        setOpenModal(true);
-        return;
-      }
-
-      const data = await resp.json();
-      const {
-        prebookId,
-        razorpayOrderId,
-        amount,
-        currency,
-        razorpayKeyId,
-      } = data || {};
-
-      if (!prebookId || !razorpayOrderId || !razorpayKeyId) {
-        console.error("Invalid prebook response:", data);
-        setPrebookLoading(false);
-        setModalMsg(
-          "⚠️ Something went wrong while preparing the payment. Please try again."
-        );
-        setOpenModal(true);
-        return;
-      }
-
-      // 2) Load Razorpay
       await loadRazorpay();
       if (!window.Razorpay) {
-        setPrebookLoading(false);
-        setModalMsg(
-          "⚠️ Payment SDK did not load properly. Please refresh the page and try again."
-        );
+        setModalMsg("⚠️ Payment SDK did not load properly. Please refresh and try again.");
         setOpenModal(true);
         return;
       }
 
-      // 3) Open Razorpay Checkout
       const options = {
         key: razorpayKeyId,
         amount,
@@ -305,21 +271,26 @@ const ReportsMobile = () => {
         name: "Rajan Business Reports",
         description: `Pre-book: ${trimmed}`,
         order_id: razorpayOrderId,
-        prefill: {
-          name: userName || "RBR User",
-          contact: userPhone,
-        },
+        prefill: { name: userName || "RBR User", contact: userPhone },
         notes: {
           type: "prebook",
           prebookId,
           reportTitle: trimmed,
           searchQuery: trimmed,
         },
+
         handler: async (response) => {
-          // 🔄 Now Razorpay has returned; show loader while confirming.
           setPrebookLoading(true);
+          let confirmOk = false;
+
+          // ✅ Fire Ads conversion immediately on success callback (once per payment id)
+          // (This ensures it still fires even if confirm API is slow.)
+          fireGoogleAdsPrebookConversion({
+            paymentId: response?.razorpay_payment_id,
+            valueINR: 499,
+          });
+
           try {
-            // 🔁 Confirm using the same PREBOOK_API_URL (Lambda decides based on body fields)
             const confirmResp = await fetch(PREBOOK_API_URL, {
               method: "POST",
               headers: { "Content-Type": "application/json" },
@@ -332,35 +303,146 @@ const ReportsMobile = () => {
               }),
             });
 
+            confirmOk = confirmResp.ok;
             if (!confirmResp.ok) {
               const txt = await confirmResp.text();
               console.error("prebook confirm failed:", confirmResp.status, txt);
             }
-
-            setModalMsg(
-              "✅ Thank you! Your report has been pre-booked. Our team will research this topic in depth and add a detailed report to your profile within 2 working days."
-            );
-            setOpenModal(true);
           } catch (e) {
             console.error("Error in prebook confirm handler:", e);
-            setModalMsg(
-              "✅ Payment received. We will still prepare your report and add it to your profile, even if the confirmation took a little longer."
-            );
-            setOpenModal(true);
           } finally {
             setPrebookLoading(false);
           }
+
+          navigate("/prebook-success", {
+            replace: true,
+            state: {
+              prebookId,
+              reportTitle: trimmed,
+              userPhone,
+              userName: userName || "RBR User",
+              amount,
+              currency,
+              confirmOk,
+              razorpayPaymentId: response.razorpay_payment_id,
+            },
+          });
         },
-        theme: {
-          color: "#0263c7",
+
+        modal: {
+          ondismiss: () => {
+            setPrebookLoading(false);
+            setRetryCtx({
+              prebookId,
+              razorpayOrderId,
+              amount,
+              currency,
+              razorpayKeyId,
+              trimmed,
+              userName,
+              userPhone,
+            });
+            setRetryOpen(true);
+          },
         },
+
+        theme: { color: "#0263c7" },
       };
 
       const rzp = new window.Razorpay(options);
       rzp.open();
+    } catch (e) {
+      console.error("openRazorpayForPrebook error:", e);
+      setModalMsg("⚠️ Could not open payment right now. Please try again in a few minutes.");
+      setOpenModal(true);
+    }
+  };
 
-      // Once Razorpay is open, we don't need our own loader.
+  const retryPrebookPayment = async () => {
+    if (!retryCtx) return;
+    setRetryOpen(false);
+    setPrebookLoading(true);
+    try {
+      await openRazorpayForPrebook(retryCtx);
+    } finally {
       setPrebookLoading(false);
+    }
+  };
+
+  const startPrebookFlow = async (query, userName, userPhoneRaw) => {
+    const trimmed = query.trim();
+    const userPhone = (userPhoneRaw || "").trim();
+
+    if (!trimmed || !userPhone) {
+      setModalMsg("⚠️ Missing details for pre-booking. Please enter a valid name and phone.");
+      setOpenModal(true);
+      return;
+    }
+
+    if (!PREBOOK_API_URL) {
+      console.error("PREBOOK_API_URL is not configured");
+      setModalMsg("⚠️ Pre-booking is temporarily unavailable. Please contact us on WhatsApp or try again in a few minutes.");
+      setOpenModal(true);
+      return;
+    }
+
+    setPrebookLoading(true);
+    try {
+      const resp = await fetch(PREBOOK_API_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userPhone,
+          userName: userName || "RBR User",
+          reportTitle: trimmed,
+          searchQuery: trimmed,
+          notes: "",
+          // amountOptional: 100, // for ₹1 test (paise)
+        }),
+      });
+
+      if (!resp.ok) {
+        const text = await resp.text();
+        console.error("prebook create-order failed", resp.status, text);
+        setPrebookLoading(false);
+        setModalMsg("⚠️ Could not start the pre-booking right now. Please try again in a few minutes.");
+        setOpenModal(true);
+        return;
+      }
+
+      const data = await resp.json();
+      const { prebookId, razorpayOrderId, amount, currency, razorpayKeyId } = data || {};
+
+      if (!prebookId || !razorpayOrderId || !razorpayKeyId) {
+        console.error("Invalid prebook response:", data);
+        setPrebookLoading(false);
+        setModalMsg("⚠️ Something went wrong while preparing the payment. Please try again.");
+        setOpenModal(true);
+        return;
+      }
+
+      setRetryCtx({
+        prebookId,
+        razorpayOrderId,
+        amount,
+        currency,
+        razorpayKeyId,
+        trimmed,
+        userName: userName || "RBR User",
+        userPhone,
+      });
+
+      setPrebookLoading(false);
+      await openRazorpayForPrebook({
+        prebookId,
+        razorpayOrderId,
+        amount,
+        currency,
+        razorpayKeyId,
+        trimmed,
+        userName: userName || "RBR User",
+        userPhone,
+      });
     } catch (e) {
       console.error("startPrebookFlow error:", e);
       setPrebookLoading(false);
@@ -371,24 +453,19 @@ const ReportsMobile = () => {
     }
   };
 
-  // ⭐ Decide: always show pre-book modal.
-  // If we have a saved phone → show confirmation-only modal (no fields).
-  // If not → show form asking for name + phone.
   const triggerPrebook = async (query) => {
     const trimmed = query.trim();
-    const savedPhone =
-      state?.userInfo?.phone || state?.userInfo?.userId || "";
+    const savedPhone = state?.userInfo?.phone || state?.userInfo?.userId || "";
     const savedName = state?.userInfo?.name || "";
 
     setPrebookQuery(trimmed);
     setPrebookName(savedName);
-    setPrebookPhone(savedPhone); // if logged-in, we keep this hidden but use it
+    setPrebookPhone(savedPhone);
     setPrebookHasKnownUser(!!savedPhone);
     setPrebookError("");
     setPrebookPromptOpen(true);
   };
 
-  // Given a slug, verify preview existence and navigate
   const goToReportBySlug = async (reportSlug) => {
     if (!reportSlug) return;
     setSearchLoading(true);
@@ -403,9 +480,7 @@ const ReportsMobile = () => {
       });
 
       if (!presignResp.ok) {
-        setModalMsg(
-          "📢 This report preview isn’t ready yet. Our team is adding it shortly."
-        );
+        setModalMsg("📢 This report preview isn’t ready yet. Our team is adding it shortly.");
         setOpenModal(true);
         return;
       }
@@ -413,48 +488,31 @@ const ReportsMobile = () => {
       const presignData = await presignResp.json();
       const url = presignData?.presigned_url;
       if (!url) {
-        setModalMsg(
-          "📢 This report preview isn’t ready yet. Please check back soon."
-        );
+        setModalMsg("📢 This report preview isn’t ready yet. Please check back soon.");
         setOpenModal(true);
         return;
       }
 
-      // Small probe (be lenient; navigate even if probe fails network-wise)
       try {
-        const probe = await fetch(url, {
-          method: "GET",
-          headers: { Range: "bytes=0-1" },
-        });
+        const probe = await fetch(url, { method: "GET", headers: { Range: "bytes=0-1" } });
         const ct = (probe.headers.get("content-type") || "").toLowerCase();
-        if (
-          !probe.ok ||
-          !(probe.status === 200 || probe.status === 206) ||
-          !ct.includes("pdf")
-        ) {
-          setModalMsg(
-            "📢 This report preview isn’t ready yet. Please check back soon."
-          );
+        if (!probe.ok || !(probe.status === 200 || probe.status === 206) || !ct.includes("pdf")) {
+          setModalMsg("📢 This report preview isn’t ready yet. Please check back soon.");
           setOpenModal(true);
           return;
         }
-      } catch {
-        // ignore transient probe errors; still navigate
-      }
+      } catch {}
 
       navigate("/report-display", { state: { reportSlug, reportId } });
     } catch (e) {
       console.error("goToReportBySlug error:", e);
-      setModalMsg(
-        "⚠️ Something went wrong while opening the report. Please try again."
-      );
+      setModalMsg("⚠️ Something went wrong while opening the report. Please try again.");
       setOpenModal(true);
     } finally {
       setSearchLoading(false);
     }
   };
 
-  // log → (resolve) → navigate OR suggest → (if nothing) queue a new report & pre-book
   const handleSearch = async (query) => {
     const trimmed = query.trim();
     if (!trimmed) return;
@@ -471,7 +529,6 @@ const ReportsMobile = () => {
         search_term: trimmed,
       });
 
-      // log to your search-log Lambda
       const payload = {
         search_query: trimmed,
         user: {
@@ -492,35 +549,25 @@ const ReportsMobile = () => {
       }
       await logResp.json();
 
-      // 1) Try strict router first (no fallback)
       const reportSlug = resolveSlug(trimmed);
       if (!reportSlug) {
-        // 1a) Ask suggest API (this should search rbrfinalfiles in S3)
         const { items } = await fetchSuggestions(trimmed);
         if (items && items.length > 0) {
-          // Map API -> modal items with slug (so clicks can jump straight to report)
-          const mapped = items.map((it) => ({
-            title: it.title || it.slug,
-            slug: it.slug, // crucial
-          }));
+          const mapped = items.map((it) => ({ title: it.title || it.slug, slug: it.slug }));
           setSuggestItems(mapped.slice(0, 3));
           setSuggestOpen(true);
           return;
         }
 
-        // 1b) Nothing to suggest → tell user & start pre-booking
-        await requestNewReport(trimmed); // still queue for your internal pipeline
+        await requestNewReport(trimmed);
         await triggerPrebook(trimmed);
         return;
       }
 
-      // 2) We have a slug → go open the report
       await goToReportBySlug(reportSlug);
     } catch (e) {
       console.error("Error during search flow:", e);
-      setModalMsg(
-        "⚠️ Something went wrong while processing your request. Please try again later."
-      );
+      setModalMsg("⚠️ Something went wrong while processing your request. Please try again later.");
       setOpenModal(true);
     } finally {
       setSearchLoading(false);
@@ -546,7 +593,6 @@ const ReportsMobile = () => {
     setShowSuggestions(true);
   };
 
-  // close suggestions when clicking out
   useEffect(() => {
     const handleClick = (e) => {
       const insideDropdown = dropdownRef.current?.contains(e.target);
@@ -561,7 +607,6 @@ const ReportsMobile = () => {
     };
   }, []);
 
-  // reposition on resize; close on scroll
   useEffect(() => {
     const onResize = () => computeDropdownPos();
     const onScroll = () => setShowSuggestions(false);
@@ -573,46 +618,37 @@ const ReportsMobile = () => {
     };
   }, [computeDropdownPos]);
 
-  // ESC to close modals
   useEffect(() => {
     const onKey = (ev) => {
       if (ev.key === "Escape") {
         if (suggestOpen) setSuggestOpen(false);
         if (openModal) setOpenModal(false);
         if (prebookPromptOpen) setPrebookPromptOpen(false);
+        if (retryOpen) setRetryOpen(false);
       }
     };
-    if (openModal || suggestOpen || prebookPromptOpen) {
+    if (openModal || suggestOpen || prebookPromptOpen || retryOpen) {
       document.addEventListener("keydown", onKey);
     }
     return () => document.removeEventListener("keydown", onKey);
-  }, [openModal, suggestOpen, prebookPromptOpen]);
+  }, [openModal, suggestOpen, prebookPromptOpen, retryOpen]);
 
-  // simple phone "validation": at least 10 digits
   const handlePrebookSubmit = async (e) => {
     e.preventDefault();
 
     if (prebookHasKnownUser) {
-      // 🔹 Logged-in user flow: no inputs, just confirmation.
       const phoneDigits = (prebookPhone || "").replace(/\D/g, "");
       if (phoneDigits.length < 10) {
-        setPrebookError(
-          "Your saved phone number seems invalid. Please update your profile or contact us."
-        );
+        setPrebookError("Your saved phone number seems invalid. Please update your profile or contact us.");
         return;
       }
       setPrebookError("");
       setPrebookPromptOpen(false);
 
-      await startPrebookFlow(
-        prebookQuery,
-        prebookName || "RBR User",
-        phoneDigits
-      );
+      await startPrebookFlow(prebookQuery, prebookName || "RBR User", phoneDigits);
       return;
     }
 
-    // 🔹 Guest flow: validate phone entered in form.
     const phoneDigits = (prebookPhone || "").replace(/\D/g, "");
     if (phoneDigits.length < 10) {
       setPrebookError("Please enter a valid phone number (at least 10 digits).");
@@ -621,31 +657,22 @@ const ReportsMobile = () => {
     setPrebookError("");
     setPrebookPromptOpen(false);
 
-    await startPrebookFlow(
-      prebookQuery,
-      prebookName || "RBR User",
-      phoneDigits
-    );
+    await startPrebookFlow(prebookQuery, prebookName || "RBR User", phoneDigits);
   };
 
   return (
     <div className="min-h-screen bg-white flex flex-col items-center px-4 pt-24 pb-10">
-      {/* (Header removed – global Navbar provides brand + menu) */}
-
       {/* Hero */}
       <h1 className="text-xl sm:text-2xl font-bold text-center text-gray-900 mb-3 px-1">
         Get Instant Market &amp; Business Reports
       </h1>
       <p className="text-gray-600 text-center mb-6 text-sm sm:text-base px-2">
-        Search 1000+ industry reports. Accurate. Reliable. Ready for your
-        business.
+        Search 1000+ industry reports. Accurate. Reliable. Ready for your business.
       </p>
 
       {/* Search */}
       <form onSubmit={onSubmit} className="w-full mb-3">
-        <label htmlFor="mobile-search" className="sr-only">
-          Search reports
-        </label>
+        <label htmlFor="mobile-search" className="sr-only">Search reports</label>
         <div className="w-full flex">
           <input
             ref={inputRef}
@@ -748,29 +775,83 @@ const ReportsMobile = () => {
         </div>
       )}
 
+      {/* ✅ Retry payment modal (centered + different theme) */}
+      {retryOpen && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-50 flex items-center justify-center"
+          onClick={() => setRetryOpen(false)}
+        >
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
+
+          <div
+            className="relative z-10 w-[92%] max-w-sm rounded-2xl shadow-2xl border border-amber-200 bg-[#FFF7ED] p-5"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start gap-3 mb-3">
+              <div className="shrink-0 h-10 w-10 rounded-xl bg-amber-100 flex items-center justify-center">
+                <span style={{ fontSize: 20 }}>⚠️</span>
+              </div>
+              <div className="min-w-0">
+                <div className="text-base font-semibold text-amber-900">
+                  Payment cancelled
+                </div>
+                <div className="text-xs text-amber-900/70 mt-0.5">
+                  No money was taken (in most cases). You can retry immediately.
+                </div>
+              </div>
+              <button
+                onClick={() => setRetryOpen(false)}
+                className="ml-auto h-8 w-8 rounded-full bg-white/70 hover:bg-white text-amber-800 flex items-center justify-center"
+                aria-label="Close"
+              >
+                ×
+              </button>
+            </div>
+
+            <p className="text-sm text-amber-900/80 mb-4 leading-relaxed">
+              Your details are saved. Tap <strong>Retry payment</strong> to open the
+              payment window again.
+            </p>
+
+            <button
+              onClick={retryPrebookPayment}
+              className="w-full bg-amber-600 hover:bg-amber-700 text-white font-semibold py-2.5 rounded-xl active:scale-[0.98]"
+            >
+              Retry payment
+            </button>
+
+            <button
+              onClick={() => setRetryOpen(false)}
+              className="w-full mt-2 border border-amber-200 hover:border-amber-300 bg-white text-amber-900 font-semibold py-2.5 rounded-xl active:scale-[0.98]"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Generic info / success modal */}
       {openModal && (
         <div
           role="dialog"
           aria-modal="true"
           className="fixed inset-0 z-50 flex items-end sm:items-center justify-center"
-          onClick={closeModal}
+          onClick={() => setOpenModal(false)}
         >
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
           <div
             className="relative z-10 w-full sm:w-[420px] bg-white rounded-t-2xl sm:rounded-2xl p-5 shadow-lg"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="text-lg font-semibold mb-2">
-              📊 Rajan Business Reports
-            </div>
+            <div className="text-lg font-semibold mb-2">📊 Rajan Business Reports</div>
             <p className="text-gray-700 text-sm leading-relaxed mb-4">
-              {modalMsg ||
-                "We’re adding this report to our catalog. Please check back soon!"}
+              {modalMsg || "We’re adding this report to our catalog. Please check back soon!"}
             </p>
             <button
               ref={modalBtnRef}
-              onClick={closeModal}
+              onClick={() => setOpenModal(false)}
               className="w-full bg-blue-600 text-white font-semibold py-2.5 rounded-xl active:scale-[0.98]"
             >
               Okay
@@ -779,7 +860,7 @@ const ReportsMobile = () => {
         </div>
       )}
 
-      {/* ⭐ Pre-book prompt modal (name + phone or just confirm for logged-in) */}
+      {/* Pre-book prompt modal */}
       {prebookPromptOpen && (
         <div
           role="dialog"
@@ -792,29 +873,19 @@ const ReportsMobile = () => {
             className="relative z-10 w-full sm:w-[420px] bg-white rounded-t-2xl sm:rounded-2xl p-5 shadow-lg"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="text-lg font-semibold mb-2">
-              Pre-book this report
-            </div>
+            <div className="text-lg font-semibold mb-2">Pre-book this report</div>
             <p className="text-gray-700 text-sm leading-relaxed mb-3">
-              We don&apos;t yet have a ready report for{" "}
-              <strong>{prebookQuery}</strong>.
-              <br />
-              <br />
-              You can{" "}
-              <strong>pre-book a detailed, data-backed report</strong> on this
-              exact topic for{" "}
+              We don&apos;t yet have a ready report for <strong>{prebookQuery}</strong>.
+              <br /><br />
+              You can <strong>pre-book a detailed, data-backed report</strong> for{" "}
               <span className="font-semibold text-green-700">₹499</span>{" "}
               <span className="text-xs text-gray-500">
-                (full price{" "}
-                <span className="line-through text-gray-400">₹2,999</span>)
-              </span>
-              . Our team will research it specifically for your requirement and
-              add the report to your RBR profile within{" "}
-              <strong>2 working days</strong> and update you on WhatsApp.
+                (full price <span className="line-through text-gray-400">₹2,999</span>)
+              </span>.
+              We will add it to your profile within <strong>2 working days</strong>.
             </p>
 
             <form onSubmit={handlePrebookSubmit} className="space-y-3">
-              {/* 🔹 Only show inputs if we DON'T already know the user's phone */}
               {!prebookHasKnownUser && (
                 <>
                   <div>
@@ -845,9 +916,7 @@ const ReportsMobile = () => {
                 </>
               )}
 
-              {prebookError && (
-                <p className="text-xs text-red-600">{prebookError}</p>
-              )}
+              {prebookError && <p className="text-xs text-red-600">{prebookError}</p>}
 
               <button
                 type="submit"
@@ -868,7 +937,7 @@ const ReportsMobile = () => {
         </div>
       )}
 
-      {/* Did you mean modal (classic, max 3 suggestions) */}
+      {/* Did you mean modal */}
       {suggestOpen && (
         <div
           role="dialog"
@@ -876,18 +945,13 @@ const ReportsMobile = () => {
           className="fixed inset-0 z-50 flex items-center justify-center"
           onClick={() => setSuggestOpen(false)}
         >
-          {/* Backdrop */}
           <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px]" />
-
-          {/* Centered modal */}
           <div
             className="relative z-10 w-[92%] max-w-sm rounded-2xl shadow-2xl border border-blue-100 bg-[#EAF6FF] p-4"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-start justify-between mb-2">
-              <h3 className="text-base font-semibold text-blue-900">
-                Did you mean…
-              </h3>
+              <h3 className="text-base font-semibold text-blue-900">Did you mean…</h3>
               <button
                 onClick={() => setSuggestOpen(false)}
                 className="h-8 w-8 rounded-full bg-white/70 hover:bg-white text-blue-700 flex items-center justify-center"
@@ -909,7 +973,6 @@ const ReportsMobile = () => {
                   className="w-full text-left rounded-xl border border-blue-100 bg-white/80 hover:bg-white hover:border-blue-200 hover:shadow-md active:scale-[0.99] transition-all p-3 flex items-center gap-3"
                   onClick={() => {
                     setSuggestOpen(false);
-                    // Navigate directly using the slug
                     goToReportBySlug(s.slug || resolveSlug(s.title || ""));
                   }}
                 >
@@ -920,17 +983,6 @@ const ReportsMobile = () => {
                     <div className="text-sm font-medium text-gray-900 truncate">
                       {s.title}
                     </div>
-                  </div>
-                  <div className="shrink-0 text-blue-400">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                      <path
-                        d="M9 18l6-6-6-6"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
                   </div>
                 </button>
               ))}
