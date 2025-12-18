@@ -12,6 +12,7 @@ import black from '../assets/black.svg';
 import { useNavigate } from 'react-router-dom';
 import { Store } from '../Store';
 
+
 const placeholderExamples = [
   "How much demand is there for paper cups in Hyderabad?",
   "List of raw material suppliers for car manufacturing",
@@ -19,6 +20,7 @@ const placeholderExamples = [
   "Demand for LED lights in Bangalore and Mumbai"
 ];
 
+// ✅ limit to prevent huge pastes/typing
 const MAX_QUERY_CHARS = 50;
 
 const LoaderRing = () => (
@@ -47,6 +49,8 @@ const LoaderRing = () => (
   </svg>
 );
 
+
+
 const Reports = () => {
   const navigate = useNavigate();
   const { state, dispatch: cxtDispatch } = useContext(Store);
@@ -55,7 +59,7 @@ const Reports = () => {
   const [searchLoading, setSearchLoading] = useState(false);
   const [searchMessage, setSearchMessage] = useState("");
 
-  // ✅ search bar controlled state (for maxLength + paste prevention)
+  // ✅ NEW: make hero search controlled so we can hard-cap typing/paste
   const [searchQ, setSearchQ] = useState("");
 
   const [generate, setGenerate] = useState(false);
@@ -83,7 +87,7 @@ const Reports = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [lastReportId, setLastReportId] = useState(0); // Track the last used ID 
   const [placeholder, setPlaceholder] = useState(placeholderExamples[0]);
-
+  
   useEffect(() => {
     const filters = {
       industry: select_industry,
@@ -95,6 +99,7 @@ const Reports = () => {
     setSelectedFilters(filters);
     console.log('Updated selectedFilters:', filters);
 
+
     const hasFilters =
       select_industry.length > 0 ||
       select_city.length > 0 ||
@@ -104,18 +109,19 @@ const Reports = () => {
     setGenerate(hasFilters);
   }, [select_industry, select_city, select_competitors, select_market, select_pain]);
 
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setPlaceholder((prev) => {
-        let nextIndex = placeholderExamples.indexOf(prev) + 1;
-        if (nextIndex >= placeholderExamples.length) nextIndex = 0;
-        return placeholderExamples[nextIndex];
-      });
-    }, 5000); // change every 5 seconds
+    useEffect(() => {
+      const interval = setInterval(() => {
+        setPlaceholder((prev) => {
+          let nextIndex = placeholderExamples.indexOf(prev) + 1;
+          if (nextIndex >= placeholderExamples.length) nextIndex = 0;
+          return placeholderExamples[nextIndex];
+        });
+      }, 5000); // change every 5 seconds
+    
+      return () => clearInterval(interval);
+    }, []);
 
-    return () => clearInterval(interval);
-  }, []);
-
+  
   const generateReport = async () => {
     setIsLoading(true);
     try {
@@ -293,35 +299,35 @@ const Reports = () => {
   };
 
   const handleSearch = async (query) => {
-    const trimmed = query.trim();
+   const trimmed = query.trim();
 
-    if (!trimmed) {
-      alert("Please enter text to search.");
-      return;
-    }
+      if (!trimmed) {
+        alert("Please enter text to search.");
+        return;
+      }
 
-    // ✅ enforce 50-char limit
-    if (trimmed.length > MAX_QUERY_CHARS) {
-      alert(`Search word too long. Please keep it within ${MAX_QUERY_CHARS} characters.`);
-      return;
-    }
+      // ✅ enforce 50-char limit
+      if (trimmed.length > MAX_QUERY_CHARS) {
+        alert(`Search word too long. Please keep it within ${MAX_QUERY_CHARS} characters.`);
+        return;
+      }
 
-    setSearchLoading(true);
-    setSearchMessage(""); // reset before new search
-
+      setSearchLoading(true);
+      setSearchMessage(""); // reset before new search
+  
     try {
       console.log("Sending search query:", trimmed);
-
+  
       const payload = {
         search_query: trimmed,
         user: {
-          name: state.userInfo?.name || "Unknown",
-          email: state.userInfo?.email || "",
-          phone: state.userInfo?.phone || "", // ✅ include phone here
-          userId: state.userInfo?.userId || state.userInfo?.phone || ""
-        }
+              name: state.userInfo?.name || "Unknown",
+              email: state.userInfo?.email || "",
+              phone: state.userInfo?.phone || "", // ✅ include phone here
+              userId: state.userInfo?.userId || state.userInfo?.phone || ""
+            }
       };
-
+  
       const response = await fetch(
         "https://ypoucxtxgh.execute-api.ap-south-1.amazonaws.com/default/search-log",
         {
@@ -330,125 +336,136 @@ const Reports = () => {
           body: JSON.stringify(payload),
         }
       );
-
+  
       if (!response.ok) {
         const errorText = await response.text();
         throw new Error(`Failed with status ${response.status}, body: ${errorText}`);
       }
-
+  
       const data = await response.json();
       console.log("Search log API response:", data);
 
       // ✅ professional confirmation message
       setSearchMessage(
-        "ℹ️ We’re sorry, the specific data you requested isn’t available right now. Our research team has logged your query, these insights will be added within the next 72 hours. Please revisit soon—we’ll make sure it’s worth your while."
-      );
-
+          "ℹ️ We’re sorry, the specific data you requested isn’t available right now. Our research team has logged your query, these insights will be added within the next 72 hours. Please revisit soon—we’ll make sure it’s worth your while."
+        );
+  
       // (Optional) parse query into filters like before
-      if (trimmed.toLowerCase().includes("ceramic")) setSelect_industry(["Ceramics"]);
-      if (trimmed.toLowerCase().includes("steel")) setSelect_industry(["Steel"]);
-      if (trimmed.toLowerCase().includes("india")) setSelect_city(["India"]);
-      if (trimmed.toLowerCase().includes("delhi")) setSelect_city(["Delhi"]);
+        if (trimmed.toLowerCase().includes("ceramic")) setSelect_industry(["Ceramics"]);
+        if (trimmed.toLowerCase().includes("steel")) setSelect_industry(["Steel"]);
+        if (trimmed.toLowerCase().includes("india")) setSelect_city(["India"]);
+        if (trimmed.toLowerCase().includes("delhi")) setSelect_city(["Delhi"]);
       setNoSearch(false);
-
+  
     } catch (err) {
       console.error("Error logging search:", err);
       setSearchMessage("⚠️ Something went wrong while processing your request. Please try again later.");
-    } finally {
-      setSearchLoading(false);
-    }
+      } finally {
+        setSearchLoading(false);
+      }
   };
+
 
   return (
     <>
       <Navbar reports />
-      <div className="search-hero">
-        <h2 className="search-hero-heading">All Your Market Questions, Answered Instantly</h2>
-        <p className="search-hero-sub">
-          From suppliers to sales trends, uncover data that powers smarter business decisions — no waiting, no guesswork.
-        </p>
-        <p className="example-text">e.g., {placeholder}</p>
-        <div className="search-hero-bar">
-          <input
-            type="text"
-            value={searchQ}
-            maxLength={MAX_QUERY_CHARS}
-            placeholder={placeholder}
-            onChange={(e) => {
-              const v = e.target.value || "";
-              if (v.length <= MAX_QUERY_CHARS) setSearchQ(v);
-              else setSearchQ(v.slice(0, MAX_QUERY_CHARS));
-            }}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                const query = (searchQ || "").trim();
-                if (!query) {
-                  alert("Please enter text to search");
-                  return;
-                }
-                if (query.length > MAX_QUERY_CHARS) {
-                  alert(`Search word too long. Please keep it within ${MAX_QUERY_CHARS} characters.`);
-                  return;
-                }
-                handleSearch(query);
-              }
-            }}
-          />
-          <button
-            onClick={() => {
-              const query = (searchQ || "").trim();
-              if (!query) {
-                alert("Please enter text to search");
-                return;
-              }
-              if (query.length > MAX_QUERY_CHARS) {
-                alert(`Search word too long. Please keep it within ${MAX_QUERY_CHARS} characters.`);
-                return;
-              }
-              handleSearch(query);
-            }}
-          >
-            <svg className="search-icon" viewBox="0 0 24 24">
-              <path d="M10,2A8,8 0 1,0 18,10A8,8 0 0,0 10,2M22,22L17,17" />
-            </svg>
-            Search
-          </button>
-
-          {/* Popup overlay for loader */}
-          {searchLoading && (
-            <div className="popup-overlay">
-              <div className="popup-box">
-                <LoaderRing />
-
-                <p style={{ marginTop: "12px", fontSize: "14px", color: "#333" }}>
-                  Fetching your request...
-                </p>
-              </div>
-            </div>
-          )}
-
-          {/* Popup overlay for response */}
-          {!searchLoading && searchMessage && (
-            <div className="popup-overlay">
-              <div className="popup-box enhanced">
-                <h2 className="popup-title">📊 This Data is coming soon</h2>
-                <p className="popup-message">
-                  {searchMessage}
-                </p>
-                <div className="popup-footer">
-                  <button
-                    className="popup-button"
-                    onClick={() => setSearchMessage("")}
-                  >
-                    Okay, I’ll check back
-                  </button>
+          <div className="search-hero">
+            <h2 className="search-hero-heading">All Your Market Questions, Answered Instantly</h2>
+            <p className="search-hero-sub">
+            From suppliers to sales trends, uncover data that powers smarter business decisions — no waiting, no guesswork.
+            </p>
+            <p className="example-text">e.g., {placeholder}</p>
+            <div className="search-hero-bar">
+              <input
+                type="text"
+                value={searchQ}
+                maxLength={MAX_QUERY_CHARS}
+                placeholder={placeholder}
+                onChange={(e) => {
+                  const v = e.target.value || "";
+                  setSearchQ(v.length <= MAX_QUERY_CHARS ? v : v.slice(0, MAX_QUERY_CHARS));
+                }}
+                onPaste={(e) => {
+                  // ✅ prevent huge paste
+                  e.preventDefault();
+                  const paste = (e.clipboardData || window.clipboardData).getData("text") || "";
+                  const cur = searchQ || "";
+                  const combined = (cur + paste).slice(0, MAX_QUERY_CHARS);
+                  setSearchQ(combined);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    const query = (searchQ || '').trim().toLowerCase();
+                    if (!query) {
+                      alert("Please enter text to search");
+                      return;
+                    }
+                    if (query.length > MAX_QUERY_CHARS) {
+                      alert(`Search word too long. Please keep it within ${MAX_QUERY_CHARS} characters.`);
+                      return;
+                    }
+                    handleSearch(query);
+                  }
+                }}
+              />
+              <button
+                onClick={() => {
+                  const query = (searchQ || '').trim().toLowerCase();
+                  if (!query) {
+                    alert("Please enter text to search");
+                    return;
+                  }
+                  if (query.length > MAX_QUERY_CHARS) {
+                    alert(`Search word too long. Please keep it within ${MAX_QUERY_CHARS} characters.`);
+                    return;
+                  }
+                  handleSearch(query);
+                }}
+              >
+                <svg className="search-icon" viewBox="0 0 24 24">
+                  <path d="M10,2A8,8 0 1,0 18,10A8,8 0 0,0 10,2M22,22L17,17" />
+                </svg>
+                Search
+              </button>
+              
+              {/* Popup overlay for loader */}
+              {searchLoading && (
+                <div className="popup-overlay">
+                  <div className="popup-box">
+                    <LoaderRing />
+              
+                    <p style={{ marginTop: "12px", fontSize: "14px", color: "#333" }}>
+                      Fetching your request...
+                    </p>
+                  </div>
                 </div>
-              </div>
-            </div>
-          )}
-        </div>
-      </div> {/* ✅ closes .search-hero */}
+              )}
 
+              
+             {/* Popup overlay for response */}
+              {!searchLoading && searchMessage && (
+                <div className="popup-overlay">
+                  <div className="popup-box enhanced">
+                    <h2 className="popup-title">📊 This Data is coming soon</h2>
+                    <p className="popup-message">
+                      {searchMessage}
+                    </p>
+                    <div className="popup-footer">
+                      <button
+                        className="popup-button"
+                        onClick={() => setSearchMessage("")}
+                      >
+                        Okay, I’ll check back
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+
+            </div>
+          </div> {/* ✅ closes .search-hero */}
+      
       {popup && (
         <div className="nav-popup row">
           <div className="col-md-11 col-sm-10 col-10">
@@ -513,8 +530,385 @@ const Reports = () => {
                 <p className="before-head">Select the filters for your requirement and we do the rest</p>
               )}
               <div className="all-filters">
-                {/* (rest of your existing filters UI unchanged) */}
-                {/* ... */}
+                <div className="one-filter">
+                  <div
+                    className="heading"
+                    onClick={() => {
+                      setIndustry(!industry);
+                      setCountry(false);
+                      setCity(false);
+                      setCompetitors(false);
+                      setMarket(false);
+                      setPainpoints(false);
+                    }}
+                    style={{ cursor: 'pointer', fontFamily: 'Baskerville Old Face' }}
+                  >
+                    Industry&nbsp;
+                    {select_industry.length ? (
+                      <span className="text-primary">({select_industry.length})</span>
+                    ) : (
+                      <span className="text-muted">({select_industry.length})</span>
+                    )}
+                  </div>
+                  <div className="all-select-filters">
+                    {expandIndustry
+                      ? select_industry &&
+                        select_industry.map((value, index) => (
+                          <div key={index}>
+                            <div className="filter-button">
+                              <div>{value}</div>
+                              <div
+                                onClick={() => removeIndustry(value)}
+                                style={{
+                                  cursor: 'pointer',
+                                  fontSize: '13px',
+                                  paddingTop: '4px',
+                                  height: '16px',
+                                  width: '16px',
+                                  marginLeft: '8px',
+                                }}
+                              >
+                                X
+                              </div>
+                            </div>
+                          </div>
+                        ))
+                      : select_industry &&
+                        select_industry.slice(0, 2).map((value, index) => (
+                          <div key={index}>
+                            <div className="filter-button">
+                              <div>{value}</div>
+                              <div
+                                onClick={() => removeIndustry(value)}
+                                style={{
+                                  cursor: 'pointer',
+                                  fontSize: '13px',
+                                  paddingTop: '4px',
+                                  height: '16px',
+                                  width: '16px',
+                                  marginLeft: '8px',
+                                }}
+                              >
+                                X
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                    {select_industry.length > 2 && (
+                      <p
+                        className="text-primary"
+                        style={{ textAlign: 'left', cursor: 'pointer' }}
+                        onClick={() => setExpandIndustry(!expandIndustry)}
+                      >
+                        <u>+{select_industry.length - 2} more</u>
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="one-filter">
+                  <div
+                    className="heading"
+                    onClick={() => {
+                      setCity(!city);
+                      setCountry(false);
+                      setCompetitors(false);
+                      setMarket(false);
+                      setPainpoints(false);
+                      setIndustry(false);
+                    }}
+                    style={{ cursor: 'pointer', fontFamily: 'Baskerville Old Face' }}
+                  >
+                    City&nbsp;
+                    {select_city.length ? (
+                      <span className="text-primary">({select_city.length})</span>
+                    ) : (
+                      <span className="text-muted">({select_city.length})</span>
+                    )}
+                  </div>
+                  <div className="all-select-filters">
+                    {expandCity
+                      ? select_city &&
+                        select_city.map((value, index) => (
+                          <div key={index}>
+                            <div className="filter-button">
+                              <div>{value}</div>
+                              <div
+                                onClick={() => removeCity(value)}
+                                style={{
+                                  cursor: 'pointer',
+                                  fontSize: '13px',
+                                  paddingTop: '4px',
+                                  height: '16px',
+                                  width: '16px',
+                                  marginLeft: '8px',
+                                }}
+                              >
+                                X
+                              </div>
+                            </div>
+                          </div>
+                        ))
+                      : select_city &&
+                        select_city.slice(0, 2).map((value, index) => (
+                          <div key={index}>
+                            <div className="filter-button">
+                              <div>{value}</div>
+                              <div
+                                onClick={() => removeCity(value)}
+                                style={{
+                                  cursor: 'pointer',
+                                  fontSize: '13px',
+                                  paddingTop: '4px',
+                                  height: '16px',
+                                  width: '16px',
+                                  marginLeft: '8px',
+                                }}
+                              >
+                                X
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                    {select_city.length > 2 && (
+                      <p
+                        className="text-primary"
+                        style={{ textAlign: 'left', cursor: 'pointer' }}
+                        onClick={() => setExpandCity(!expandCity)}
+                      >
+                        <u>+{select_city.length - 2} more</u>
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="one-filter">
+                  <div
+                    className="heading"
+                    onClick={() => {
+                      setCompetitors(!competitors);
+                      setCity(false);
+                      setCountry(false);
+                      setMarket(false);
+                      setPainpoints(false);
+                      setIndustry(false);
+                    }}
+                    style={{ cursor: 'pointer', fontFamily: 'Baskerville Old Face' }}
+                  >
+                    List of Competitors&nbsp;
+                    {select_competitors.length ? (
+                      <span className="text-primary">({select_competitors.length})</span>
+                    ) : (
+                      <span className="text-muted">({select_competitors.length})</span>
+                    )}
+                  </div>
+                  <div className="all-select-filters">
+                    {expandCompetitors
+                      ? select_competitors &&
+                        select_competitors.map((value, index) => (
+                          <div key={index}>
+                            <div className="filter-button">
+                              <div>{value}</div>
+                              <div
+                                onClick={() => removeCompetitors(value)}
+                                style={{
+                                  cursor: 'pointer',
+                                  fontSize: '13px',
+                                  paddingTop: '4px',
+                                  height: '16px',
+                                  width: '16px',
+                                  marginLeft: '8px',
+                                }}
+                              >
+                                X
+                              </div>
+                            </div>
+                          </div>
+                        ))
+                      : select_competitors &&
+                        select_competitors.slice(0, 2).map((value, index) => (
+                          <div key={index}>
+                            <div className="filter-button">
+                              <div>{value}</div>
+                              <div
+                                onClick={() => removeCompetitors(value)}
+                                style={{
+                                  cursor: 'pointer',
+                                  fontSize: '13px',
+                                  paddingTop: '4px',
+                                  height: '16px',
+                                  width: '16px',
+                                  marginLeft: '8px',
+                                }}
+                              >
+                                X
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                    {select_competitors.length > 2 && (
+                      <p
+                        className="text-primary"
+                        style={{ textAlign: 'left', cursor: 'pointer' }}
+                        onClick={() => setExpandCompetitors(!expandCompetitors)}
+                      >
+                        <u>+{select_competitors.length - 2} more</u>
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="one-filter">
+                  <div
+                    className="heading"
+                    onClick={() => {
+                      setMarket(!market);
+                      setCity(false);
+                      setCountry(false);
+                      setCompetitors(false);
+                      setPainpoints(false);
+                      setIndustry(false);
+                    }}
+                    style={{ cursor: 'pointer', fontFamily: 'Baskerville Old Face' }}
+                  >
+                    Market Segment&nbsp;
+                    {select_market.length ? (
+                      <span className="text-primary">({select_market.length})</span>
+                    ) : (
+                      <span className="text-muted">({select_market.length})</span>
+                    )}
+                  </div>
+                  <div className="all-select-filters">
+                    {expandMarket
+                      ? select_market &&
+                        select_market.map((value, index) => (
+                          <div key={index}>
+                            <div className="filter-button">
+                              <div>{value}</div>
+                              <div
+                                onClick={() => removeMarket(value)}
+                                style={{
+                                  cursor: 'pointer',
+                                  fontSize: '13px',
+                                  paddingTop: '4px',
+                                  height: '16px',
+                                  width: '16px',
+                                  marginLeft: '8px',
+                                }}
+                              >
+                                X
+                              </div>
+                            </div>
+                          </div>
+                        ))
+                      : select_market &&
+                        select_market.slice(0, 2).map((value, index) => (
+                          <div key={index}>
+                            <div className="filter-button">
+                              <div>{value}</div>
+                              <div
+                                onClick={() => removeMarket(value)}
+                                style={{
+                                  cursor: 'pointer',
+                                  fontSize: '13px',
+                                  paddingTop: '4px',
+                                  height: '16px',
+                                  width: '16px',
+                                  marginLeft: '8px',
+                                }}
+                              >
+                                X
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                    {select_market.length > 2 && (
+                      <p
+                        className="text-primary"
+                        style={{ textAlign: 'left', cursor: 'pointer' }}
+                        onClick={() => setExpandMarket(!expandMarket)}
+                      >
+                        <u>+{select_market.length - 2} more</u>
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="one-filter">
+                  <div
+                    className="heading"
+                    onClick={() => {
+                      setPainpoints(!painpoints);
+                      setCity(false);
+                      setCountry(false);
+                      setCompetitors(false);
+                      setMarket(false);
+                      setIndustry(false);
+                    }}
+                    style={{ cursor: 'pointer', fontFamily: 'Baskerville Old Face' }}
+                  >
+                    Pain Points&nbsp;
+                    {select_pain.length ? (
+                      <span className="text-primary">({select_pain.length})</span>
+                    ) : (
+                      <span className="text-muted">({select_pain.length})</span>
+                    )}
+                  </div>
+                  <div className="all-select-filters">
+                    {expandPain
+                      ? select_pain &&
+                        select_pain.map((value, index) => (
+                          <div key={index}>
+                            <div className="filter-button">
+                              <div>{value}</div>
+                              <div
+                                onClick={() => removePain(value)}
+                                style={{
+                                  cursor: 'pointer',
+                                  fontSize: '13px',
+                                  paddingTop: '4px',
+                                  height: '16px',
+                                  width: '16px',
+                                  marginLeft: '8px',
+                                }}
+                              >
+                                X
+                              </div>
+                            </div>
+                          </div>
+                        ))
+                      : select_pain &&
+                        select_pain.slice(0, 2).map((value, index) => (
+                          <div key={index}>
+                            <div className="filter-button">
+                              <div>{value}</div>
+                              <div
+                                onClick={() => removePain(value)}
+                                style={{
+                                  cursor: 'pointer',
+                                  fontSize: '13px',
+                                  paddingTop: '4px',
+                                  height: '16px',
+                                  width: '16px',
+                                  marginLeft: '8px',
+                                }}
+                              >
+                                X
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                    {select_pain.length > 2 && (
+                      <p
+                        className="text-primary"
+                        style={{ textAlign: 'left', cursor: 'pointer' }}
+                        onClick={() => setExpandPain(!expandPain)}
+                      >
+                        <u>+{select_pain.length - 2} more</u>
+                      </p>
+                    )}
+                  </div>
+                </div>
               </div>
             </div>
             <div className="col-md-3 col-sm-11 col-11" style={{ margin: 'auto' }}>
