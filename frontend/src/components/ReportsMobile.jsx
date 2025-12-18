@@ -67,11 +67,9 @@ const PREBOOK_API_URL = `${PREBOOK_API_BASE}/prebook/create-order`;
 // ✅ Google Ads conversion for PREBOOK (₹499) — hardcoded
 const PREBOOK_CONV_SEND_TO = "AW-824378442/X8klCKyRw9EbEMqIjIkD";
 
-
 // Fire Google Ads conversion safely (once per paymentId)
 function fireGoogleAdsPrebookConversion({ paymentId, valueINR }) {
   try {
-
     if (!paymentId) return;
 
     const guardKey = `ads_prebook_conv_fired_${paymentId}`;
@@ -208,14 +206,15 @@ const ReportsMobile = () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ q: query, limit: 3 }),
       });
-      if (!resp.ok) return { items: [], exact_match: false };
+      if (!resp.ok) return { items: [], exact_match: false, hint: "" };
       const data = await resp.json();
       const body = typeof data.body === "string" ? JSON.parse(data.body) : data;
       const items = (body.items || []).slice(0, 3);
-      return { items, exact_match: !!body.exact_match };
+      const hint = body.hint || "";
+      return { items, exact_match: !!body.exact_match, hint };
     } catch (e) {
       console.error("suggest error:", e);
-      return { items: [], exact_match: false };
+      return { items: [], exact_match: false, hint: "" };
     }
   };
 
@@ -551,11 +550,17 @@ const ReportsMobile = () => {
 
       const reportSlug = resolveSlug(trimmed);
       if (!reportSlug) {
-        const { items } = await fetchSuggestions(trimmed);
+        const { items, hint } = await fetchSuggestions(trimmed);
         if (items && items.length > 0) {
           const mapped = items.map((it) => ({ title: it.title || it.slug, slug: it.slug }));
           setSuggestItems(mapped.slice(0, 3));
           setSuggestOpen(true);
+          return;
+        }
+
+        if (hint) {
+          setModalMsg(hint);
+          setOpenModal(true);
           return;
         }
 
