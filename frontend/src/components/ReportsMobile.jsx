@@ -133,13 +133,26 @@ const LoaderRing = () => (
   </svg>
 );
 
+// ✅ helper: bold known quoted parts in the generic-search hint
+const renderGenericHint = (query) => (
+  <span>
+    Your search <strong>“{query}”</strong> is too generic and matches thousands of
+    reports. Please try searching specific reports like{" "}
+    <strong>“Paper industry”</strong> or <strong>“Restaurant industry”</strong>.
+  </span>
+);
+
 const ReportsMobile = () => {
   const { state } = useContext(Store);
   const navigate = useNavigate();
 
   const [q, setQ] = useState("");
+
+  // ✅ modal now supports rich JSX content
   const [openModal, setOpenModal] = useState(false);
-  const [modalMsg, setModalMsg] = useState("");
+  const [modalTitle, setModalTitle] = useState("📊 Rajan Business Reports");
+  const [modalMsgNode, setModalMsgNode] = useState(null);
+
   const [searchLoading, setSearchLoading] = useState(false);
 
   // ⭐ new: loading for pre-booking/payment flow
@@ -148,11 +161,6 @@ const ReportsMobile = () => {
   // ✅ Retry modal state + context (same details used for retry)
   const [retryOpen, setRetryOpen] = useState(false);
   const [retryCtx, setRetryCtx] = useState(null);
-  // retryCtx shape:
-  // {
-  //   prebookId, razorpayOrderId, amount, currency, razorpayKeyId,
-  //   trimmed, userName, userPhone
-  // }
 
   // Suggestion modal (classic)
   const [suggestOpen, setSuggestOpen] = useState(false);
@@ -173,9 +181,6 @@ const ReportsMobile = () => {
   const [prebookPhone, setPrebookPhone] = useState("");
   const [prebookError, setPrebookError] = useState("");
   const [prebookHasKnownUser, setPrebookHasKnownUser] = useState(false);
-
-  // ⭐ NEW: optional modal title (used for hint / generic searches)
-  const [modalTitle, setModalTitle] = useState("📊 Rajan Business Reports");
 
   const matches = useMemo(() => {
     const v = q.trim().toLowerCase();
@@ -262,7 +267,9 @@ const ReportsMobile = () => {
       await loadRazorpay();
       if (!window.Razorpay) {
         setModalTitle("Payment error");
-        setModalMsg("⚠️ Payment SDK did not load properly. Please refresh and try again.");
+        setModalMsgNode(
+          <span>⚠️ Payment SDK did not load properly. Please refresh and try again.</span>
+        );
         setOpenModal(true);
         return;
       }
@@ -286,8 +293,6 @@ const ReportsMobile = () => {
           setPrebookLoading(true);
           let confirmOk = false;
 
-          // ✅ Fire Ads conversion immediately on success callback (once per payment id)
-          // (This ensures it still fires even if confirm API is slow.)
           fireGoogleAdsPrebookConversion({
             paymentId: response?.razorpay_payment_id,
             valueINR: 499,
@@ -357,7 +362,9 @@ const ReportsMobile = () => {
     } catch (e) {
       console.error("openRazorpayForPrebook error:", e);
       setModalTitle("Payment error");
-      setModalMsg("⚠️ Could not open payment right now. Please try again in a few minutes.");
+      setModalMsgNode(
+        <span>⚠️ Could not open payment right now. Please try again in a few minutes.</span>
+      );
       setOpenModal(true);
     }
   };
@@ -379,7 +386,9 @@ const ReportsMobile = () => {
 
     if (!trimmed || !userPhone) {
       setModalTitle("Missing details");
-      setModalMsg("⚠️ Missing details for pre-booking. Please enter a valid name and phone.");
+      setModalMsgNode(
+        <span>⚠️ Missing details for pre-booking. Please enter a valid name and phone.</span>
+      );
       setOpenModal(true);
       return;
     }
@@ -387,7 +396,11 @@ const ReportsMobile = () => {
     if (!PREBOOK_API_URL) {
       console.error("PREBOOK_API_URL is not configured");
       setModalTitle("Pre-booking unavailable");
-      setModalMsg("⚠️ Pre-booking is temporarily unavailable. Please contact us on WhatsApp or try again in a few minutes.");
+      setModalMsgNode(
+        <span>
+          ⚠️ Pre-booking is temporarily unavailable. Please contact us on WhatsApp or try again in a few minutes.
+        </span>
+      );
       setOpenModal(true);
       return;
     }
@@ -403,7 +416,6 @@ const ReportsMobile = () => {
           reportTitle: trimmed,
           searchQuery: trimmed,
           notes: "",
-          // amountOptional: 100, // for ₹1 test (paise)
         }),
       });
 
@@ -412,7 +424,9 @@ const ReportsMobile = () => {
         console.error("prebook create-order failed", resp.status, text);
         setPrebookLoading(false);
         setModalTitle("Pre-booking error");
-        setModalMsg("⚠️ Could not start the pre-booking right now. Please try again in a few minutes.");
+        setModalMsgNode(
+          <span>⚠️ Could not start the pre-booking right now. Please try again in a few minutes.</span>
+        );
         setOpenModal(true);
         return;
       }
@@ -424,7 +438,9 @@ const ReportsMobile = () => {
         console.error("Invalid prebook response:", data);
         setPrebookLoading(false);
         setModalTitle("Pre-booking error");
-        setModalMsg("⚠️ Something went wrong while preparing the payment. Please try again.");
+        setModalMsgNode(
+          <span>⚠️ Something went wrong while preparing the payment. Please try again.</span>
+        );
         setOpenModal(true);
         return;
       }
@@ -455,8 +471,10 @@ const ReportsMobile = () => {
       console.error("startPrebookFlow error:", e);
       setPrebookLoading(false);
       setModalTitle("Pre-booking error");
-      setModalMsg(
-        "⚠️ Something went wrong while starting the pre-booking. If any amount was deducted, our team will verify it from our side and contact you. Please try again later."
+      setModalMsgNode(
+        <span>
+          ⚠️ Something went wrong while starting the pre-booking. If any amount was deducted, our team will verify it from our side and contact you. Please try again later.
+        </span>
       );
       setOpenModal(true);
     }
@@ -490,7 +508,9 @@ const ReportsMobile = () => {
 
       if (!presignResp.ok) {
         setModalTitle("Preview not ready");
-        setModalMsg("📢 This report preview isn’t ready yet. Our team is adding it shortly.");
+        setModalMsgNode(
+          <span>📢 This report preview isn’t ready yet. Our team is adding it shortly.</span>
+        );
         setOpenModal(true);
         return;
       }
@@ -499,7 +519,7 @@ const ReportsMobile = () => {
       const url = presignData?.presigned_url;
       if (!url) {
         setModalTitle("Preview not ready");
-        setModalMsg("📢 This report preview isn’t ready yet. Please check back soon.");
+        setModalMsgNode(<span>📢 This report preview isn’t ready yet. Please check back soon.</span>);
         setOpenModal(true);
         return;
       }
@@ -509,7 +529,7 @@ const ReportsMobile = () => {
         const ct = (probe.headers.get("content-type") || "").toLowerCase();
         if (!probe.ok || !(probe.status === 200 || probe.status === 206) || !ct.includes("pdf")) {
           setModalTitle("Preview not ready");
-          setModalMsg("📢 This report preview isn’t ready yet. Please check back soon.");
+          setModalMsgNode(<span>📢 This report preview isn’t ready yet. Please check back soon.</span>);
           setOpenModal(true);
           return;
         }
@@ -519,7 +539,7 @@ const ReportsMobile = () => {
     } catch (e) {
       console.error("goToReportBySlug error:", e);
       setModalTitle("Error");
-      setModalMsg("⚠️ Something went wrong while opening the report. Please try again.");
+      setModalMsgNode(<span>⚠️ Something went wrong while opening the report. Please try again.</span>);
       setOpenModal(true);
     } finally {
       setSearchLoading(false);
@@ -532,8 +552,9 @@ const ReportsMobile = () => {
 
     setLastQuery(trimmed);
     setSearchLoading(true);
-    setModalMsg("");
+    setModalMsgNode(null);
     setSuggestOpen(false);
+
     try {
       window.gtag?.("event", "report_search", {
         event_category: "engagement",
@@ -551,11 +572,13 @@ const ReportsMobile = () => {
           userId: state?.userInfo?.userId || state?.userInfo?.phone || "",
         },
       };
+
       const logResp = await fetch(SEARCH_LOG_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
+
       if (!logResp.ok) {
         const t = await logResp.text();
         throw new Error(`Failed search-log ${logResp.status}, body: ${t}`);
@@ -565,6 +588,7 @@ const ReportsMobile = () => {
       const reportSlug = resolveSlug(trimmed);
       if (!reportSlug) {
         const { items, hint } = await fetchSuggestions(trimmed);
+
         if (items && items.length > 0) {
           const mapped = items.map((it) => ({ title: it.title || it.slug, slug: it.slug }));
           setSuggestItems(mapped.slice(0, 3));
@@ -572,9 +596,10 @@ const ReportsMobile = () => {
           return;
         }
 
+        // ✅ if lambda returns hint for generic searches, show our bold-friendly message
         if (hint) {
           setModalTitle("Search too generic");
-          setModalMsg(hint);
+          setModalMsgNode(renderGenericHint(trimmed));
           setOpenModal(true);
           return;
         }
@@ -588,7 +613,7 @@ const ReportsMobile = () => {
     } catch (e) {
       console.error("Error during search flow:", e);
       setModalTitle("Error");
-      setModalMsg("⚠️ Something went wrong while processing your request. Please try again later.");
+      setModalMsgNode(<span>⚠️ Something went wrong while processing your request. Please try again later.</span>);
       setOpenModal(true);
     } finally {
       setSearchLoading(false);
@@ -853,7 +878,7 @@ const ReportsMobile = () => {
         </div>
       )}
 
-      {/* Generic info / success modal (NOW CENTERED + CUSTOM TITLE) */}
+      {/* Generic info / success modal (CENTERED + CUSTOM TITLE + BOLD MESSAGE) */}
       {openModal && (
         <div
           role="dialog"
@@ -870,7 +895,7 @@ const ReportsMobile = () => {
               {modalTitle || "Search too generic"}
             </div>
             <p className="text-gray-700 text-sm leading-relaxed mb-4">
-              {modalMsg || "Please try a more specific search."}
+              {modalMsgNode || <span>Please try a more specific search.</span>}
             </p>
             <button
               ref={modalBtnRef}
