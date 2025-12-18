@@ -174,6 +174,9 @@ const ReportsMobile = () => {
   const [prebookError, setPrebookError] = useState("");
   const [prebookHasKnownUser, setPrebookHasKnownUser] = useState(false);
 
+  // ⭐ NEW: optional modal title (used for hint / generic searches)
+  const [modalTitle, setModalTitle] = useState("📊 Rajan Business Reports");
+
   const matches = useMemo(() => {
     const v = q.trim().toLowerCase();
     if (v.length < 2) return [];
@@ -258,6 +261,7 @@ const ReportsMobile = () => {
     try {
       await loadRazorpay();
       if (!window.Razorpay) {
+        setModalTitle("Payment error");
         setModalMsg("⚠️ Payment SDK did not load properly. Please refresh and try again.");
         setOpenModal(true);
         return;
@@ -352,6 +356,7 @@ const ReportsMobile = () => {
       rzp.open();
     } catch (e) {
       console.error("openRazorpayForPrebook error:", e);
+      setModalTitle("Payment error");
       setModalMsg("⚠️ Could not open payment right now. Please try again in a few minutes.");
       setOpenModal(true);
     }
@@ -373,6 +378,7 @@ const ReportsMobile = () => {
     const userPhone = (userPhoneRaw || "").trim();
 
     if (!trimmed || !userPhone) {
+      setModalTitle("Missing details");
       setModalMsg("⚠️ Missing details for pre-booking. Please enter a valid name and phone.");
       setOpenModal(true);
       return;
@@ -380,6 +386,7 @@ const ReportsMobile = () => {
 
     if (!PREBOOK_API_URL) {
       console.error("PREBOOK_API_URL is not configured");
+      setModalTitle("Pre-booking unavailable");
       setModalMsg("⚠️ Pre-booking is temporarily unavailable. Please contact us on WhatsApp or try again in a few minutes.");
       setOpenModal(true);
       return;
@@ -404,6 +411,7 @@ const ReportsMobile = () => {
         const text = await resp.text();
         console.error("prebook create-order failed", resp.status, text);
         setPrebookLoading(false);
+        setModalTitle("Pre-booking error");
         setModalMsg("⚠️ Could not start the pre-booking right now. Please try again in a few minutes.");
         setOpenModal(true);
         return;
@@ -415,6 +423,7 @@ const ReportsMobile = () => {
       if (!prebookId || !razorpayOrderId || !razorpayKeyId) {
         console.error("Invalid prebook response:", data);
         setPrebookLoading(false);
+        setModalTitle("Pre-booking error");
         setModalMsg("⚠️ Something went wrong while preparing the payment. Please try again.");
         setOpenModal(true);
         return;
@@ -445,6 +454,7 @@ const ReportsMobile = () => {
     } catch (e) {
       console.error("startPrebookFlow error:", e);
       setPrebookLoading(false);
+      setModalTitle("Pre-booking error");
       setModalMsg(
         "⚠️ Something went wrong while starting the pre-booking. If any amount was deducted, our team will verify it from our side and contact you. Please try again later."
       );
@@ -479,6 +489,7 @@ const ReportsMobile = () => {
       });
 
       if (!presignResp.ok) {
+        setModalTitle("Preview not ready");
         setModalMsg("📢 This report preview isn’t ready yet. Our team is adding it shortly.");
         setOpenModal(true);
         return;
@@ -487,6 +498,7 @@ const ReportsMobile = () => {
       const presignData = await presignResp.json();
       const url = presignData?.presigned_url;
       if (!url) {
+        setModalTitle("Preview not ready");
         setModalMsg("📢 This report preview isn’t ready yet. Please check back soon.");
         setOpenModal(true);
         return;
@@ -496,6 +508,7 @@ const ReportsMobile = () => {
         const probe = await fetch(url, { method: "GET", headers: { Range: "bytes=0-1" } });
         const ct = (probe.headers.get("content-type") || "").toLowerCase();
         if (!probe.ok || !(probe.status === 200 || probe.status === 206) || !ct.includes("pdf")) {
+          setModalTitle("Preview not ready");
           setModalMsg("📢 This report preview isn’t ready yet. Please check back soon.");
           setOpenModal(true);
           return;
@@ -505,6 +518,7 @@ const ReportsMobile = () => {
       navigate("/report-display", { state: { reportSlug, reportId } });
     } catch (e) {
       console.error("goToReportBySlug error:", e);
+      setModalTitle("Error");
       setModalMsg("⚠️ Something went wrong while opening the report. Please try again.");
       setOpenModal(true);
     } finally {
@@ -559,6 +573,7 @@ const ReportsMobile = () => {
         }
 
         if (hint) {
+          setModalTitle("Search too generic");
           setModalMsg(hint);
           setOpenModal(true);
           return;
@@ -572,6 +587,7 @@ const ReportsMobile = () => {
       await goToReportBySlug(reportSlug);
     } catch (e) {
       console.error("Error during search flow:", e);
+      setModalTitle("Error");
       setModalMsg("⚠️ Something went wrong while processing your request. Please try again later.");
       setOpenModal(true);
     } finally {
@@ -837,26 +853,28 @@ const ReportsMobile = () => {
         </div>
       )}
 
-      {/* Generic info / success modal */}
+      {/* Generic info / success modal (NOW CENTERED + CUSTOM TITLE) */}
       {openModal && (
         <div
           role="dialog"
           aria-modal="true"
-          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center"
-          onClick={() => setOpenModal(false)}
+          className="fixed inset-0 z-50 flex items-center justify-center"
+          onClick={closeModal}
         >
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
           <div
-            className="relative z-10 w-full sm:w-[420px] bg-white rounded-t-2xl sm:rounded-2xl p-5 shadow-lg"
+            className="relative z-10 w-[92%] sm:w-[420px] bg-white rounded-2xl p-5 shadow-lg"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="text-lg font-semibold mb-2">📊 Rajan Business Reports</div>
+            <div className="text-lg font-semibold mb-2">
+              {modalTitle || "Search too generic"}
+            </div>
             <p className="text-gray-700 text-sm leading-relaxed mb-4">
-              {modalMsg || "We’re adding this report to our catalog. Please check back soon!"}
+              {modalMsg || "Please try a more specific search."}
             </p>
             <button
               ref={modalBtnRef}
-              onClick={() => setOpenModal(false)}
+              onClick={closeModal}
               className="w-full bg-blue-600 text-white font-semibold py-2.5 rounded-xl active:scale-[0.98]"
             >
               Okay
