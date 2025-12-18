@@ -21,7 +21,7 @@ function fireGoogleAdsPurchase({ paymentId, valueINR }) {
     if (typeof window !== 'undefined' && typeof window.gtag === 'function') {
       window.gtag('event', 'conversion', {
         send_to: CONVERSION_SEND_TO,
-        value: Number(valueINR) || 1.0,
+        value: Number(valueINR) || 0, // ✅ do not default to ₹1
         currency: 'INR',
         transaction_id: paymentId,
       });
@@ -71,7 +71,7 @@ const PaymentMobile = () => {
     (localStorage.getItem('amount')
       ? Number(localStorage.getItem('amount'))
       : undefined) ??
-    1; // default ₹1 fallback
+    2999; // ✅ default ₹2999
 
   const resolvedFileKey =
     stateObj.fileKey ||
@@ -98,8 +98,11 @@ const PaymentMobile = () => {
 
   // Local reactive copies for logging & validation
   const reportId = resolvedReportId;
-  // NOTE: keeping same amount logic as current Payment.js (test ₹1)
-  const amount = 1;
+
+  // ✅ use resolvedAmount (and keep it safe)
+  const amountRaw = Number(resolvedAmount);
+  const amount = Number.isFinite(amountRaw) && amountRaw > 0 ? amountRaw : 2999;
+
   const file_key = resolvedFileKey;
 
   // Persist payment context so refresh doesn't lose it
@@ -393,7 +396,12 @@ const PaymentMobile = () => {
         process.env.REACT_APP_RAZORPAY_KEY_ID
       );
       console.log('keyFromOrder:', keyFromOrder);
-      console.log('Resolved Razorpay key (mobile):', razorpayKey, 'Order ID:', orderId);
+      console.log(
+        'Resolved Razorpay key (mobile):',
+        razorpayKey,
+        'Order ID:',
+        orderId
+      );
 
       if (!razorpayKey) {
         console.error('Razorpay key missing');
@@ -544,10 +552,7 @@ const PaymentMobile = () => {
       try {
         const rzp = new window.Razorpay(options);
         rzp.on('payment.failed', async (response) => {
-          console.error(
-            'Payment failed (mobile):',
-            response?.error?.description
-          );
+          console.error('Payment failed (mobile):', response?.error?.description);
           setError(
             `Payment failed: ${response?.error?.description || 'Unknown'}`
           );
@@ -584,11 +589,7 @@ const PaymentMobile = () => {
         setLoading(false);
       }
     } catch (error) {
-      console.error(
-        'Payment initiation error (mobile):',
-        error.message,
-        error.stack
-      );
+      console.error('Payment initiation error (mobile):', error.message, error.stack);
       setError(`Failed to initiate payment: ${error.message}`);
       setLoading(false);
     }
@@ -665,11 +666,7 @@ const PaymentMobile = () => {
       {/* Delivery / email details */}
       <div className="payments-mobile-card">
         <div className="payments-mobile-card-icon-row">
-          <img
-            src={Delivery}
-            alt="Delivery"
-            className="payments-mobile-icon"
-          />
+          <img src={Delivery} alt="Delivery" className="payments-mobile-icon" />
           <span className="payments-mobile-card-label">Report delivery</span>
         </div>
 
@@ -694,9 +691,7 @@ const PaymentMobile = () => {
               placeholder="you@example.com"
             />
           ) : (
-            <div className="payments-mobile-value">
-              {inputEmail || 'Not set'}
-            </div>
+            <div className="payments-mobile-value">{inputEmail || 'Not set'}</div>
           )}
         </div>
 
