@@ -120,7 +120,14 @@ const loadRazorpay = () =>
 // Loader
 const LoaderRing = () => (
   <svg viewBox="0 0 100 100" className="w-14 h-14 animate-spin-slow">
-    <circle cx="50" cy="50" r="45" fill="none" stroke="#e6e6e6" strokeWidth="8" />
+    <circle
+      cx="50"
+      cy="50"
+      r="45"
+      fill="none"
+      stroke="#e6e6e6"
+      strokeWidth="8"
+    />
     <circle
       cx="50"
       cy="50"
@@ -139,8 +146,8 @@ const LoaderRing = () => (
 // ✅ helper: bold known quoted parts in the generic-search hint
 const renderGenericHint = (query) => (
   <span>
-    Your search <strong>“{query}”</strong> is too generic and matches thousands of
-    reports. Please try searching specific reports like{" "}
+    Your search <strong>“{query}”</strong> is too generic and matches thousands
+    of reports. Please try searching specific reports like{" "}
     <strong>“Paper industry”</strong> or <strong>“Restaurant industry”</strong>.
   </span>
 );
@@ -171,7 +178,11 @@ const ReportsMobile = () => {
   const [lastQuery, setLastQuery] = useState("");
 
   const [showSuggestions, setShowSuggestions] = useState(false);
-  const [dropdownRect, setDropdownRect] = useState({ left: 0, top: 0, width: 0 });
+  const [dropdownRect, setDropdownRect] = useState({
+    left: 0,
+    top: 0,
+    width: 0,
+  });
 
   const inputRef = useRef(null);
   const dropdownRef = useRef(null);
@@ -283,7 +294,9 @@ const ReportsMobile = () => {
       if (!window.Razorpay) {
         setModalTitle("Payment error");
         setModalMsgNode(
-          <span>⚠️ Payment SDK did not load properly. Please refresh and try again.</span>
+          <span>
+            ⚠️ Payment SDK did not load properly. Please refresh and try again.
+          </span>
         );
         setOpenModal(true);
         return;
@@ -294,7 +307,8 @@ const ReportsMobile = () => {
         amount,
         currency,
         name: "Rajan Business Reports",
-        description: `Pre-book: ${trimmed}`,
+        // ✅ stronger reassurance inside Razorpay popup
+        description: `Pre-book ₹499 (Adjusted): ${trimmed} | Analyst + WhatsApp Confirmation`,
         order_id: razorpayOrderId,
         prefill: { name: userName || "RBR User", contact: userPhone },
         notes: {
@@ -378,7 +392,9 @@ const ReportsMobile = () => {
       console.error("openRazorpayForPrebook error:", e);
       setModalTitle("Payment error");
       setModalMsgNode(
-        <span>⚠️ Could not open payment right now. Please try again in a few minutes.</span>
+        <span>
+          ⚠️ Could not open payment right now. Please try again in a few minutes.
+        </span>
       );
       setOpenModal(true);
     }
@@ -402,7 +418,10 @@ const ReportsMobile = () => {
     if (!trimmed || !userPhone) {
       setModalTitle("Missing details");
       setModalMsgNode(
-        <span>⚠️ Missing details for pre-booking. Please enter a valid name and phone.</span>
+        <span>
+          ⚠️ Missing details for pre-booking. Please enter a valid name and
+          phone.
+        </span>
       );
       setOpenModal(true);
       return;
@@ -413,7 +432,8 @@ const ReportsMobile = () => {
       setModalTitle("Pre-booking unavailable");
       setModalMsgNode(
         <span>
-          ⚠️ Pre-booking is temporarily unavailable. Please contact us on WhatsApp or try again in a few minutes.
+          ⚠️ Pre-booking is temporarily unavailable. Please contact us on
+          WhatsApp or try again in a few minutes.
         </span>
       );
       setOpenModal(true);
@@ -440,21 +460,28 @@ const ReportsMobile = () => {
         setPrebookLoading(false);
         setModalTitle("Pre-booking error");
         setModalMsgNode(
-          <span>⚠️ Could not start the pre-booking right now. Please try again in a few minutes.</span>
+          <span>
+            ⚠️ Could not start the pre-booking right now. Please try again in a
+            few minutes.
+          </span>
         );
         setOpenModal(true);
         return;
       }
 
       const data = await resp.json();
-      const { prebookId, razorpayOrderId, amount, currency, razorpayKeyId } = data || {};
+      const { prebookId, razorpayOrderId, amount, currency, razorpayKeyId } =
+        data || {};
 
       if (!prebookId || !razorpayOrderId || !razorpayKeyId) {
         console.error("Invalid prebook response:", data);
         setPrebookLoading(false);
         setModalTitle("Pre-booking error");
         setModalMsgNode(
-          <span>⚠️ Something went wrong while preparing the payment. Please try again.</span>
+          <span>
+            ⚠️ Something went wrong while preparing the payment. Please try
+            again.
+          </span>
         );
         setOpenModal(true);
         return;
@@ -488,7 +515,9 @@ const ReportsMobile = () => {
       setModalTitle("Pre-booking error");
       setModalMsgNode(
         <span>
-          ⚠️ Something went wrong while starting the pre-booking. If any amount was deducted, our team will verify it from our side and contact you. Please try again later.
+          ⚠️ Something went wrong while starting the pre-booking. If any amount
+          was deducted, our team will verify it from our side and contact you.
+          Please try again later.
         </span>
       );
       setOpenModal(true);
@@ -524,7 +553,9 @@ const ReportsMobile = () => {
       if (!presignResp.ok) {
         setModalTitle("Preview not ready");
         setModalMsgNode(
-          <span>📢 This report preview isn’t ready yet. Our team is adding it shortly.</span>
+          <span>
+            📢 This report preview isn’t ready yet. Our team is adding it shortly.
+          </span>
         );
         setOpenModal(true);
         return;
@@ -534,17 +565,32 @@ const ReportsMobile = () => {
       const url = presignData?.presigned_url;
       if (!url) {
         setModalTitle("Preview not ready");
-        setModalMsgNode(<span>📢 This report preview isn’t ready yet. Please check back soon.</span>);
+        setModalMsgNode(
+          <span>
+            📢 This report preview isn’t ready yet. Please check back soon.
+          </span>
+        );
         setOpenModal(true);
         return;
       }
 
       try {
-        const probe = await fetch(url, { method: "GET", headers: { Range: "bytes=0-1" } });
+        const probe = await fetch(url, {
+          method: "GET",
+          headers: { Range: "bytes=0-1" },
+        });
         const ct = (probe.headers.get("content-type") || "").toLowerCase();
-        if (!probe.ok || !(probe.status === 200 || probe.status === 206) || !ct.includes("pdf")) {
+        if (
+          !probe.ok ||
+          !(probe.status === 200 || probe.status === 206) ||
+          !ct.includes("pdf")
+        ) {
           setModalTitle("Preview not ready");
-          setModalMsgNode(<span>📢 This report preview isn’t ready yet. Please check back soon.</span>);
+          setModalMsgNode(
+            <span>
+              📢 This report preview isn’t ready yet. Please check back soon.
+            </span>
+          );
           setOpenModal(true);
           return;
         }
@@ -554,7 +600,11 @@ const ReportsMobile = () => {
     } catch (e) {
       console.error("goToReportBySlug error:", e);
       setModalTitle("Error");
-      setModalMsgNode(<span>⚠️ Something went wrong while opening the report. Please try again.</span>);
+      setModalMsgNode(
+        <span>
+          ⚠️ Something went wrong while opening the report. Please try again.
+        </span>
+      );
       setOpenModal(true);
     } finally {
       setSearchLoading(false);
@@ -611,7 +661,10 @@ const ReportsMobile = () => {
         const { items, hint } = await fetchSuggestions(trimmed);
 
         if (items && items.length > 0) {
-          const mapped = items.map((it) => ({ title: it.title || it.slug, slug: it.slug }));
+          const mapped = items.map((it) => ({
+            title: it.title || it.slug,
+            slug: it.slug,
+          }));
           setSuggestItems(mapped.slice(0, 3));
           setSuggestOpen(true);
           return;
@@ -634,7 +687,12 @@ const ReportsMobile = () => {
     } catch (e) {
       console.error("Error during search flow:", e);
       setModalTitle("Error");
-      setModalMsgNode(<span>⚠️ Something went wrong while processing your request. Please try again later.</span>);
+      setModalMsgNode(
+        <span>
+          ⚠️ Something went wrong while processing your request. Please try again
+          later.
+        </span>
+      );
       setOpenModal(true);
     } finally {
       setSearchLoading(false);
@@ -715,7 +773,9 @@ const ReportsMobile = () => {
     if (prebookHasKnownUser) {
       const phoneDigits = (prebookPhone || "").replace(/\D/g, "");
       if (phoneDigits.length < 10) {
-        setPrebookError("Your saved phone number seems invalid. Please update your profile or contact us.");
+        setPrebookError(
+          "Your saved phone number seems invalid. Please update your profile or contact us."
+        );
         return;
       }
       setPrebookError("");
@@ -748,7 +808,9 @@ const ReportsMobile = () => {
 
       {/* Search */}
       <form onSubmit={onSubmit} className="w-full mb-3">
-        <label htmlFor="mobile-search" className="sr-only">Search reports</label>
+        <label htmlFor="mobile-search" className="sr-only">
+          Search reports
+        </label>
         <div className="w-full flex">
           <input
             ref={inputRef}
@@ -891,10 +953,24 @@ const ReportsMobile = () => {
               </button>
             </div>
 
-            <p className="text-sm text-amber-900/80 mb-4 leading-relaxed">
-              Your details are saved. Tap <strong>Retry payment</strong> to open the
-              payment window again.
+            {/* ✅ Reassurance content added here */}
+            <p className="text-sm text-amber-900/80 mb-3 leading-relaxed">
+              Your details are saved. Tap <strong>Retry payment</strong> to open
+              the payment window again.
             </p>
+
+            <div className="mb-4 rounded-xl border border-amber-200 bg-white/70 p-3">
+              <div className="text-xs font-semibold text-amber-900 mb-1">
+                After successful pre-booking
+              </div>
+              <ul className="text-[11px] text-amber-900/80 space-y-1 ml-4 list-disc">
+                <li>Analyst confirms scope on WhatsApp</li>
+                <li>
+                  Delivery within <strong>72 hours</strong>
+                </li>
+                <li>₹499 is adjusted in final price</li>
+              </ul>
+            </div>
 
             <button
               onClick={retryPrebookPayment}
@@ -943,30 +1019,64 @@ const ReportsMobile = () => {
         </div>
       )}
 
-      {/* Pre-book prompt modal */}
+      {/* ✅ Pre-book prompt modal (COMPACT popup + expandable details) */}
       {prebookPromptOpen && (
         <div
           role="dialog"
           aria-modal="true"
-          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center"
+          className="fixed inset-0 z-50 flex items-center justify-center px-3 py-6"
           onClick={() => setPrebookPromptOpen(false)}
         >
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
           <div
-            className="relative z-10 w-full sm:w-[420px] bg-white rounded-t-2xl sm:rounded-2xl p-5 shadow-lg"
+            className="relative z-10 w-full sm:w-[420px] bg-white rounded-2xl px-5 pt-1 pb-4 shadow-lg max-h-[65vh] overflow-y-auto"
+            style={{ WebkitOverflowScrolling: "touch" }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="text-lg font-semibold mb-2">Pre-book this report</div>
-            <p className="text-gray-700 text-sm leading-relaxed mb-3">
-              We don&apos;t yet have a ready report for <strong>{prebookQuery}</strong>.
-              <br /><br />
-              You can <strong>pre-book a detailed, data-backed report</strong> for{" "}
+           <div className="flex items-center justify-between border-b pb-3 mb-3">
+              <h2 className="text-lg font-semibold text-gray-900">
+                Pre-book this report
+              </h2>
+              <button
+                onClick={() => setPrebookPromptOpen(false)}
+                className="h-8 w-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700"
+                aria-label="Close"
+              >
+                ✕
+              </button>
+            </div>
+
+
+            {/* ✅ Short + glanceable copy */}
+            <p className="text-gray-700 text-sm leading-snug mb-4">
+              We don&apos;t yet have a ready report for{" "}
+              <strong>{prebookQuery}</strong>.
+              <br />
+              Pre-book an <strong>custom-made report</strong> for{" "}
               <span className="font-semibold text-green-700">₹499</span>{" "}
-              <span className="text-xs text-gray-500">
-                (full price <span className="line-through text-gray-400">₹2,999</span>)
-              </span>.
-              We will add it to your profile within <strong>2 working days</strong>.
+              <span className="text-xs text-gray-500">(adjusted in final price)</span>.
             </p>
+
+            {/* ✅ Optional details (doesn't make modal long unless opened) */}
+            <details className="mb-2 rounded-lg border border-gray-200 bg-gray-50/60 px-4 py-3">
+              <summary className="cursor-pointer select-none text-sm font-semibold text-gray-800">
+                What happens after you pre-book
+              </summary>
+              <div className="mt-2 text-xs text-gray-700 leading-relaxed">
+                <ul className="ml-4 list-disc space-y-1">
+                  <li>We confirm scope on WhatsApp.</li>
+                  <li>
+                    Delivery: <strong>within 72 hours</strong> (or clear ETA).
+                  </li>
+                  <li>
+                    ₹499 is <strong>adjusted</strong> in final price.
+                  </li>
+                </ul>
+                <div className="mt-2 text-[11px] text-gray-500">
+                  Need help? Reply on WhatsApp after payment and we’ll assist.
+                </div>
+              </div>
+            </details>
 
             <form onSubmit={handlePrebookSubmit} className="space-y-3">
               {!prebookHasKnownUser && (
@@ -1008,13 +1118,11 @@ const ReportsMobile = () => {
                 Pay ₹499 &amp; pre-book
               </button>
 
-              <button
-                type="button"
-                onClick={() => setPrebookPromptOpen(false)}
-                className="w-full mt-2 border border-gray-200 text-gray-700 font-semibold py-2.5 rounded-xl active:scale-[0.98]"
-              >
-                Cancel
-              </button>
+              {/* ✅ Micro trust line under pay button */}
+              <div className="text-[11px] text-gray-500 text-center -mt-1">
+                Secure payment via Razorpay • WhatsApp confirmation after payment
+              </div>
+
             </form>
           </div>
         </div>
@@ -1034,7 +1142,9 @@ const ReportsMobile = () => {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-start justify-between mb-2">
-              <h3 className="text-base font-semibold text-blue-900">Did you mean…</h3>
+              <h3 className="text-base font-semibold text-blue-900">
+                Did you mean…
+              </h3>
               <button
                 onClick={() => setSuggestOpen(false)}
                 className="h-8 w-8 rounded-full bg-white/70 hover:bg-white text-blue-700 flex items-center justify-center"
