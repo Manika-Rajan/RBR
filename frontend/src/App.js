@@ -27,7 +27,7 @@ import ReportsDisplayMobile from './components/ReportsDisplayMobile';
 import PurchaseSuccess from './components/PurchaseSuccess';
 import ReportRequestsDashboard from "./components/ReportRequestsDashboard";
 import PrebookSuccess from './components/PrebookSuccess';
-
+import test-page from "./components/test-page";
 
 
 function AppContent() {
@@ -43,6 +43,7 @@ function AppContent() {
         
       <Routes>
         <Route path="/about" element={<About />} />
+        <Route path="/test-page" element={<test-page />} />
 
         {/* ✅ Root route now detects mobile */}
         <Route 
