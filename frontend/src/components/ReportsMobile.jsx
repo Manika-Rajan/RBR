@@ -65,17 +65,53 @@ const PREBOOK_API_BASE =
 const PREBOOK_API_URL = `${PREBOOK_API_BASE}/prebook/create-order`;
 
 // ⭐ Instant Report APIs (customer flow)
-// Configure these in Amplify env vars. If missing, Instant will show a friendly error.
-const INSTANT_API_BASE = process.env.REACT_APP_INSTANT_API_BASE || "";
+// Configure these in Amplify env vars. Supports both Vite (VITE_*) and CRA (REACT_APP_*).
+const getEnv = (key) => {
+  try {
+    // Vite
+    if (typeof import.meta !== "undefined" && import.meta?.env?.[key] != null) {
+      return import.meta.env[key];
+    }
+  } catch {}
+  try {
+    // CRA / Webpack
+    if (typeof process !== "undefined" && process?.env?.[key] != null) {
+      return process.env[key];
+    }
+  } catch {}
+  return "";
+};
+
+// Optional base
+const INSTANT_API_BASE =
+  getEnv("VITE_INSTANT_API_BASE") || getEnv("REACT_APP_INSTANT_API_BASE") || "";
+
+// Defaults (known working from your test page)
+const DEFAULT_INSTANT_CREATE_ORDER_URL =
+  "https://jp1bupouyl.execute-api.ap-south-1.amazonaws.com/prod/instant-report/create-order";
+const DEFAULT_INSTANT_CONFIRM_URL =
+  "https://jp1bupouyl.execute-api.ap-south-1.amazonaws.com/prod/instant-report/confirm";
+
+// Required for payments + confirm
 const INSTANT_CREATE_ORDER_URL =
-  process.env.REACT_APP_INSTANT_CREATE_ORDER_URL ||
-  (INSTANT_API_BASE ? `${INSTANT_API_BASE}/instant/create-order` : "");
+  getEnv("VITE_INSTANT_CREATE_ORDER_URL") ||
+  getEnv("REACT_APP_INSTANT_CREATE_ORDER_URL") ||
+  (INSTANT_API_BASE ? `${INSTANT_API_BASE}/instant-report/create-order` : "") ||
+  DEFAULT_INSTANT_CREATE_ORDER_URL;
+
 const INSTANT_CONFIRM_GENERATE_URL =
-  process.env.REACT_APP_INSTANT_CONFIRM_GENERATE_URL ||
-  (INSTANT_API_BASE ? `${INSTANT_API_BASE}/instant/confirm-and-generate` : "");
+  getEnv("VITE_INSTANT_CONFIRM_GENERATE_URL") ||
+  getEnv("REACT_APP_INSTANT_CONFIRM_GENERATE_URL") ||
+  (INSTANT_API_BASE ? `${INSTANT_API_BASE}/instant-report/confirm` : "") ||
+  DEFAULT_INSTANT_CONFIRM_URL;
+
+// Required for the loading modal polling (you can point this to your worker status lambda)
 const INSTANT_STATUS_URL =
-  process.env.REACT_APP_INSTANT_STATUS_URL ||
+  getEnv("VITE_INSTANT_STATUS_URL") ||
+  getEnv("REACT_APP_INSTANT_STATUS_URL") ||
+  getEnv("VITE_STATUS_API") || // fallback (employee portal env name)
   (INSTANT_API_BASE ? `${INSTANT_API_BASE}/instant/status` : "");
+
 
 const INSTANT_DEFAULT_QUESTIONS = [
   "What is the current market overview and market size, with recent trends?",
