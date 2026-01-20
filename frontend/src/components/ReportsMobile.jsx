@@ -64,6 +64,27 @@ const PREBOOK_API_BASE =
 // ⭐ Single Pre-booking API URL (same path for create + confirm)
 const PREBOOK_API_URL = `${PREBOOK_API_BASE}/prebook/create-order`;
 
+// ⭐ Instant Report APIs (customer flow)
+// Configure these in Amplify env vars. If missing, Instant will show a friendly error.
+const INSTANT_API_BASE = process.env.REACT_APP_INSTANT_API_BASE || "";
+const INSTANT_CREATE_ORDER_URL =
+  process.env.REACT_APP_INSTANT_CREATE_ORDER_URL ||
+  (INSTANT_API_BASE ? `${INSTANT_API_BASE}/instant/create-order` : "");
+const INSTANT_CONFIRM_GENERATE_URL =
+  process.env.REACT_APP_INSTANT_CONFIRM_GENERATE_URL ||
+  (INSTANT_API_BASE ? `${INSTANT_API_BASE}/instant/confirm-and-generate` : "");
+const INSTANT_STATUS_URL =
+  process.env.REACT_APP_INSTANT_STATUS_URL ||
+  (INSTANT_API_BASE ? `${INSTANT_API_BASE}/instant/status` : "");
+
+const INSTANT_DEFAULT_QUESTIONS = [
+  "What is the current market overview and market size, with recent trends?",
+  "What are the key segments/sub-segments and how is demand distributed?",
+  "What are the main growth drivers, constraints, risks, and challenges?",
+  "Who are the key players and what is the competitive landscape?",
+  "What is the 3–5 year outlook with opportunities and recommendations?",
+];
+
 // ✅ Google Ads conversion for PREBOOK (₹499) — hardcoded
 const PREBOOK_CONV_SEND_TO = "AW-824378442/X8klCKyRw9EbEMqIjIkD";
 
@@ -196,6 +217,60 @@ const ReportsMobile = () => {
   const [prebookPhone, setPrebookPhone] = useState("");
   const [prebookError, setPrebookError] = useState("");
   const [prebookHasKnownUser, setPrebookHasKnownUser] = useState(false);
+
+  // ======================
+  // ✅ Instant Report UI State (customer flow)
+  // ======================
+  const [instantQuestionsOpen, setInstantQuestionsOpen] = useState(false);
+  const [instantTopic, setInstantTopic] = useState("");
+  const [instantQuestions, setInstantQuestions] = useState(INSTANT_DEFAULT_QUESTIONS);
+  const [instantError, setInstantError] = useState("");
+  const [instantPayCtx, setInstantPayCtx] = useState(null);
+
+  // Loading modal (employee-portal style)
+  const [instantModalOpen, setInstantModalOpen] = useState(false);
+  const [instantModalTitle, setInstantModalTitle] = useState("Generating report…");
+  const [instantModalSub, setInstantModalSub] = useState("Initializing…");
+  const [instantProgressPct, setInstantProgressPct] = useState(5);
+  const [instantBusy, setInstantBusy] = useState(false);
+
+  const instantMountedRef = useRef(true);
+  const instantAbortRef = useRef({ aborted: false });
+
+  useEffect(() => {
+    instantMountedRef.current = true;
+    return () => {
+      instantMountedRef.current = false;
+      instantAbortRef.current.aborted = true;
+    };
+  }, []);
+
+  const updateInstantQuestion = (i, val) => {
+    setInstantQuestions((prev) => prev.map((q, idx) => (idx === i ? val : q)));
+  };
+
+  async function fetchJson(url, options) {
+    const res = await fetch(url, options);
+    const text = await res.text();
+    let data = {};
+    try {
+      data = text ? JSON.parse(text) : {};
+    } catch {
+      data = { raw: text };
+    }
+    return { res, data };
+  }
+
+  function buildErrorMessage(res, data, fallback) {
+    return (
+      data?.error ||
+      data?.message ||
+      data?.details ||
+      (typeof data?.raw === "string" && data.raw.slice(0, 300)) ||
+      fallback ||
+      `HTTP ${res?.status || "error"}`
+    );
+  }
 
   // ✅ show error if query too long
   const showTooLongError = () => {
@@ -537,53 +612,167 @@ const ReportsMobile = () => {
     setPrebookPromptOpen(true);
   };
 
-  // ✅ Instant report (₹199) — placeholder until backend is wired
-  // ✅ FORCE name/phone confirmation for NEW users: if no saved phone -> open modal and show fields, then proceed.
-  const triggerInstant = async (query) => {
-    const trimmed = (query || "").trim();
+// ✅ Instant report (₹199) — Payment first, then ask 5 questions, then generate with loading modal
+// ✅ FORCE name/phone confirmation for NEW users: if no saved phone -> fields are shown in the chooser modal.
+const triggerInstant = async (query) => {
+  const trimmed = (query || "").trim();
 
-    // If popup isn't open yet (rare path) ensure it opens with query filled
-    if (!prebookPromptOpen) {
-      const savedPhone = state?.userInfo?.phone || state?.userInfo?.userId || "";
-      const savedName = state?.userInfo?.name || "";
-      setPrebookQuery(trimmed);
-      setPrebookName(savedName);
-      setPrebookPhone(savedPhone);
-      setPrebookHasKnownUser(!!savedPhone);
-      setPrebookError("");
-      setPrebookPromptOpen(true);
-      return;
-    }
+  // If popup isn't open yet (rare path) ensure it opens with query filled
+  if (!prebookPromptOpen) {
+    const savedPhone = state?.userInfo?.phone || state?.userInfo?.userId || "";
+    const savedName = state?.userInfo?.name || "";
+    setPrebookQuery(trimmed);
+    setPrebookName(savedName);
+    setPrebookPhone(savedPhone);
+    setPrebookHasKnownUser(!!savedPhone);
+    setPrebookError("");
+    setPrebookPromptOpen(true);
+    return;
+  }
 
-    // If user is NOT known, validate required fields BEFORE proceeding
-    if (!prebookHasKnownUser) {
-      const nm = (prebookName || "").trim();
-      const phoneDigits = (prebookPhone || "").replace(/\D/g, "");
+  // Validate name/phone for BOTH known + new (known users may still have bad saved phone)
+  let nm = (prebookName || "").trim();
+  const phoneDigits = (prebookPhone || "").replace(/\D/g, "");
 
-      if (!nm) {
-        setPrebookError("Please enter your name to continue.");
-        return;
-      }
-      if (phoneDigits.length < 10) {
-        setPrebookError("Please enter a valid phone number (at least 10 digits).");
-        return;
-      }
-      setPrebookError("");
-    }
+  if (!nm) nm = "RBR User";
+  if (phoneDigits.length < 10) {
+    setPrebookError(
+      prebookHasKnownUser
+        ? "Your saved phone number seems invalid. Please update your profile or contact us."
+        : "Please enter a valid phone number (at least 10 digits)."
+    );
+    return;
+  }
 
-    // Proceed (still placeholder flow)
+  if (!prebookHasKnownUser && !(prebookName || "").trim()) {
+    setPrebookError("Please enter your name to continue.");
+    return;
+  }
+
+  setPrebookError("");
+
+  // Ensure Instant endpoints exist
+  if (!INSTANT_CREATE_ORDER_URL) {
     setPrebookPromptOpen(false);
-
-    setModalTitle("Instant report coming soon");
+    setModalTitle("Instant report unavailable");
     setModalMsgNode(
       <span>
-        We’re enabling <strong>Instant 10-page reports</strong> for{" "}
-        <strong>“{trimmed}”</strong>. <br />
-        Please use <strong>Pre-book Full Report (₹499)</strong> for now.
+        ⚠️ Instant report is temporarily unavailable. Please use <strong>Pre-book</strong> for now.
       </span>
     );
     setOpenModal(true);
-  };
+    return;
+  }
+
+  try {
+    setPrebookLoading(true);
+
+    // 1) Create Razorpay order for Instant
+    const { res, data } = await fetchJson(INSTANT_CREATE_ORDER_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        userPhone: phoneDigits,
+        userName: nm,
+        query: trimmed,
+        amount: 199,
+        currency: "INR",
+        type: "instant",
+      }),
+    });
+
+    if (!res.ok || data?.ok === false) {
+      throw new Error(buildErrorMessage(res, data, "Could not start Instant payment"));
+    }
+
+    // Accept multiple response shapes
+    const razorpayOrderId =
+      data?.razorpayOrderId ||
+      data?.razorpay_order_id ||
+      data?.orderId ||
+      data?.order_id;
+    const razorpayKeyId =
+      data?.razorpayKeyId ||
+      data?.razorpay_key_id ||
+      data?.keyId ||
+      data?.key_id;
+    const amount = data?.amount || 19900; // paise usually
+    const currency = data?.currency || "INR";
+
+    if (!razorpayOrderId || !razorpayKeyId) {
+      console.error("Instant create-order response:", data);
+      throw new Error("Instant payment could not be prepared. Missing Razorpay order/key.");
+    }
+
+    await loadRazorpay();
+    if (!window.Razorpay) throw new Error("Payment SDK did not load");
+
+    // Close chooser modal before opening Razorpay
+    setPrebookPromptOpen(false);
+
+    const options = {
+      key: razorpayKeyId,
+      amount,
+      currency,
+      name: "Rajan Business Reports",
+      description: `Instant ₹199: ${trimmed}`,
+      order_id: razorpayOrderId,
+      prefill: { name: nm, contact: phoneDigits },
+      notes: {
+        type: "instant",
+        reportTitle: trimmed,
+        searchQuery: trimmed,
+        userPhone: phoneDigits,
+      },
+      handler: async (response) => {
+        // Payment success → now ask 5 questions
+        const payId = response?.razorpay_payment_id;
+        const sig = response?.razorpay_signature;
+
+        setInstantError("");
+        setInstantTopic(trimmed);
+        setInstantQuestions(INSTANT_DEFAULT_QUESTIONS);
+        setInstantPayCtx({
+          userPhone: phoneDigits,
+          userName: nm,
+          query: trimmed,
+          razorpayOrderId,
+          razorpayPaymentId: payId,
+          razorpaySignature: sig,
+        });
+        setInstantQuestionsOpen(true);
+      },
+      modal: {
+        ondismiss: () => {
+          setPrebookLoading(false);
+          setModalTitle("Payment cancelled");
+          setModalMsgNode(
+            <span>
+              Your payment was cancelled. You can try again, or choose <strong>Pre-book</strong> instead.
+            </span>
+          );
+          setOpenModal(true);
+        },
+      },
+      theme: { color: "#0263c7" },
+    };
+
+    const rzp = new window.Razorpay(options);
+    rzp.open();
+  } catch (e) {
+    console.error("Instant trigger error:", e);
+    setPrebookPromptOpen(false);
+    setModalTitle("Payment error");
+    setModalMsgNode(
+      <span>
+        ⚠️ Could not start Instant payment. Please try again in a few minutes.
+      </span>
+    );
+    setOpenModal(true);
+  } finally {
+    setPrebookLoading(false);
+  }
+};
 
   const goToReportBySlug = async (reportSlug) => {
     if (!reportSlug) return;
@@ -808,14 +997,201 @@ const ReportsMobile = () => {
         if (openModal) setOpenModal(false);
         if (prebookPromptOpen) setPrebookPromptOpen(false);
         if (retryOpen) setRetryOpen(false);
+        if (instantQuestionsOpen) setInstantQuestionsOpen(false);
       }
     };
-    if (openModal || suggestOpen || prebookPromptOpen || retryOpen) {
+    if (openModal || suggestOpen || prebookPromptOpen || retryOpen || instantQuestionsOpen) {
       document.addEventListener("keydown", onKey);
     }
     return () => document.removeEventListener("keydown", onKey);
-  }, [openModal, suggestOpen, prebookPromptOpen, retryOpen]);
+  }, [openModal, suggestOpen, prebookPromptOpen, retryOpen, instantQuestionsOpen]);
 
+
+
+async function pollInstantUntilDone({ userPhone, instantId }) {
+  const MAX_WAIT_MS = 120000; // 2 minutes
+  const POLL_EVERY_MS = 2500; // 2.5s
+
+  const startedAt = Date.now();
+  instantAbortRef.current.aborted = false;
+
+  if (!instantMountedRef.current) return null;
+
+  setInstantModalOpen(true);
+  setInstantModalTitle("Generating report…");
+  setInstantModalSub("Queued. Starting worker…");
+  setInstantProgressPct(8);
+
+  // Smooth progress animation up to 92%
+  const timer = setInterval(() => {
+    if (!instantMountedRef.current) return;
+    setInstantProgressPct((p) => {
+      if (p >= 92) return p;
+      return Math.min(92, p + 1);
+    });
+  }, 900);
+
+  try {
+    while (Date.now() - startedAt < MAX_WAIT_MS) {
+      if (!instantMountedRef.current) throw new Error("Page closed");
+      if (instantAbortRef.current.aborted) throw new Error("Polling aborted");
+
+      const url = new URL(INSTANT_STATUS_URL);
+      url.searchParams.set("userPhone", userPhone);
+      url.searchParams.set("instantId", instantId);
+
+      const { res, data } = await fetchJson(url.toString(), {
+        method: "GET",
+        headers: { "Content-Type": "application/json" },
+      });
+
+      if (!res.ok || data?.ok === false) {
+        throw new Error(buildErrorMessage(res, data, "Status check failed"));
+      }
+
+      const status = String(data?.status || "").toLowerCase();
+
+      if (status === "done") {
+        setInstantModalSub("Finalizing…");
+        setInstantProgressPct(95);
+        return data;
+      }
+
+      if (status === "failed") {
+        throw new Error(data?.error || data?.details || "Report generation failed");
+      }
+
+      setInstantModalSub(
+        status === "running"
+          ? "Generating content and charts…"
+          : "Queued… waiting for worker"
+      );
+
+      await new Promise((r) => setTimeout(r, POLL_EVERY_MS));
+    }
+
+    throw new Error(
+      `Still running after ${Math.round(
+        MAX_WAIT_MS / 1000
+      )}s. Please wait and check in My Profile.`
+    );
+  } finally {
+    clearInterval(timer);
+  }
+}
+
+async function generateInstantNow() {
+  if (instantBusy) return;
+
+  const ctx = instantPayCtx;
+  const t = (instantTopic || "").trim();
+  const qs = (instantQuestions || []).map((x) => (x || "").trim());
+
+  if (!ctx || !ctx.userPhone || !ctx.razorpayOrderId) {
+    setInstantError("Missing payment context. Please try again.");
+    return;
+  }
+
+  if (!t) {
+    setInstantError("Topic missing. Please close and try again.");
+    return;
+  }
+
+  if (qs.length !== 5 || qs.some((x) => !x)) {
+    setInstantError("Please fill all 5 questions.");
+    return;
+  }
+
+  if (!INSTANT_CONFIRM_GENERATE_URL || !INSTANT_STATUS_URL) {
+    setInstantError("Instant APIs are not configured in production env vars.");
+    return;
+  }
+
+  setInstantError("");
+  setInstantBusy(true);
+
+  try {
+    // Close questions modal and begin loading modal
+    setInstantQuestionsOpen(false);
+
+    setInstantModalOpen(true);
+    setInstantModalTitle("Generating report…");
+    setInstantModalSub("Submitting request…");
+    setInstantProgressPct(10);
+
+    const payload = {
+      userPhone: ctx.userPhone,
+      userName: ctx.userName || "RBR User",
+      query: ctx.query || t,
+      questions: qs,
+
+      razorpayOrderId: ctx.razorpayOrderId,
+      razorpayPaymentId: ctx.razorpayPaymentId,
+      razorpaySignature: ctx.razorpaySignature,
+
+      type: "instant",
+    };
+
+    const { res, data } = await fetchJson(INSTANT_CONFIRM_GENERATE_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+
+    if (!res.ok || data?.ok === false) {
+      throw new Error(buildErrorMessage(res, data, "Could not start generation"));
+    }
+
+    const userPhone = data?.userPhone || data?.user_phone || ctx.userPhone;
+    const instantId = data?.instantId || data?.instant_id || data?.instant_id || data?.id;
+
+    if (!userPhone || !instantId) {
+      console.error("Confirm response:", data);
+      throw new Error("Confirm API did not return userPhone + instantId");
+    }
+
+    const statusData = await pollInstantUntilDone({ userPhone, instantId });
+    if (!statusData || !instantMountedRef.current) return;
+
+    const finalKey =
+      statusData?.s3Key ||
+      statusData?.s3_key ||
+      statusData?.finalS3Key ||
+      statusData?.final_s3_key ||
+      "";
+
+    setInstantModalSub("Ready!");
+    setInstantProgressPct(100);
+
+    setTimeout(() => {
+      if (!instantMountedRef.current) return;
+      setInstantModalOpen(false);
+
+      // Redirect to profile and highlight latest report (you said highlighting is already in place)
+      navigate("/profile", {
+        replace: true,
+        state: {
+          highlightType: "instant",
+          highlightFileKey: finalKey,
+          highlightQuery: t,
+          highlightInstantId: instantId,
+          highlightUserPhone: userPhone,
+        },
+      });
+    }, 600);
+  } catch (e) {
+    console.error("generateInstantNow error:", e);
+    setInstantModalOpen(false);
+
+    setModalTitle("Instant report failed");
+    setModalMsgNode(
+      <span>⚠️ {e?.message || "Something went wrong while generating the report."}</span>
+    );
+    setOpenModal(true);
+  } finally {
+    setInstantBusy(false);
+  }
+}
   const handlePrebookSubmit = async (e) => {
     e.preventDefault();
 
@@ -978,6 +1354,39 @@ const ReportsMobile = () => {
         </div>
       )}
 
+
+
+{/* ✅ Instant generation loading modal (employee-portal style) */}
+{instantModalOpen ? (
+  <div className="fixed inset-0 z-50 flex items-center justify-center">
+    <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
+    <div className="relative z-10 bg-white rounded-2xl p-6 shadow-xl w-[92%] max-w-sm">
+      <div className="text-base font-extrabold text-gray-900">
+        {instantModalTitle}
+      </div>
+      <div className="text-xs text-gray-600 mt-1">{instantModalSub}</div>
+
+      <div className="mt-4">
+        <div className="h-2 w-full bg-gray-200 rounded-full overflow-hidden">
+          <div
+            className="h-2 bg-blue-600"
+            style={{
+              width: `${Math.max(0, Math.min(100, instantProgressPct))}%`,
+            }}
+          />
+        </div>
+        <div className="text-right text-[11px] text-gray-600 mt-1">
+          {instantProgressPct}%
+        </div>
+      </div>
+
+      <div className="text-[11px] text-gray-500 mt-3">
+        This can take up to ~2 minutes because charts + PDF are generated
+        in the worker.
+      </div>
+    </div>
+  </div>
+) : null}
       {/* ✅ Retry payment modal (centered + different theme) */}
       {retryOpen && (
         <div
@@ -1079,7 +1488,89 @@ const ReportsMobile = () => {
             </button>
           </div>
         </div>
+
+
+
       )}
+
+{/* ✅ Instant Questions Modal (shown AFTER payment success) */}
+{instantQuestionsOpen && (
+  <div
+    role="dialog"
+    aria-modal="true"
+    className="fixed inset-0 z-50 flex items-center justify-center px-3 py-6"
+    onClick={() => setInstantQuestionsOpen(false)}
+  >
+    <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
+    <div
+      className="relative z-10 w-full sm:w-[580px] rounded-2xl shadow-2xl overflow-hidden max-h-[80vh] flex flex-col bg-white"
+      onClick={(e) => e.stopPropagation()}
+    >
+      <div className="bg-gradient-to-br from-blue-700 via-blue-600 to-sky-500 px-5 pt-5 pb-4">
+        <div className="flex items-start justify-between">
+          <div className="min-w-0">
+            <div className="text-white/90 text-xs font-semibold tracking-wide">
+              Instant Report — ₹199 Paid ✅
+            </div>
+            <h2 className="text-white text-lg font-extrabold leading-tight mt-1">
+              {instantTopic}
+            </h2>
+            <div className="mt-2 text-white/90 text-xs leading-snug">
+              Tell us the 5 things you want to know. We’ll generate your report accordingly.
+            </div>
+          </div>
+
+          <button
+            onClick={() => setInstantQuestionsOpen(false)}
+            className="shrink-0 h-9 w-9 rounded-full bg-white/20 hover:bg-white/30 text-white flex items-center justify-center"
+            aria-label="Close"
+          >
+            ✕
+          </button>
+        </div>
+      </div>
+
+      <div
+        className="px-4 pt-4 pb-4 overflow-y-auto"
+        style={{ WebkitOverflowScrolling: "touch" }}
+      >
+        {instantError ? (
+          <div className="mb-3 text-sm text-red-600 font-semibold">
+            {instantError}
+          </div>
+        ) : null}
+
+        {instantQuestions.map((qv, i) => (
+          <div key={i} className="mb-3">
+            <div className="text-xs font-bold text-gray-800 mb-1">
+              Question {i + 1}
+            </div>
+            <textarea
+              value={qv}
+              onChange={(e) => updateInstantQuestion(i, e.target.value)}
+              rows={2}
+              className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+        ))}
+
+        <button
+          type="button"
+          onClick={generateInstantNow}
+          disabled={instantBusy}
+          className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white font-extrabold py-3 rounded-xl active:scale-[0.98]"
+        >
+          {instantBusy ? "Generating…" : "Generate report"}
+        </button>
+
+        <div className="text-[11px] text-gray-500 text-center mt-2">
+          After generation, the report will appear in <strong>My Profile</strong>.
+        </div>
+      </div>
+    </div>
+  </div>
+)}
+
 
       {/* ✅ Choose between Instant vs Pre-Book — improved scroll + “single glance” */}
       {prebookPromptOpen && (
