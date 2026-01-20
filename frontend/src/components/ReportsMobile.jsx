@@ -207,6 +207,7 @@ const renderGenericHint = (query) => (
 const ReportsMobile = () => {
   const store = useContext(Store);
   const state = store?.state;
+  const dispatch = store?.dispatch;
   const navigate = useNavigate();
 
   const [q, setQ] = useState("");
@@ -248,6 +249,29 @@ const ReportsMobile = () => {
   const [prebookPhone, setPrebookPhone] = useState("");
   const [prebookError, setPrebookError] = useState("");
   const [prebookHasKnownUser, setPrebookHasKnownUser] = useState(false);
+
+  // ======================
+  // ✅ OTP Modal (for Instant) — reuse same OTP system as Login.jsx
+  // ======================
+  const SEND_OTP_API =
+    getEnv("VITE_SEND_OTP_API") ||
+    getEnv("REACT_APP_SEND_OTP_API") ||
+    "https://eg3s8q87p7.execute-api.ap-south-1.amazonaws.com/default/send-otp";
+
+  const VERIFY_OTP_API =
+    getEnv("VITE_VERIFY_OTP_API") ||
+    getEnv("REACT_APP_VERIFY_OTP_API") ||
+    "https://eg3s8q87p7.execute-api.ap-south-1.amazonaws.com/default/verify-otp";
+
+  const [otpOpen, setOtpOpen] = useState(false);
+  const [otpPhone, setOtpPhone] = useState(""); // 10-digit
+  const [otpSent, setOtpSent] = useState(false);
+  const [otpValue, setOtpValue] = useState("");
+  const [otpError, setOtpError] = useState("");
+  const [otpSending, setOtpSending] = useState(false);
+  const [otpVerifying, setOtpVerifying] = useState(false);
+  const pendingInstantRef = useRef(null);
+  const pendingChooserSnapshotRef = useRef(null);
 
   // ======================
   // ✅ Instant Report UI State (customer flow)
@@ -645,6 +669,240 @@ const ReportsMobile = () => {
 
 // ✅ Instant report (₹199) — Payment first, then ask 5 questions, then generate with loading modal
 // ✅ FORCE name/phone confirmation for NEW users: if no saved phone -> fields are shown in the chooser modal.
+  const sendOtpForInstant = async (phone10) => {
+    const digits = String(phone10 || "").replace(/\D/g, "").slice(-10);
+    if (digits.length !== 10) {
+      setOtpError("Please enter a valid 10-digit mobile number.");
+      return false;
+    }
+
+    setOtpError("");
+    setOtpSending(true);
+    try {
+      const phoneE164 = `+91${digits}`;
+
+      // mirror Login.jsx payload
+      const resp = await fetch(SEND_OTP_API, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone_number: phoneE164 }),
+      });
+      const data = await resp.json().catch(() => ({}));
+
+      if (!resp.ok) {
+        throw new Error(data?.message || "Could not send OTP. Please try again.");
+      }
+
+      // Optional: keep Store phone in sync (same as Login.jsx)
+      try {
+        dispatch?.({ type: "SET_PHONE", payload: phoneE164 });
+      } catch {}
+
+      setOtpSent(true);
+      return true;
+    } catch (e) {
+      setOtpError(e?.message || "Could not send OTP. Please try again.");
+      return false;
+    } finally {
+      setOtpSending(false);
+    }
+  };
+
+  const verifyOtpForInstant = async () => {
+    const digits = String(otpPhone || "").replace(/\D/g, "").slice(-10);
+    if (digits.length !== 10) {
+      setOtpError("Please enter a valid 10-digit mobile number.");
+      return false;
+    }
+    const code = String(otpValue || "").trim();
+    if (!code) {
+      setOtpError("Please enter the OTP.");
+      return false;
+    }
+
+    setOtpError("");
+    setOtpVerifying(true);
+    try {
+      const phoneE164 = `+91${digits}`;
+
+      // mirror Login.jsx payload
+      const resp = await fetch(VERIFY_OTP_API, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone_number: phoneE164, otp: code }),
+      });
+
+      const raw = await resp.text();
+      let parsed = {};
+      try {
+        parsed = raw ? JSON.parse(raw) : {};
+      } catch {
+        parsed = {};
+      }
+
+      // Some lambdas return { body: "{...}" }
+      let body = parsed;
+      if (typeof parsed?.body === "string") {
+        try {
+          body = JSON.parse(parsed.body);
+        } catch {
+          body = {};
+        }
+      }
+
+      if (!resp.ok) {
+        throw new Error(body?.message || parsed?.message || "Invalid OTP. Please try again.");
+      }
+
+      const token = body?.token || parsed?.token || "";
+      const baseUser = {
+        isLogin: true,
+        userId: phoneE164,
+        phone: phoneE164,
+        token,
+      };
+
+      // Persist like Login.jsx
+      try {
+        localStorage.setItem("authToken", token);
+        localStorage.setItem("userInfo", JSON.stringify(baseUser));
+      } catch {}
+
+      try {
+        dispatch?.({ type: "USER_LOGIN", payload: baseUser });
+      } catch {}
+
+      return true;
+    } catch (e) {
+      setOtpError(e?.message || "Invalid OTP. Please try again.");
+      return false;
+    } finally {
+      setOtpVerifying(false);
+    }
+  };
+
+  const startInstantPayment = async ({ query, userName, phoneDigits }) => {
+    const trimmed = (query || "").trim();
+    const nm = (userName || "RBR User").trim() || "RBR User";
+
+    // Ensure Instant endpoints exist
+    if (!INSTANT_CREATE_ORDER_URL || !INSTANT_CONFIRM_GENERATE_URL || !INSTANT_STATUS_URL) {
+      setModalTitle("Instant setup incomplete");
+      setModalMsgNode(
+        <span>
+          ⚠️ Instant report setup is incomplete. Please try again later.
+        </span>
+      );
+      setOpenModal(true);
+      return;
+    }
+
+    try {
+      setPrebookLoading(true);
+
+      // 1) Create Razorpay order for Instant
+      const { res, data } = await fetchJson(INSTANT_CREATE_ORDER_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userPhone: phoneDigits,
+          userName: nm,
+          query: trimmed,
+          amount: 199,
+          currency: "INR",
+          type: "instant",
+        }),
+      });
+
+      if (!res.ok || data?.ok === false) {
+        throw new Error(buildErrorMessage(res, data, "Could not start Instant payment"));
+      }
+
+      // Accept multiple response shapes
+      const razorpayOrderId =
+        data?.razorpayOrderId ||
+        data?.razorpay_order_id ||
+        data?.orderId ||
+        data?.order_id;
+      const razorpayKeyId =
+        data?.razorpayKeyId ||
+        data?.razorpay_key_id ||
+        data?.keyId ||
+        data?.key_id;
+      const amount = data?.amount || 19900; // paise usually
+      const currency = data?.currency || "INR";
+
+      if (!razorpayOrderId || !razorpayKeyId) {
+        console.error("Instant create-order response:", data);
+        throw new Error("Instant payment could not be prepared. Missing Razorpay order/key.");
+      }
+
+      await loadRazorpay();
+      if (!window.Razorpay) throw new Error("Payment SDK did not load");
+
+      const options = {
+        key: razorpayKeyId,
+        amount,
+        currency,
+        name: "Rajan Business Reports",
+        description: `Instant ₹199: ${trimmed}`,
+        order_id: razorpayOrderId,
+        prefill: { name: nm, contact: phoneDigits },
+        notes: {
+          type: "instant",
+          reportTitle: trimmed,
+          searchQuery: trimmed,
+          userPhone: phoneDigits,
+        },
+        handler: async (response) => {
+          // Payment success → now ask 5 questions
+          const payId = response?.razorpay_payment_id;
+          const sig = response?.razorpay_signature;
+
+          setInstantError("");
+          setInstantTopic(trimmed);
+          setInstantQuestions(INSTANT_DEFAULT_QUESTIONS);
+          setInstantPayCtx({
+            userPhone: phoneDigits,
+            userName: nm,
+            query: trimmed,
+            razorpayOrderId,
+            razorpayPaymentId: payId,
+            razorpaySignature: sig,
+          });
+          setInstantQuestionsOpen(true);
+        },
+        modal: {
+          ondismiss: () => {
+            setPrebookLoading(false);
+            setModalTitle("Payment cancelled");
+            setModalMsgNode(
+              <span>
+                Your payment was cancelled. You can try again, or choose <strong>Pre-book</strong> instead.
+              </span>
+            );
+            setOpenModal(true);
+          },
+        },
+        theme: { color: "#0263c7" },
+      };
+
+      const rzp = new window.Razorpay(options);
+      rzp.open();
+    } catch (e) {
+      console.error("Instant trigger error:", e);
+      setModalTitle("Payment error");
+      setModalMsgNode(
+        <span>
+          ⚠️ Could not start Instant payment. Please try again in a few minutes.
+        </span>
+      );
+      setOpenModal(true);
+    } finally {
+      setPrebookLoading(false);
+    }
+  };
+
 const triggerInstant = async (query) => {
   const trimmed = (query || "").trim();
 
@@ -682,128 +940,73 @@ const triggerInstant = async (query) => {
 
   setPrebookError("");
 
-  // Ensure Instant endpoints exist
-  if (!INSTANT_CREATE_ORDER_URL) {
+  // If already logged in, go straight to payment.
+  const alreadyLoggedIn = !!state?.userInfo?.isLogin;
+  if (alreadyLoggedIn) {
     setPrebookPromptOpen(false);
-    setModalTitle("Instant report unavailable");
-    setModalMsgNode(
-      <span>
-        ⚠️ Instant report is temporarily unavailable. Please use <strong>Pre-book</strong> for now.
-      </span>
-    );
-    setOpenModal(true);
+    await startInstantPayment({ query: trimmed, userName: nm, phoneDigits });
     return;
   }
 
-  try {
-    setPrebookLoading(true);
+  // Otherwise: OTP before payment (Option A)
+  pendingInstantRef.current = { query: trimmed, userName: nm, phoneDigits };
+  pendingChooserSnapshotRef.current = {
+    prebookQuery: trimmed,
+    prebookName: nm,
+    prebookPhone: phoneDigits,
+    prebookHasKnownUser,
+  };
 
-    // 1) Create Razorpay order for Instant
-    const { res, data } = await fetchJson(INSTANT_CREATE_ORDER_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        userPhone: phoneDigits,
-        userName: nm,
-        query: trimmed,
-        amount: 199,
-        currency: "INR",
-        type: "instant",
-      }),
-    });
-
-    if (!res.ok || data?.ok === false) {
-      throw new Error(buildErrorMessage(res, data, "Could not start Instant payment"));
-    }
-
-    // Accept multiple response shapes
-    const razorpayOrderId =
-      data?.razorpayOrderId ||
-      data?.razorpay_order_id ||
-      data?.orderId ||
-      data?.order_id;
-    const razorpayKeyId =
-      data?.razorpayKeyId ||
-      data?.razorpay_key_id ||
-      data?.keyId ||
-      data?.key_id;
-    const amount = data?.amount || 19900; // paise usually
-    const currency = data?.currency || "INR";
-
-    if (!razorpayOrderId || !razorpayKeyId) {
-      console.error("Instant create-order response:", data);
-      throw new Error("Instant payment could not be prepared. Missing Razorpay order/key.");
-    }
-
-    await loadRazorpay();
-    if (!window.Razorpay) throw new Error("Payment SDK did not load");
-
-    // Close chooser modal before opening Razorpay
-    setPrebookPromptOpen(false);
-
-    const options = {
-      key: razorpayKeyId,
-      amount,
-      currency,
-      name: "Rajan Business Reports",
-      description: `Instant ₹199: ${trimmed}`,
-      order_id: razorpayOrderId,
-      prefill: { name: nm, contact: phoneDigits },
-      notes: {
-        type: "instant",
-        reportTitle: trimmed,
-        searchQuery: trimmed,
-        userPhone: phoneDigits,
-      },
-      handler: async (response) => {
-        // Payment success → now ask 5 questions
-        const payId = response?.razorpay_payment_id;
-        const sig = response?.razorpay_signature;
-
-        setInstantError("");
-        setInstantTopic(trimmed);
-        setInstantQuestions(INSTANT_DEFAULT_QUESTIONS);
-        setInstantPayCtx({
-          userPhone: phoneDigits,
-          userName: nm,
-          query: trimmed,
-          razorpayOrderId,
-          razorpayPaymentId: payId,
-          razorpaySignature: sig,
-        });
-        setInstantQuestionsOpen(true);
-      },
-      modal: {
-        ondismiss: () => {
-          setPrebookLoading(false);
-          setModalTitle("Payment cancelled");
-          setModalMsgNode(
-            <span>
-              Your payment was cancelled. You can try again, or choose <strong>Pre-book</strong> instead.
-            </span>
-          );
-          setOpenModal(true);
-        },
-      },
-      theme: { color: "#0263c7" },
-    };
-
-    const rzp = new window.Razorpay(options);
-    rzp.open();
-  } catch (e) {
-    console.error("Instant trigger error:", e);
-    setPrebookPromptOpen(false);
-    setModalTitle("Payment error");
-    setModalMsgNode(
-      <span>
-        ⚠️ Could not start Instant payment. Please try again in a few minutes.
-      </span>
-    );
-    setOpenModal(true);
-  } finally {
-    setPrebookLoading(false);
-  }
+  setPrebookPromptOpen(false);
+  setOtpPhone(phoneDigits.slice(-10));
+  setOtpValue("");
+  setOtpError("");
+  setOtpSent(false);
+  setOtpOpen(true);
+  // Auto-send OTP on open
+  setTimeout(() => {
+    sendOtpForInstant(phoneDigits);
+  }, 0);
 };
+
+  const cancelInstantOtp = () => {
+    setOtpOpen(false);
+    setOtpError("");
+    setOtpValue("");
+    setOtpSent(false);
+
+    // Re-open chooser so the user can edit name/phone or pick Pre-book
+    const snap = pendingChooserSnapshotRef.current;
+    if (snap) {
+      setPrebookQuery(snap.prebookQuery || "");
+      setPrebookName(snap.prebookName || "");
+      setPrebookPhone(snap.prebookPhone || "");
+      setPrebookHasKnownUser(!!snap.prebookHasKnownUser);
+    }
+    setPrebookError("");
+    setPrebookPromptOpen(true);
+  };
+
+  const verifyOtpAndProceedInstant = async () => {
+    const ok = await verifyOtpForInstant();
+    if (!ok) return;
+
+    setOtpOpen(false);
+
+    const pending = pendingInstantRef.current;
+    pendingInstantRef.current = null;
+    if (pending) {
+      await startInstantPayment(pending);
+    } else {
+      setModalTitle("Something went wrong");
+      setModalMsgNode(
+        <span>
+          ⚠️ We couldn’t continue the Instant flow. Please try again.
+        </span>
+      );
+      setOpenModal(true);
+    }
+  };
 
   const goToReportBySlug = async (reportSlug) => {
     if (!reportSlug) return;
@@ -1028,14 +1231,15 @@ const triggerInstant = async (query) => {
         if (openModal) setOpenModal(false);
         if (prebookPromptOpen) setPrebookPromptOpen(false);
         if (retryOpen) setRetryOpen(false);
+        if (otpOpen) setOtpOpen(false);
         if (instantQuestionsOpen) setInstantQuestionsOpen(false);
       }
     };
-    if (openModal || suggestOpen || prebookPromptOpen || retryOpen || instantQuestionsOpen) {
+    if (openModal || suggestOpen || prebookPromptOpen || retryOpen || otpOpen || instantQuestionsOpen) {
       document.addEventListener("keydown", onKey);
     }
     return () => document.removeEventListener("keydown", onKey);
-  }, [openModal, suggestOpen, prebookPromptOpen, retryOpen, instantQuestionsOpen]);
+  }, [openModal, suggestOpen, prebookPromptOpen, retryOpen, otpOpen, instantQuestionsOpen]);
 
 
 
@@ -1522,6 +1726,109 @@ async function generateInstantNow() {
 
 
 
+      )}
+
+      {/* ✅ OTP Modal (shown BEFORE Instant payment) */}
+      {otpOpen && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-50 flex items-center justify-center px-3 py-6"
+          onClick={cancelInstantOtp}
+        >
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
+          <div
+            className="relative z-10 w-full sm:w-[420px] rounded-2xl shadow-2xl overflow-hidden bg-white"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="bg-gradient-to-br from-blue-700 via-blue-600 to-sky-500 px-5 pt-5 pb-4">
+              <div className="flex items-start justify-between">
+                <div className="min-w-0">
+                  <div className="text-white/90 text-xs font-semibold tracking-wide">
+                    Verify mobile number
+                  </div>
+                  <h2 className="text-white text-lg font-extrabold leading-tight mt-1">
+                    Enter OTP to continue
+                  </h2>
+                  <div className="mt-2 text-white/90 text-xs leading-snug">
+                    We’ll send an OTP to the number below. After verification, we’ll open the ₹199 payment gateway.
+                  </div>
+                </div>
+
+                <button
+                  onClick={cancelInstantOtp}
+                  className="shrink-0 h-9 w-9 rounded-full bg-white/20 hover:bg-white/30 text-white flex items-center justify-center"
+                  aria-label="Close"
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+
+            <div className="px-5 pt-4 pb-5">
+              {otpError ? (
+                <div className="mb-3 text-sm text-red-600 font-semibold">
+                  {otpError}
+                </div>
+              ) : null}
+
+              <label className="text-xs font-bold text-gray-800">Mobile number</label>
+              <div className="mt-1 flex items-center gap-2">
+                <div className="shrink-0 px-3 py-2 rounded-xl bg-gray-100 text-gray-800 font-semibold">+91</div>
+                <input
+                  value={otpPhone}
+                  onChange={(e) => {
+                    const digits = e.target.value.replace(/\D/g, "").slice(0, 10);
+                    setOtpPhone(digits);
+                    setOtpSent(false);
+                  }}
+                  inputMode="numeric"
+                  placeholder="10-digit number"
+                  className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div className="mt-3 flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => sendOtpForInstant(otpPhone)}
+                  disabled={otpSending}
+                  className="w-full border border-blue-200 hover:border-blue-300 bg-white text-blue-700 font-extrabold py-2.5 rounded-xl disabled:opacity-60"
+                >
+                  {otpSending ? "Sending…" : otpSent ? "Resend OTP" : "Send OTP"}
+                </button>
+              </div>
+
+              <div className="mt-4">
+                <label className="text-xs font-bold text-gray-800">OTP</label>
+                <input
+                  value={otpValue}
+                  onChange={(e) => setOtpValue(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                  inputMode="numeric"
+                  placeholder="Enter 6-digit OTP"
+                  className="mt-1 w-full border border-gray-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <button
+                type="button"
+                onClick={verifyOtpAndProceedInstant}
+                disabled={otpVerifying}
+                className="w-full mt-4 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white font-extrabold py-3 rounded-xl active:scale-[0.98]"
+              >
+                {otpVerifying ? "Verifying…" : "Verify & Continue to Payment"}
+              </button>
+
+              <button
+                type="button"
+                onClick={cancelInstantOtp}
+                className="w-full mt-2 border border-gray-200 hover:border-gray-300 bg-white text-gray-800 font-semibold py-2.5 rounded-xl"
+              >
+                Back
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
 {/* ✅ Instant Questions Modal (shown AFTER payment success) */}
