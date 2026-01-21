@@ -118,7 +118,6 @@ const INSTANT_DEFAULT_QUESTIONS = [
 
 // ✅ Google Ads conversion for PREBOOK (₹499) — hardcoded
 const PREBOOK_CONV_SEND_TO = "AW-824378442/X8klCKyRw9EbEMqIjIkD";
-
 // ✅ Google Ads conversion for INSTANT (₹199)
 const INSTANT_CONV_SEND_TO = "AW-824378442/6TR6CLvQ1-kbEMqIjIkD";
 
@@ -150,6 +149,35 @@ function fireGoogleAdsPrebookConversion({ paymentId, valueINR }) {
     }
   } catch (e) {
     console.error("[Ads] Prebook conversion fire error:", e);
+  }
+}
+
+
+// Fire Google Ads conversion safely (once per paymentId) — Instant ₹199
+function fireGoogleAdsInstantConversion({ paymentId, valueINR }) {
+  try {
+    if (!paymentId) return;
+
+    const guardKey = `ads_instant_conv_fired_${paymentId}`;
+    if (sessionStorage.getItem(guardKey)) {
+      console.log("[Ads] Instant conversion already fired for", paymentId);
+      return;
+    }
+
+    if (typeof window !== "undefined" && typeof window.gtag === "function") {
+      window.gtag("event", "conversion", {
+        send_to: INSTANT_CONV_SEND_TO,
+        value: Number(valueINR) || 199.0,
+        currency: "INR",
+        transaction_id: paymentId, // Razorpay payment_id
+      });
+      sessionStorage.setItem(guardKey, "1");
+      console.log("[Ads] Instant conversion fired:", { paymentId, valueINR });
+    } else {
+      console.warn("[Ads] gtag not available; skip instant conversion fire.");
+    }
+  } catch (e) {
+    console.error("[Ads] Instant conversion fire error:", e);
   }
 }
 
@@ -863,6 +891,12 @@ const ReportsMobile = () => {
           // Payment success → now ask 5 questions
           const payId = response?.razorpay_payment_id;
           const sig = response?.razorpay_signature;
+
+          // ✅ Google Ads conversion: Instant purchase
+          fireGoogleAdsInstantConversion({
+            paymentId: payId,
+            valueINR: 199,
+          });
 
           setInstantError("");
           setInstantTopic(trimmed);
