@@ -248,6 +248,7 @@ const ReportsMobile = () => {
   const [prebookName, setPrebookName] = useState("");
   const [prebookPhone, setPrebookPhone] = useState("");
   const [prebookError, setPrebookError] = useState("");
+  const [instantChooserError, setInstantChooserError] = useState("");
   const [prebookHasKnownUser, setPrebookHasKnownUser] = useState(false);
 
   // ======================
@@ -664,6 +665,7 @@ const ReportsMobile = () => {
     setPrebookPhone(savedPhone);
     setPrebookHasKnownUser(!!savedPhone);
     setPrebookError("");
+    setInstantChooserError("");
     setPrebookPromptOpen(true);
   };
 
@@ -915,6 +917,7 @@ const triggerInstant = async (query) => {
     setPrebookPhone(savedPhone);
     setPrebookHasKnownUser(!!savedPhone);
     setPrebookError("");
+    setInstantChooserError("");
     setPrebookPromptOpen(true);
     return;
   }
@@ -925,20 +928,23 @@ const triggerInstant = async (query) => {
 
   if (!nm) nm = "RBR User";
   if (phoneDigits.length < 10) {
-    setPrebookError(
+    setInstantChooserError(
       prebookHasKnownUser
         ? "Your saved phone number seems invalid. Please update your profile or contact us."
         : "Please enter a valid phone number (at least 10 digits)."
     );
+    setPrebookError("");
     return;
   }
 
   if (!prebookHasKnownUser && !(prebookName || "").trim()) {
-    setPrebookError("Please enter your name to continue.");
+    setInstantChooserError("Please enter your name to continue.");
+    setPrebookError("");
     return;
   }
 
   setPrebookError("");
+  setInstantChooserError("");
 
   // If already logged in, go straight to payment.
   const alreadyLoggedIn = !!state?.userInfo?.isLogin;
@@ -1429,6 +1435,7 @@ async function generateInstantNow() {
 }
   const handlePrebookSubmit = async (e) => {
     e.preventDefault();
+    setInstantChooserError("");
 
     if (prebookHasKnownUser) {
       const phoneDigits = (prebookPhone || "").replace(/\D/g, "");
@@ -2023,6 +2030,10 @@ async function generateInstantNow() {
                         className="w-full border border-gray-300 rounded-lg px-2.5 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
                       />
                     </div>
+                  )}
+
+                  {instantChooserError && (
+                    <p className="text-xs text-red-600 mt-2">{instantChooserError}</p>
                   )}
 
                   <button
