@@ -119,6 +119,9 @@ const INSTANT_DEFAULT_QUESTIONS = [
 // ✅ Google Ads conversion for PREBOOK (₹499) — hardcoded
 const PREBOOK_CONV_SEND_TO = "AW-824378442/X8klCKyRw9EbEMqIjIkD";
 
+// ✅ Google Ads conversion for INSTANT (₹199)
+const INSTANT_CONV_SEND_TO = "AW-824378442/6TR6CLvQ1-kbEMqIjIkD";
+
 // ✅ Search input max length
 const MAX_QUERY_CHARS = 50;
 
