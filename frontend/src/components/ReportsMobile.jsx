@@ -166,6 +166,8 @@ function fireGoogleAdsInstantConversion({ paymentId, valueINR }) {
 
     if (typeof window !== "undefined" && typeof window.gtag === "function") {
       window.gtag("event", "conversion", {
+        event_callback: () => console.log("[Ads] Instant conversion delivered", paymentId),
+        event_timeout: 2000,
         send_to: INSTANT_CONV_SEND_TO,
         value: Number(valueINR) || 199.0,
         currency: "INR",
