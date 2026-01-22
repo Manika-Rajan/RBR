@@ -154,32 +154,48 @@ function fireGoogleAdsPrebookConversion({ paymentId, valueINR }) {
 
 
 // Fire Google Ads conversion safely (once per paymentId) — Instant ₹199
-function fireGoogleAdsInstantConversion({ paymentId, valueINR }) {
+function fireGoogleAdsInstantConversion({ paymentId, valueINR = 199 }) {
   try {
-    if (!paymentId) return;
+    // ✅ Prevent firing the same conversion multiple times per payment
+    const key = `rbr_ads_conv_instant_${paymentId || "na"}`;
+    if (paymentId && sessionStorage.getItem(key) === "1") return;
 
-    const guardKey = `ads_instant_conv_fired_${paymentId}`;
-    if (sessionStorage.getItem(guardKey)) {
-      console.log("[Ads] Instant conversion already fired for", paymentId);
-      return;
-    }
+    const sendTo = "AW-824378442/6TR6CLvQ1-kbEMqIjIkD";
+    const conversionValue = Number(valueINR) || 199;
 
-    if (typeof window !== "undefined" && typeof window.gtag === "function") {
+    const attemptFire = () => {
+      if (typeof window.gtag !== "function") return false;
+
       window.gtag("event", "conversion", {
-        event_callback: () => console.log("[Ads] Instant conversion delivered", paymentId),
-        event_timeout: 2000,
-        send_to: INSTANT_CONV_SEND_TO,
-        value: Number(valueINR) || 199.0,
+        send_to: sendTo,
+        value: conversionValue,
         currency: "INR",
-        transaction_id: paymentId, // Razorpay payment_id
+        transaction_id: paymentId || undefined,
       });
-      sessionStorage.setItem(guardKey, "1");
-      console.log("[Ads] Instant conversion fired:", { paymentId, valueINR });
-    } else {
-      console.warn("[Ads] gtag not available; skip instant conversion fire.");
-    }
+
+      if (paymentId) sessionStorage.setItem(key, "1");
+      return true;
+    };
+
+    // Try immediately
+    if (attemptFire()) return;
+
+    // Retry briefly in case the tag script is still loading
+    const started = Date.now();
+    const retry = () => {
+      if (attemptFire()) return;
+      if (Date.now() - started > 2000) {
+        console.warn("[GoogleAds] gtag not ready; conversion not fired", {
+          paymentId,
+          sendTo,
+        });
+        return;
+      }
+      setTimeout(retry, 120);
+    };
+    retry();
   } catch (e) {
-    console.error("[Ads] Instant conversion fire error:", e);
+    console.warn("Google Ads conversion fire failed (instant)", e);
   }
 }
 
@@ -311,6 +327,7 @@ const ReportsMobile = () => {
   // ✅ Instant Report UI State (customer flow)
   // ======================
   const [instantQuestionsOpen, setInstantQuestionsOpen] = useState(false);
+const [showInstantPaymentSuccess, setShowInstantPaymentSuccess] = useState(false);
   const [instantTopic, setInstantTopic] = useState("");
   const [instantQuestions, setInstantQuestions] = useState(INSTANT_DEFAULT_QUESTIONS);
   const [instantError, setInstantError] = useState("");
@@ -482,54 +499,39 @@ const ReportsMobile = () => {
           searchQuery: trimmed,
         },
 
+        
         handler: async (response) => {
-          setPrebookLoading(true);
-          let confirmOk = false;
+          // Payment success → show a quick success popup (1s) so the conversion tag has time to fire,
+          // then ask 5 questions for the Instant report.
+          const payId = response?.razorpay_payment_id;
+          const sig = response?.razorpay_signature;
 
-          fireGoogleAdsPrebookConversion({
-            paymentId: response?.razorpay_payment_id,
-            valueINR: 499,
+          setShowInstantPaymentSuccess(true);
+
+          // ✅ Google Ads conversion: Instant purchase
+          fireGoogleAdsInstantConversion({
+            paymentId: payId,
+            valueINR: 199,
           });
 
-          try {
-            const confirmResp = await fetch(PREBOOK_API_URL, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                userPhone,
-                prebookId,
-                razorpayOrderId,
-                razorpayPaymentId: response.razorpay_payment_id,
-                razorpaySignature: response.razorpay_signature,
-              }),
+          // After 1s, proceed to the questions modal
+          setTimeout(() => {
+            setShowInstantPaymentSuccess(false);
+
+            setInstantError("");
+            setInstantTopic(trimmed);
+            setInstantQuestions(INSTANT_DEFAULT_QUESTIONS);
+            setInstantPayCtx({
+              userPhone: phoneDigits,
+              userName: nm,
+              query: trimmed,
+              razorpayOrderId,
+              razorpayPaymentId: payId,
+              razorpaySignature: sig,
             });
-
-            confirmOk = confirmResp.ok;
-            if (!confirmResp.ok) {
-              const txt = await confirmResp.text();
-              console.error("prebook confirm failed:", confirmResp.status, txt);
-            }
-          } catch (e) {
-            console.error("Error in prebook confirm handler:", e);
-          } finally {
-            setPrebookLoading(false);
-          }
-
-          navigate("/prebook-success", {
-            replace: true,
-            state: {
-              prebookId,
-              reportTitle: trimmed,
-              userPhone,
-              userName: userName || "RBR User",
-              amount,
-              currency,
-              confirmOk,
-              razorpayPaymentId: response.razorpay_payment_id,
-            },
-          });
+            setInstantQuestionsOpen(true);
+          }, 1000);
         },
-
         modal: {
           ondismiss: () => {
             setPrebookLoading(false);
