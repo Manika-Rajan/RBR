@@ -522,8 +522,8 @@ const [showInstantPaymentSuccess, setShowInstantPaymentSuccess] = useState(false
             setInstantTopic(trimmed);
             setInstantQuestions(INSTANT_DEFAULT_QUESTIONS);
             setInstantPayCtx({
-              userPhone: phoneDigits,
-              userName: nm,
+              userPhone: (userPhone || "").replace(/\D/g, ""),
+              userName: (userName || "").trim() || "RBR User",
               query: trimmed,
               razorpayOrderId,
               razorpayPaymentId: payId,
