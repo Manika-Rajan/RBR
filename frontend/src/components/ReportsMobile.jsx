@@ -2079,6 +2079,7 @@ async function generateInstantNow() {
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header (fixed) */}
+            {!instantOtpStep && (
             <div className="bg-gradient-to-br from-blue-700 via-blue-600 to-sky-500 px-5 pt-5 pb-4">
               <div className="flex items-start justify-between">
                 <div className="min-w-0">
@@ -2125,15 +2126,20 @@ async function generateInstantNow() {
                 </div>
               </div>
             </div>
+            )}
 
             {/* Body (scrollable) */}
             <div
               className="px-4 pt-4 pb-4 overflow-y-auto"
               style={{ WebkitOverflowScrolling: "touch" }}
             >
+              {!instantOtpStep && (
+
               <p className="text-gray-700 text-sm leading-snug mb-3">
                 But our database can generate a report for <strong>“{prebookQuery}”</strong>{" "} — please choose an option below.
               </p>
+              )}
+
 
               {/* ✅ Step switch: chooser ↔ OTP (inline) */}
               {instantOtpStep ? (
@@ -2229,23 +2235,6 @@ async function generateInstantNow() {
                     >
                       {otpVerifying ? "VERIFYING…" : "VERIFY"}
                     </button>
-
-                    <div className="flex items-center gap-3 text-xs text-gray-600">
-                      <button
-                        type="button"
-                        onClick={() => sendOtpForInstant(otpPhone)}
-                        disabled={otpSending}
-                        className="underline"
-                      >
-                        {otpSending ? "Sending…" : otpSent ? "Resend OTP" : "Send OTP"}
-                      </button>
-
-                      <span className="text-gray-400">|</span>
-
-                      <button type="button" onClick={cancelInstantOtp} className="underline">
-                        Change number
-                      </button>
-                    </div>
                   </div>
                 </div>
               ) : (
