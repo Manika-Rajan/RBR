@@ -323,6 +323,11 @@ const ReportsMobile = () => {
   const pendingInstantRef = useRef(null);
   const pendingChooserSnapshotRef = useRef(null);
 
+  // ✅ Inline OTP step (instead of a second big popup)
+  const [instantOtpStep, setInstantOtpStep] = useState(false);
+  const OTP_LEN = 6; // change to 4 later if your OTP becomes 4-digit
+  const otpBoxesRef = useRef([]);
+
   // ======================
   // ✅ Instant Report UI State (customer flow)
   // ======================
@@ -350,6 +355,18 @@ const [showInstantPaymentSuccess, setShowInstantPaymentSuccess] = useState(false
       instantAbortRef.current.aborted = true;
     };
   }, []);
+
+  // ✅ When OTP inline step opens, focus the first empty box
+  useEffect(() => {
+    if (!instantOtpStep) return;
+    const t = setTimeout(() => {
+      const current = String(otpValue || "").replace(/\D/g, "");
+      const idx = Math.min(current.length, OTP_LEN - 1);
+      const el = otpBoxesRef.current?.[idx];
+      if (el && typeof el.focus === "function") el.focus();
+    }, 80);
+    return () => clearTimeout(t);
+  }, [instantOtpStep, otpValue, OTP_LEN]);
 
   const updateInstantQuestion = (i, val) => {
     setInstantQuestions((prev) => prev.map((q, idx) => (idx === i ? val : q)));
@@ -818,6 +835,79 @@ const [showInstantPaymentSuccess, setShowInstantPaymentSuccess] = useState(false
     }
   };
 
+  // ======================
+  // ✅ OTP boxes helpers (inline)
+  // ======================
+  const otpDigits = useMemo(() => {
+    const raw = String(otpValue || "");
+    const onlyNums = raw.replace(/\D/g, "");
+    const padded = (onlyNums + "".padEnd(OTP_LEN, " ")).slice(0, OTP_LEN);
+    return padded.split("").map((c) => (c === " " ? "" : c));
+  }, [otpValue, OTP_LEN]);
+
+  const setOtpAt = (idx, digit) => {
+    const d = String(digit || "").replace(/\D/g, "").slice(0, 1);
+    const arr = [...otpDigits];
+    arr[idx] = d;
+    setOtpValue(arr.join(""));
+  };
+
+  const focusOtp = (idx) => {
+    const el = otpBoxesRef.current?.[idx];
+    if (el && typeof el.focus === "function") el.focus();
+  };
+
+  const onOtpChange = (idx, e) => {
+    const val = e.target.value;
+    const digits = String(val || "").replace(/\D/g, "");
+    if (!digits) {
+      setOtpAt(idx, "");
+      return;
+    }
+
+    // If user pasted multiple digits into one box
+    if (digits.length > 1) {
+      const take = digits.slice(0, OTP_LEN - idx).split("");
+      const arr = [...otpDigits];
+      take.forEach((ch, k) => {
+        arr[idx + k] = ch;
+      });
+      setOtpValue(arr.join(""));
+      const next = Math.min(idx + take.length, OTP_LEN - 1);
+      focusOtp(next);
+      return;
+    }
+
+    setOtpAt(idx, digits);
+    if (idx < OTP_LEN - 1) focusOtp(idx + 1);
+  };
+
+  const onOtpKeyDown = (idx, e) => {
+    if (e.key === "Backspace") {
+      if (otpDigits[idx]) {
+        setOtpAt(idx, "");
+      } else if (idx > 0) {
+        focusOtp(idx - 1);
+        setOtpAt(idx - 1, "");
+      }
+    }
+    if (e.key === "ArrowLeft" && idx > 0) focusOtp(idx - 1);
+    if (e.key === "ArrowRight" && idx < OTP_LEN - 1) focusOtp(idx + 1);
+  };
+
+  const onOtpPaste = (e) => {
+    try {
+      const txt = e.clipboardData?.getData("text") || "";
+      const digits = txt.replace(/\D/g, "").slice(0, OTP_LEN);
+      if (!digits) return;
+      e.preventDefault();
+      const arr = Array.from({ length: OTP_LEN }, (_, i) => digits[i] || "");
+      setOtpValue(arr.join(""));
+      const lastFilled = Math.min(digits.length - 1, OTP_LEN - 1);
+      focusOtp(Math.max(0, lastFilled));
+    } catch {}
+  };
+
   const startInstantPayment = async ({ query, userName, phoneDigits }) => {
     const trimmed = (query || "").trim();
     const nm = (userName || "RBR User").trim() || "RBR User";
@@ -1004,20 +1094,22 @@ const triggerInstant = async (query) => {
     prebookHasKnownUser,
   };
 
-  setPrebookPromptOpen(false);
+  // ✅ NEW UX: keep the chooser modal open and show OTP inline (no second popup)
   setOtpPhone(phoneDigits.slice(-10));
   setOtpValue("");
   setOtpError("");
   setOtpSent(false);
-  setOtpOpen(true);
-  // Auto-send OTP on open
+  setInstantOtpStep(true);
+
+  // Auto-send OTP on step open
   setTimeout(() => {
     sendOtpForInstant(phoneDigits);
   }, 0);
 };
 
   const cancelInstantOtp = () => {
-    setOtpOpen(false);
+    // Return to chooser inputs inside the same modal
+    setInstantOtpStep(false);
     setOtpError("");
     setOtpValue("");
     setOtpSent(false);
@@ -1031,6 +1123,7 @@ const triggerInstant = async (query) => {
       setPrebookHasKnownUser(!!snap.prebookHasKnownUser);
     }
     setPrebookError("");
+    setInstantChooserError("");
     setPrebookPromptOpen(true);
   };
 
@@ -1038,7 +1131,8 @@ const triggerInstant = async (query) => {
     const ok = await verifyOtpForInstant();
     if (!ok) return;
 
-    setOtpOpen(false);
+    setInstantOtpStep(false);
+    setPrebookPromptOpen(false);
 
     const pending = pendingInstantRef.current;
     pendingInstantRef.current = null;
@@ -1289,6 +1383,16 @@ const triggerInstant = async (query) => {
     }
     return () => document.removeEventListener("keydown", onKey);
   }, [openModal, suggestOpen, prebookPromptOpen, retryOpen, otpOpen, instantQuestionsOpen]);
+
+  // ✅ Safety: if chooser modal closes, also exit OTP inline step
+  useEffect(() => {
+    if (prebookPromptOpen) return;
+    if (instantOtpStep) setInstantOtpStep(false);
+    // keep otpPhone (it can help future tries), but clear code/error
+    setOtpError("");
+    setOtpValue("");
+    setOtpSent(false);
+  }, [prebookPromptOpen]);
 
 
 
@@ -2031,8 +2135,121 @@ async function generateInstantNow() {
                 But our database can generate a report for <strong>“{prebookQuery}”</strong>{" "} — please choose an option below.
               </p>
 
-              {/* Single-glance chooser (two cards) */}
-              <div className="grid grid-cols-2 gap-3">
+              {/* ✅ Step switch: chooser ↔ OTP (inline) */}
+              {instantOtpStep ? (
+                <div className="px-1 pb-2">
+                  {/* Slim loading bar */}
+                  <div className="text-center text-3xl sm:text-4xl font-light text-gray-600 mt-1">
+                    Loading Level
+                  </div>
+
+                  <div
+                    className="mx-auto mt-4 mb-8"
+                    style={{
+                      width: "min(520px, 92%)",
+                      background: "#ffffff",
+                      borderRadius: "999px",
+                      boxShadow: "0 10px 30px rgba(0,0,0,0.10)",
+                      padding: "12px 16px", // compact height
+                    }}
+                  >
+                    <div
+                      style={{
+                        border: "2px solid #0b3bff",
+                        borderRadius: "999px",
+                        padding: "4px",
+                      }}
+                    >
+                      <div
+                        style={{
+                          height: "14px", // compact bar height
+                          borderRadius: "999px",
+                          background: "#d5dcff",
+                          overflow: "hidden",
+                        }}
+                      >
+                        <div
+                          style={{
+                            width: "55%",
+                            height: "100%",
+                            background: "#0b3bff",
+                          }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Verification content */}
+                  <div className="text-center text-4xl sm:text-5xl font-light text-gray-700 mb-3">
+                    Verification Code
+                  </div>
+                  <div className="text-center text-lg sm:text-xl text-gray-700 mb-6">
+                    Please enter the verification code sent to your mobile
+                  </div>
+
+                  <div className="flex items-center justify-center gap-3 mb-7" onPaste={onOtpPaste}>
+                    {Array.from({ length: OTP_LEN }).map((_, i) => (
+                      <React.Fragment key={i}>
+                        <input
+                          ref={(el) => (otpBoxesRef.current[i] = el)}
+                          value={otpDigits[i] || ""}
+                          onChange={(e) => onOtpChange(i, e)}
+                          onKeyDown={(e) => onOtpKeyDown(i, e)}
+                          inputMode="numeric"
+                          maxLength={1}
+                          className={
+                            "w-12 h-12 sm:w-14 sm:h-14 text-2xl text-center border rounded-md focus:outline-none " +
+                            (i === Math.min(otpValue.replace(/\D/g, "").length, OTP_LEN - 1)
+                              ? "border-black"
+                              : "border-gray-300")
+                          }
+                          aria-label={`OTP digit ${i + 1}`}
+                        />
+                        {i < OTP_LEN - 1 && (
+                          <span className="text-gray-500 text-2xl" aria-hidden>
+                            ·
+                          </span>
+                        )}
+                      </React.Fragment>
+                    ))}
+                  </div>
+
+                  {otpError && (
+                    <div className="text-center text-sm text-red-600 -mt-3 mb-4">
+                      {otpError}
+                    </div>
+                  )}
+
+                  <div className="flex flex-col items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={verifyOtpAndProceedInstant}
+                      disabled={otpVerifying}
+                      className="w-[220px] sm:w-[260px] bg-indigo-600 hover:bg-indigo-700 text-white text-xl sm:text-2xl font-medium py-3 rounded-md shadow"
+                    >
+                      {otpVerifying ? "VERIFYING…" : "VERIFY"}
+                    </button>
+
+                    <div className="flex items-center gap-3 text-xs text-gray-600">
+                      <button
+                        type="button"
+                        onClick={() => sendOtpForInstant(otpPhone)}
+                        disabled={otpSending}
+                        className="underline"
+                      >
+                        {otpSending ? "Sending…" : otpSent ? "Resend OTP" : "Send OTP"}
+                      </button>
+
+                      <span className="text-gray-400">|</span>
+
+                      <button type="button" onClick={cancelInstantOtp} className="underline">
+                        Change number
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-3">
                 {/* INSTANT */}
                 <div className="relative rounded-2xl border border-blue-200 bg-gradient-to-b from-blue-50 to-white p-3 flex flex-col">
                   <div className="absolute -top-2 right-2">
@@ -2167,6 +2384,7 @@ async function generateInstantNow() {
                   </form>
                 </div>
               </div>
+              )}
 
               {/* Footer reassurance */}
               <div className="mt-4 text-[11px] text-gray-500 text-center px-2">
