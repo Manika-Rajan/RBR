@@ -2143,7 +2143,8 @@ async function generateInstantNow() {
 
               {/* ✅ Step switch: chooser ↔ OTP (inline) */}
               {instantOtpStep ? (
-                <div className="px-1 pb-2">
+                <div className="px-1 pb-2 flex justify-center">
+                  <div style={{ transform: "scale(0.7)", transformOrigin: "top center", width: "100%" }}>
                   {/* Slim loading bar */}
                   <div className="text-center text-3xl sm:text-4xl font-light text-gray-600 mt-1">
                     Loading Level
@@ -2235,6 +2236,7 @@ async function generateInstantNow() {
                     >
                       {otpVerifying ? "VERIFYING…" : "VERIFY"}
                     </button>
+                  </div>
                   </div>
                 </div>
               ) : (
