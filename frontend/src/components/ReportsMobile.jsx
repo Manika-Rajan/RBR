@@ -1175,34 +1175,36 @@ const triggerInstant = async (query) => {
       }
       await logResp.json();
 
-      const reportSlug = resolveSlug(trimmed);
-      if (!reportSlug) {
-        const { items, hint } = await fetchSuggestions(trimmed);
-
-        if (items && items.length > 0) {
-          const mapped = items.map((it) => ({
-            title: it.title || it.slug,
-            slug: it.slug,
-          }));
-          setSuggestItems(mapped.slice(0, 3));
-          setSuggestOpen(true);
-          return;
-        }
-
-        // ✅ if lambda returns hint for generic searches, show our bold-friendly message
-        if (hint) {
-          setModalTitle("Search too generic");
-          setModalMsgNode(renderGenericHint(trimmed));
-          setOpenModal(true);
-          return;
-        }
-
-        await requestNewReport(trimmed);
-        await triggerPrebook(trimmed);
+      const { items, hint } = await fetchSuggestions(trimmed);
+      
+      if (items && items.length > 0) {
+        const mapped = items.map((it) => ({
+          title: it.title || it.slug,
+          slug: it.slug,
+        }));
+        setSuggestItems(mapped.slice(0, 3));
+        setSuggestOpen(true);
         return;
       }
-
-      await goToReportBySlug(reportSlug);
+      
+      // ✅ if lambda returns hint for generic searches, show message
+      if (hint) {
+        setModalTitle("Search too generic");
+        setModalMsgNode(renderGenericHint(trimmed));
+        setOpenModal(true);
+        return;
+      }
+      
+      // fallback to hard router
+      const reportSlug = resolveSlug(trimmed);
+      if (reportSlug) {
+        await goToReportBySlug(reportSlug);
+        return;
+      }
+      
+      await requestNewReport(trimmed);
+      await triggerPrebook(trimmed);
+      return;
     } catch (e) {
       console.error("Error during search flow:", e);
       setModalTitle("Error");
