@@ -2169,6 +2169,7 @@ const ReportsMobile = () => {
                       transform: "scale(0.6)",
                       transformOrigin: "top center",
                       width: "100%",
+                      marginBottom: "-120px",
                     }}
                   >
                     {/* Slim loading bar */}
