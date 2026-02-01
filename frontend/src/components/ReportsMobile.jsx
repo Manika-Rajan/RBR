@@ -152,7 +152,6 @@ function fireGoogleAdsPrebookConversion({ paymentId, valueINR }) {
   }
 }
 
-
 // Fire Google Ads conversion safely (once per paymentId) — Instant ₹199
 function fireGoogleAdsInstantConversion({ paymentId, valueINR = 199 }) {
   try {
@@ -332,15 +331,19 @@ const ReportsMobile = () => {
   // ✅ Instant Report UI State (customer flow)
   // ======================
   const [instantQuestionsOpen, setInstantQuestionsOpen] = useState(false);
-const [showInstantPaymentSuccess, setShowInstantPaymentSuccess] = useState(false);
+  const [showInstantPaymentSuccess, setShowInstantPaymentSuccess] =
+    useState(false);
   const [instantTopic, setInstantTopic] = useState("");
-  const [instantQuestions, setInstantQuestions] = useState(INSTANT_DEFAULT_QUESTIONS);
+  const [instantQuestions, setInstantQuestions] = useState(
+    INSTANT_DEFAULT_QUESTIONS
+  );
   const [instantError, setInstantError] = useState("");
   const [instantPayCtx, setInstantPayCtx] = useState(null);
 
   // Loading modal (employee-portal style)
   const [instantModalOpen, setInstantModalOpen] = useState(false);
-  const [instantModalTitle, setInstantModalTitle] = useState("Generating report…");
+  const [instantModalTitle, setInstantModalTitle] =
+    useState("Generating report…");
   const [instantModalSub, setInstantModalSub] = useState("Initializing…");
   const [instantProgressPct, setInstantProgressPct] = useState(5);
   const [instantBusy, setInstantBusy] = useState(false);
@@ -516,7 +519,6 @@ const [showInstantPaymentSuccess, setShowInstantPaymentSuccess] = useState(false
           searchQuery: trimmed,
         },
 
-        
         handler: async (response) => {
           // Payment success → show a quick success popup (1s) so the conversion tag has time to fire,
           // then ask 5 questions for the Instant report.
@@ -721,8 +723,8 @@ const [showInstantPaymentSuccess, setShowInstantPaymentSuccess] = useState(false
     setPrebookPromptOpen(true);
   };
 
-// ✅ Instant report (₹199) — Payment first, then ask 5 questions, then generate with loading modal
-// ✅ FORCE name/phone confirmation for NEW users: if no saved phone -> fields are shown in the chooser modal.
+  // ✅ Instant report (₹199) — Payment first, then ask 5 questions, then generate with loading modal
+  // ✅ FORCE name/phone confirmation for NEW users: if no saved phone -> fields are shown in the chooser modal.
   const sendOtpForInstant = async (phone10) => {
     const digits = String(phone10 || "").replace(/\D/g, "").slice(-10);
     if (digits.length !== 10) {
@@ -805,7 +807,9 @@ const [showInstantPaymentSuccess, setShowInstantPaymentSuccess] = useState(false
       }
 
       if (!resp.ok) {
-        throw new Error(body?.message || parsed?.message || "Invalid OTP. Please try again.");
+        throw new Error(
+          body?.message || parsed?.message || "Invalid OTP. Please try again."
+        );
       }
 
       const token = body?.token || parsed?.token || "";
@@ -913,12 +917,14 @@ const [showInstantPaymentSuccess, setShowInstantPaymentSuccess] = useState(false
     const nm = (userName || "RBR User").trim() || "RBR User";
 
     // Ensure Instant endpoints exist
-    if (!INSTANT_CREATE_ORDER_URL || !INSTANT_CONFIRM_GENERATE_URL || !INSTANT_STATUS_URL) {
+    if (
+      !INSTANT_CREATE_ORDER_URL ||
+      !INSTANT_CONFIRM_GENERATE_URL ||
+      !INSTANT_STATUS_URL
+    ) {
       setModalTitle("Instant setup incomplete");
       setModalMsgNode(
-        <span>
-          ⚠️ Instant report setup is incomplete. Please try again later.
-        </span>
+        <span>⚠️ Instant report setup is incomplete. Please try again later.</span>
       );
       setOpenModal(true);
       return;
@@ -942,7 +948,9 @@ const [showInstantPaymentSuccess, setShowInstantPaymentSuccess] = useState(false
       });
 
       if (!res.ok || data?.ok === false) {
-        throw new Error(buildErrorMessage(res, data, "Could not start Instant payment"));
+        throw new Error(
+          buildErrorMessage(res, data, "Could not start Instant payment")
+        );
       }
 
       // Accept multiple response shapes
@@ -961,7 +969,9 @@ const [showInstantPaymentSuccess, setShowInstantPaymentSuccess] = useState(false
 
       if (!razorpayOrderId || !razorpayKeyId) {
         console.error("Instant create-order response:", data);
-        throw new Error("Instant payment could not be prepared. Missing Razorpay order/key.");
+        throw new Error(
+          "Instant payment could not be prepared. Missing Razorpay order/key."
+        );
       }
 
       await loadRazorpay();
@@ -1011,7 +1021,8 @@ const [showInstantPaymentSuccess, setShowInstantPaymentSuccess] = useState(false
             setModalTitle("Payment cancelled");
             setModalMsgNode(
               <span>
-                Your payment was cancelled. You can try again, or choose <strong>Pre-book</strong> instead.
+                Your payment was cancelled. You can try again, or choose{" "}
+                <strong>Pre-book</strong> instead.
               </span>
             );
             setOpenModal(true);
@@ -1036,76 +1047,76 @@ const [showInstantPaymentSuccess, setShowInstantPaymentSuccess] = useState(false
     }
   };
 
-const triggerInstant = async (query) => {
-  const trimmed = (query || "").trim();
+  const triggerInstant = async (query) => {
+    const trimmed = (query || "").trim();
 
-  // If popup isn't open yet (rare path) ensure it opens with query filled
-  if (!prebookPromptOpen) {
-    const savedPhone = state?.userInfo?.phone || state?.userInfo?.userId || "";
-    const savedName = state?.userInfo?.name || "";
-    setPrebookQuery(trimmed);
-    setPrebookName(savedName);
-    setPrebookPhone(savedPhone);
-    setPrebookHasKnownUser(!!savedPhone);
+    // If popup isn't open yet (rare path) ensure it opens with query filled
+    if (!prebookPromptOpen) {
+      const savedPhone = state?.userInfo?.phone || state?.userInfo?.userId || "";
+      const savedName = state?.userInfo?.name || "";
+      setPrebookQuery(trimmed);
+      setPrebookName(savedName);
+      setPrebookPhone(savedPhone);
+      setPrebookHasKnownUser(!!savedPhone);
+      setPrebookError("");
+      setInstantChooserError("");
+      setPrebookPromptOpen(true);
+      return;
+    }
+
+    // Validate name/phone for BOTH known + new (known users may still have bad saved phone)
+    let nm = (prebookName || "").trim();
+    const phoneDigits = (prebookPhone || "").replace(/\D/g, "");
+
+    if (!nm) nm = "RBR User";
+    if (phoneDigits.length < 10) {
+      setInstantChooserError(
+        prebookHasKnownUser
+          ? "Your saved phone number seems invalid. Please update your profile or contact us."
+          : "Please enter a valid phone number (at least 10 digits)."
+      );
+      setPrebookError("");
+      return;
+    }
+
+    if (!prebookHasKnownUser && !(prebookName || "").trim()) {
+      setInstantChooserError("Please enter your name to continue.");
+      setPrebookError("");
+      return;
+    }
+
     setPrebookError("");
     setInstantChooserError("");
-    setPrebookPromptOpen(true);
-    return;
-  }
 
-  // Validate name/phone for BOTH known + new (known users may still have bad saved phone)
-  let nm = (prebookName || "").trim();
-  const phoneDigits = (prebookPhone || "").replace(/\D/g, "");
+    // If already logged in, go straight to payment.
+    const alreadyLoggedIn = !!state?.userInfo?.isLogin;
+    if (alreadyLoggedIn) {
+      setPrebookPromptOpen(false);
+      await startInstantPayment({ query: trimmed, userName: nm, phoneDigits });
+      return;
+    }
 
-  if (!nm) nm = "RBR User";
-  if (phoneDigits.length < 10) {
-    setInstantChooserError(
-      prebookHasKnownUser
-        ? "Your saved phone number seems invalid. Please update your profile or contact us."
-        : "Please enter a valid phone number (at least 10 digits)."
-    );
-    setPrebookError("");
-    return;
-  }
+    // Otherwise: OTP before payment (Option A)
+    pendingInstantRef.current = { query: trimmed, userName: nm, phoneDigits };
+    pendingChooserSnapshotRef.current = {
+      prebookQuery: trimmed,
+      prebookName: nm,
+      prebookPhone: phoneDigits,
+      prebookHasKnownUser,
+    };
 
-  if (!prebookHasKnownUser && !(prebookName || "").trim()) {
-    setInstantChooserError("Please enter your name to continue.");
-    setPrebookError("");
-    return;
-  }
+    // ✅ NEW UX: keep the chooser modal open and show OTP inline (no second popup)
+    setOtpPhone(phoneDigits.slice(-10));
+    setOtpValue("");
+    setOtpError("");
+    setOtpSent(false);
+    setInstantOtpStep(true);
 
-  setPrebookError("");
-  setInstantChooserError("");
-
-  // If already logged in, go straight to payment.
-  const alreadyLoggedIn = !!state?.userInfo?.isLogin;
-  if (alreadyLoggedIn) {
-    setPrebookPromptOpen(false);
-    await startInstantPayment({ query: trimmed, userName: nm, phoneDigits });
-    return;
-  }
-
-  // Otherwise: OTP before payment (Option A)
-  pendingInstantRef.current = { query: trimmed, userName: nm, phoneDigits };
-  pendingChooserSnapshotRef.current = {
-    prebookQuery: trimmed,
-    prebookName: nm,
-    prebookPhone: phoneDigits,
-    prebookHasKnownUser,
+    // Auto-send OTP on step open
+    setTimeout(() => {
+      sendOtpForInstant(phoneDigits);
+    }, 0);
   };
-
-  // ✅ NEW UX: keep the chooser modal open and show OTP inline (no second popup)
-  setOtpPhone(phoneDigits.slice(-10));
-  setOtpValue("");
-  setOtpError("");
-  setOtpSent(false);
-  setInstantOtpStep(true);
-
-  // Auto-send OTP on step open
-  setTimeout(() => {
-    sendOtpForInstant(phoneDigits);
-  }, 0);
-};
 
   const cancelInstantOtp = () => {
     // Return to chooser inputs inside the same modal
@@ -1141,9 +1152,7 @@ const triggerInstant = async (query) => {
     } else {
       setModalTitle("Something went wrong");
       setModalMsgNode(
-        <span>
-          ⚠️ We couldn’t continue the Instant flow. Please try again.
-        </span>
+        <span>⚠️ We couldn’t continue the Instant flow. Please try again.</span>
       );
       setOpenModal(true);
     }
@@ -1270,7 +1279,7 @@ const triggerInstant = async (query) => {
       await logResp.json();
 
       const { items, hint } = await fetchSuggestions(trimmed);
-      
+
       if (items && items.length > 0) {
         const mapped = items.map((it) => ({
           title: it.title || it.slug,
@@ -1280,7 +1289,7 @@ const triggerInstant = async (query) => {
         setSuggestOpen(true);
         return;
       }
-      
+
       // ✅ if lambda returns hint for generic searches, show message
       if (hint) {
         setModalTitle("Search too generic");
@@ -1288,14 +1297,14 @@ const triggerInstant = async (query) => {
         setOpenModal(true);
         return;
       }
-      
+
       // fallback to hard router
       const reportSlug = resolveSlug(trimmed);
       if (reportSlug) {
         await goToReportBySlug(reportSlug);
         return;
       }
-      
+
       await requestNewReport(trimmed);
       await triggerPrebook(trimmed);
       return;
@@ -1378,7 +1387,14 @@ const triggerInstant = async (query) => {
         if (instantQuestionsOpen) setInstantQuestionsOpen(false);
       }
     };
-    if (openModal || suggestOpen || prebookPromptOpen || retryOpen || otpOpen || instantQuestionsOpen) {
+    if (
+      openModal ||
+      suggestOpen ||
+      prebookPromptOpen ||
+      retryOpen ||
+      otpOpen ||
+      instantQuestionsOpen
+    ) {
       document.addEventListener("keydown", onKey);
     }
     return () => document.removeEventListener("keydown", onKey);
@@ -1394,192 +1410,196 @@ const triggerInstant = async (query) => {
     setOtpSent(false);
   }, [prebookPromptOpen]);
 
+  async function pollInstantUntilDone({ userPhone, instantId }) {
+    const MAX_WAIT_MS = 120000; // 2 minutes
+    const POLL_EVERY_MS = 2500; // 2.5s
 
+    const startedAt = Date.now();
+    instantAbortRef.current.aborted = false;
 
-async function pollInstantUntilDone({ userPhone, instantId }) {
-  const MAX_WAIT_MS = 120000; // 2 minutes
-  const POLL_EVERY_MS = 2500; // 2.5s
-
-  const startedAt = Date.now();
-  instantAbortRef.current.aborted = false;
-
-  if (!instantMountedRef.current) return null;
-
-  setInstantModalOpen(true);
-  setInstantModalTitle("Generating report…");
-  setInstantModalSub("Queued. Starting worker…");
-  setInstantProgressPct(8);
-
-  // Smooth progress animation up to 92%
-  const timer = setInterval(() => {
-    if (!instantMountedRef.current) return;
-    setInstantProgressPct((p) => {
-      if (p >= 92) return p;
-      return Math.min(92, p + 1);
-    });
-  }, 900);
-
-  try {
-    while (Date.now() - startedAt < MAX_WAIT_MS) {
-      if (!instantMountedRef.current) throw new Error("Page closed");
-      if (instantAbortRef.current.aborted) throw new Error("Polling aborted");
-
-      const url = new URL(INSTANT_STATUS_URL);
-      url.searchParams.set("userPhone", userPhone);
-      url.searchParams.set("instantId", instantId);
-
-      const { res, data } = await fetchJson(url.toString(), {
-        method: "GET",
-        headers: { "Content-Type": "application/json" },
-      });
-
-      if (!res.ok || data?.ok === false) {
-        throw new Error(buildErrorMessage(res, data, "Status check failed"));
-      }
-
-      const status = String(data?.status || "").toLowerCase();
-
-      if (status === "done") {
-        setInstantModalSub("Finalizing…");
-        setInstantProgressPct(95);
-        return data;
-      }
-
-      if (status === "failed") {
-        throw new Error(data?.error || data?.details || "Report generation failed");
-      }
-
-      setInstantModalSub(
-        status === "running"
-          ? "Generating content and charts…"
-          : "Queued… waiting for worker"
-      );
-
-      await new Promise((r) => setTimeout(r, POLL_EVERY_MS));
-    }
-
-    throw new Error(
-      `Still running after ${Math.round(
-        MAX_WAIT_MS / 1000
-      )}s. Please wait and check in My Profile.`
-    );
-  } finally {
-    clearInterval(timer);
-  }
-}
-
-async function generateInstantNow() {
-  if (instantBusy) return;
-
-  const ctx = instantPayCtx;
-  const t = (instantTopic || "").trim();
-  const qs = (instantQuestions || []).map((x) => (x || "").trim());
-
-  if (!ctx || !ctx.userPhone || !ctx.razorpayOrderId) {
-    setInstantError("Missing payment context. Please try again.");
-    return;
-  }
-
-  if (!t) {
-    setInstantError("Topic missing. Please close and try again.");
-    return;
-  }
-
-  if (qs.length !== 5 || qs.some((x) => !x)) {
-    setInstantError("Please fill all 5 questions.");
-    return;
-  }
-
-  if (!INSTANT_CONFIRM_GENERATE_URL || !INSTANT_STATUS_URL) {
-    setInstantError("Instant APIs are not configured in production env vars.");
-    return;
-  }
-
-  setInstantError("");
-  setInstantBusy(true);
-
-  try {
-    // Close questions modal and begin loading modal
-    setInstantQuestionsOpen(false);
+    if (!instantMountedRef.current) return null;
 
     setInstantModalOpen(true);
     setInstantModalTitle("Generating report…");
-    setInstantModalSub("Submitting request…");
-    setInstantProgressPct(10);
+    setInstantModalSub("Queued. Starting worker…");
+    setInstantProgressPct(8);
 
-    const payload = {
-      userPhone: ctx.userPhone,
-      userName: ctx.userName || "RBR User",
-      query: ctx.query || t,
-      questions: qs,
-
-      razorpayOrderId: ctx.razorpayOrderId,
-      razorpayPaymentId: ctx.razorpayPaymentId,
-      razorpaySignature: ctx.razorpaySignature,
-
-      type: "instant",
-    };
-
-    const { res, data } = await fetchJson(INSTANT_CONFIRM_GENERATE_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-
-    if (!res.ok || data?.ok === false) {
-      throw new Error(buildErrorMessage(res, data, "Could not start generation"));
-    }
-
-    const userPhone = data?.userPhone || data?.user_phone || ctx.userPhone;
-    const instantId = data?.instantId || data?.instant_id || data?.instant_id || data?.id;
-
-    if (!userPhone || !instantId) {
-      console.error("Confirm response:", data);
-      throw new Error("Confirm API did not return userPhone + instantId");
-    }
-
-    const statusData = await pollInstantUntilDone({ userPhone, instantId });
-    if (!statusData || !instantMountedRef.current) return;
-
-    const finalKey =
-      statusData?.s3Key ||
-      statusData?.s3_key ||
-      statusData?.finalS3Key ||
-      statusData?.final_s3_key ||
-      "";
-
-    setInstantModalSub("Ready!");
-    setInstantProgressPct(100);
-
-    setTimeout(() => {
+    // Smooth progress animation up to 92%
+    const timer = setInterval(() => {
       if (!instantMountedRef.current) return;
+      setInstantProgressPct((p) => {
+        if (p >= 92) return p;
+        return Math.min(92, p + 1);
+      });
+    }, 900);
+
+    try {
+      while (Date.now() - startedAt < MAX_WAIT_MS) {
+        if (!instantMountedRef.current) throw new Error("Page closed");
+        if (instantAbortRef.current.aborted) throw new Error("Polling aborted");
+
+        const url = new URL(INSTANT_STATUS_URL);
+        url.searchParams.set("userPhone", userPhone);
+        url.searchParams.set("instantId", instantId);
+
+        const { res, data } = await fetchJson(url.toString(), {
+          method: "GET",
+          headers: { "Content-Type": "application/json" },
+        });
+
+        if (!res.ok || data?.ok === false) {
+          throw new Error(buildErrorMessage(res, data, "Status check failed"));
+        }
+
+        const status = String(data?.status || "").toLowerCase();
+
+        if (status === "done") {
+          setInstantModalSub("Finalizing…");
+          setInstantProgressPct(95);
+          return data;
+        }
+
+        if (status === "failed") {
+          throw new Error(
+            data?.error || data?.details || "Report generation failed"
+          );
+        }
+
+        setInstantModalSub(
+          status === "running"
+            ? "Generating content and charts…"
+            : "Queued… waiting for worker"
+        );
+
+        await new Promise((r) => setTimeout(r, POLL_EVERY_MS));
+      }
+
+      throw new Error(
+        `Still running after ${Math.round(
+          MAX_WAIT_MS / 1000
+        )}s. Please wait and check in My Profile.`
+      );
+    } finally {
+      clearInterval(timer);
+    }
+  }
+
+  async function generateInstantNow() {
+    if (instantBusy) return;
+
+    const ctx = instantPayCtx;
+    const t = (instantTopic || "").trim();
+    const qs = (instantQuestions || []).map((x) => (x || "").trim());
+
+    if (!ctx || !ctx.userPhone || !ctx.razorpayOrderId) {
+      setInstantError("Missing payment context. Please try again.");
+      return;
+    }
+
+    if (!t) {
+      setInstantError("Topic missing. Please close and try again.");
+      return;
+    }
+
+    if (qs.length !== 5 || qs.some((x) => !x)) {
+      setInstantError("Please fill all 5 questions.");
+      return;
+    }
+
+    if (!INSTANT_CONFIRM_GENERATE_URL || !INSTANT_STATUS_URL) {
+      setInstantError("Instant APIs are not configured in production env vars.");
+      return;
+    }
+
+    setInstantError("");
+    setInstantBusy(true);
+
+    try {
+      // Close questions modal and begin loading modal
+      setInstantQuestionsOpen(false);
+
+      setInstantModalOpen(true);
+      setInstantModalTitle("Generating report…");
+      setInstantModalSub("Submitting request…");
+      setInstantProgressPct(10);
+
+      const payload = {
+        userPhone: ctx.userPhone,
+        userName: ctx.userName || "RBR User",
+        query: ctx.query || t,
+        questions: qs,
+
+        razorpayOrderId: ctx.razorpayOrderId,
+        razorpayPaymentId: ctx.razorpayPaymentId,
+        razorpaySignature: ctx.razorpaySignature,
+
+        type: "instant",
+      };
+
+      const { res, data } = await fetchJson(INSTANT_CONFIRM_GENERATE_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok || data?.ok === false) {
+        throw new Error(buildErrorMessage(res, data, "Could not start generation"));
+      }
+
+      const userPhone = data?.userPhone || data?.user_phone || ctx.userPhone;
+      const instantId =
+        data?.instantId || data?.instant_id || data?.instant_id || data?.id;
+
+      if (!userPhone || !instantId) {
+        console.error("Confirm response:", data);
+        throw new Error("Confirm API did not return userPhone + instantId");
+      }
+
+      const statusData = await pollInstantUntilDone({ userPhone, instantId });
+      if (!statusData || !instantMountedRef.current) return;
+
+      const finalKey =
+        statusData?.s3Key ||
+        statusData?.s3_key ||
+        statusData?.finalS3Key ||
+        statusData?.final_s3_key ||
+        "";
+
+      setInstantModalSub("Ready!");
+      setInstantProgressPct(100);
+
+      setTimeout(() => {
+        if (!instantMountedRef.current) return;
+        setInstantModalOpen(false);
+
+        // Redirect to profile and highlight latest report (you said highlighting is already in place)
+        navigate("/profile", {
+          replace: true,
+          state: {
+            highlightType: "instant",
+            highlightFileKey: finalKey,
+            highlightQuery: t,
+            highlightInstantId: instantId,
+            highlightUserPhone: userPhone,
+          },
+        });
+      }, 600);
+    } catch (e) {
+      console.error("generateInstantNow error:", e);
       setInstantModalOpen(false);
 
-      // Redirect to profile and highlight latest report (you said highlighting is already in place)
-      navigate("/profile", {
-        replace: true,
-        state: {
-          highlightType: "instant",
-          highlightFileKey: finalKey,
-          highlightQuery: t,
-          highlightInstantId: instantId,
-          highlightUserPhone: userPhone,
-        },
-      });
-    }, 600);
-  } catch (e) {
-    console.error("generateInstantNow error:", e);
-    setInstantModalOpen(false);
-
-    setModalTitle("Instant report failed");
-    setModalMsgNode(
-      <span>⚠️ {e?.message || "Something went wrong while generating the report."}</span>
-    );
-    setOpenModal(true);
-  } finally {
-    setInstantBusy(false);
+      setModalTitle("Instant report failed");
+      setModalMsgNode(
+        <span>
+          ⚠️ {e?.message || "Something went wrong while generating the report."}
+        </span>
+      );
+      setOpenModal(true);
+    } finally {
+      setInstantBusy(false);
+    }
   }
-}
+
   const handlePrebookSubmit = async (e) => {
     e.preventDefault();
     setInstantChooserError("");
@@ -1595,11 +1615,7 @@ async function generateInstantNow() {
       setPrebookError("");
       setPrebookPromptOpen(false);
 
-      await startPrebookFlow(
-        prebookQuery,
-        prebookName || "RBR User",
-        phoneDigits
-      );
+      await startPrebookFlow(prebookQuery, prebookName || "RBR User", phoneDigits);
       return;
     }
 
@@ -1627,8 +1643,7 @@ async function generateInstantNow() {
         Get Instant Market &amp; Business Reports
       </h1>
       <p className="text-gray-600 text-center mb-6 text-sm sm:text-base px-2">
-        Search 1000+ industry reports. Accurate. Reliable. Ready for your
-        business.
+        Search 1000+ industry reports. Accurate. Reliable. Ready for your business.
       </p>
 
       {/* Search */}
@@ -1743,39 +1758,38 @@ async function generateInstantNow() {
         </div>
       )}
 
+      {/* ✅ Instant generation loading modal (employee-portal style) */}
+      {instantModalOpen ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
+          <div className="relative z-10 bg-white rounded-2xl p-6 shadow-xl w-[92%] max-w-sm">
+            <div className="text-base font-extrabold text-gray-900">
+              {instantModalTitle}
+            </div>
+            <div className="text-xs text-gray-600 mt-1">{instantModalSub}</div>
 
+            <div className="mt-4">
+              <div className="h-2 w-full bg-gray-200 rounded-full overflow-hidden">
+                <div
+                  className="h-2 bg-blue-600"
+                  style={{
+                    width: `${Math.max(0, Math.min(100, instantProgressPct))}%`,
+                  }}
+                />
+              </div>
+              <div className="text-right text-[11px] text-gray-600 mt-1">
+                {instantProgressPct}%
+              </div>
+            </div>
 
-{/* ✅ Instant generation loading modal (employee-portal style) */}
-{instantModalOpen ? (
-  <div className="fixed inset-0 z-50 flex items-center justify-center">
-    <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
-    <div className="relative z-10 bg-white rounded-2xl p-6 shadow-xl w-[92%] max-w-sm">
-      <div className="text-base font-extrabold text-gray-900">
-        {instantModalTitle}
-      </div>
-      <div className="text-xs text-gray-600 mt-1">{instantModalSub}</div>
-
-      <div className="mt-4">
-        <div className="h-2 w-full bg-gray-200 rounded-full overflow-hidden">
-          <div
-            className="h-2 bg-blue-600"
-            style={{
-              width: `${Math.max(0, Math.min(100, instantProgressPct))}%`,
-            }}
-          />
+            <div className="text-[11px] text-gray-500 mt-3">
+              This can take up to ~2 minutes because charts + PDF are generated
+              in the worker.
+            </div>
+          </div>
         </div>
-        <div className="text-right text-[11px] text-gray-600 mt-1">
-          {instantProgressPct}%
-        </div>
-      </div>
+      ) : null}
 
-      <div className="text-[11px] text-gray-500 mt-3">
-        This can take up to ~2 minutes because charts + PDF are generated
-        in the worker.
-      </div>
-    </div>
-  </div>
-) : null}
       {/* ✅ Retry payment modal (centered + different theme) */}
       {retryOpen && (
         <div
@@ -1877,9 +1891,6 @@ async function generateInstantNow() {
             </button>
           </div>
         </div>
-
-
-
       )}
 
       {/* ✅ OTP Modal (shown BEFORE Instant payment) */}
@@ -1905,7 +1916,8 @@ async function generateInstantNow() {
                     Enter OTP to continue
                   </h2>
                   <div className="mt-2 text-white/90 text-xs leading-snug">
-                    We’ll send an OTP to the number below. After verification, we’ll open the ₹199 payment gateway.
+                    We’ll send an OTP to the number below. After verification,
+                    we’ll open the ₹199 payment gateway.
                   </div>
                 </div>
 
@@ -1926,13 +1938,19 @@ async function generateInstantNow() {
                 </div>
               ) : null}
 
-              <label className="text-xs font-bold text-gray-800">Mobile number</label>
+              <label className="text-xs font-bold text-gray-800">
+                Mobile number
+              </label>
               <div className="mt-1 flex items-center gap-2">
-                <div className="shrink-0 px-3 py-2 rounded-xl bg-gray-100 text-gray-800 font-semibold">+91</div>
+                <div className="shrink-0 px-3 py-2 rounded-xl bg-gray-100 text-gray-800 font-semibold">
+                  +91
+                </div>
                 <input
                   value={otpPhone}
                   onChange={(e) => {
-                    const digits = e.target.value.replace(/\D/g, "").slice(0, 10);
+                    const digits = e.target.value
+                      .replace(/\D/g, "")
+                      .slice(0, 10);
                     setOtpPhone(digits);
                     setOtpSent(false);
                   }}
@@ -1957,7 +1975,9 @@ async function generateInstantNow() {
                 <label className="text-xs font-bold text-gray-800">OTP</label>
                 <input
                   value={otpValue}
-                  onChange={(e) => setOtpValue(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                  onChange={(e) =>
+                    setOtpValue(e.target.value.replace(/\D/g, "").slice(0, 6))
+                  }
                   inputMode="numeric"
                   placeholder="Enter 6-digit OTP"
                   className="mt-1 w-full border border-gray-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -1985,84 +2005,85 @@ async function generateInstantNow() {
         </div>
       )}
 
-{/* ✅ Instant Questions Modal (shown AFTER payment success) */}
-{instantQuestionsOpen && (
-  <div
-    role="dialog"
-    aria-modal="true"
-    className="fixed inset-0 z-50 flex items-center justify-center px-3 py-6"
-    onClick={() => setInstantQuestionsOpen(false)}
-  >
-    <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
-    <div
-      className="relative z-10 w-full sm:w-[580px] rounded-2xl shadow-2xl overflow-hidden max-h-[80vh] flex flex-col bg-white"
-      onClick={(e) => e.stopPropagation()}
-    >
-      <div className="bg-gradient-to-br from-blue-700 via-blue-600 to-sky-500 px-5 pt-5 pb-4">
-        <div className="flex items-start justify-between">
-          <div className="min-w-0">
-            <div className="text-white/90 text-xs font-semibold tracking-wide">
-              Instant Report — ₹199 Paid ✅
-            </div>
-            <h2 className="text-white text-lg font-extrabold leading-tight mt-1">
-              {instantTopic}
-            </h2>
-            <div className="mt-2 text-white/90 text-xs leading-snug">
-              Tell us the 5 things you want to know. We’ll generate your report accordingly.
-            </div>
-          </div>
-
-          <button
-            onClick={() => setInstantQuestionsOpen(false)}
-            className="shrink-0 h-9 w-9 rounded-full bg-white/20 hover:bg-white/30 text-white flex items-center justify-center"
-            aria-label="Close"
-          >
-            ✕
-          </button>
-        </div>
-      </div>
-
-      <div
-        className="px-4 pt-4 pb-4 overflow-y-auto"
-        style={{ WebkitOverflowScrolling: "touch" }}
-      >
-        {instantError ? (
-          <div className="mb-3 text-sm text-red-600 font-semibold">
-            {instantError}
-          </div>
-        ) : null}
-
-        {instantQuestions.map((qv, i) => (
-          <div key={i} className="mb-3">
-            <div className="text-xs font-bold text-gray-800 mb-1">
-              Question {i + 1}
-            </div>
-            <textarea
-              value={qv}
-              onChange={(e) => updateInstantQuestion(i, e.target.value)}
-              rows={2}
-              className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-        ))}
-
-        <button
-          type="button"
-          onClick={generateInstantNow}
-          disabled={instantBusy}
-          className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white font-extrabold py-3 rounded-xl active:scale-[0.98]"
+      {/* ✅ Instant Questions Modal (shown AFTER payment success) */}
+      {instantQuestionsOpen && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-50 flex items-center justify-center px-3 py-6"
+          onClick={() => setInstantQuestionsOpen(false)}
         >
-          {instantBusy ? "Generating…" : "Generate report"}
-        </button>
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
+          <div
+            className="relative z-10 w-full sm:w-[580px] rounded-2xl shadow-2xl overflow-hidden max-h-[80vh] flex flex-col bg-white"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="bg-gradient-to-br from-blue-700 via-blue-600 to-sky-500 px-5 pt-5 pb-4">
+              <div className="flex items-start justify-between">
+                <div className="min-w-0">
+                  <div className="text-white/90 text-xs font-semibold tracking-wide">
+                    Instant Report — ₹199 Paid ✅
+                  </div>
+                  <h2 className="text-white text-lg font-extrabold leading-tight mt-1">
+                    {instantTopic}
+                  </h2>
+                  <div className="mt-2 text-white/90 text-xs leading-snug">
+                    Tell us the 5 things you want to know. We’ll generate your
+                    report accordingly.
+                  </div>
+                </div>
 
-        <div className="text-[11px] text-gray-500 text-center mt-2">
-          After generation, the report will appear in <strong>My Profile</strong>.
+                <button
+                  onClick={() => setInstantQuestionsOpen(false)}
+                  className="shrink-0 h-9 w-9 rounded-full bg-white/20 hover:bg-white/30 text-white flex items-center justify-center"
+                  aria-label="Close"
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+
+            <div
+              className="px-4 pt-4 pb-4 overflow-y-auto"
+              style={{ WebkitOverflowScrolling: "touch" }}
+            >
+              {instantError ? (
+                <div className="mb-3 text-sm text-red-600 font-semibold">
+                  {instantError}
+                </div>
+              ) : null}
+
+              {instantQuestions.map((qv, i) => (
+                <div key={i} className="mb-3">
+                  <div className="text-xs font-bold text-gray-800 mb-1">
+                    Question {i + 1}
+                  </div>
+                  <textarea
+                    value={qv}
+                    onChange={(e) => updateInstantQuestion(i, e.target.value)}
+                    rows={2}
+                    className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              ))}
+
+              <button
+                type="button"
+                onClick={generateInstantNow}
+                disabled={instantBusy}
+                className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white font-extrabold py-3 rounded-xl active:scale-[0.98]"
+              >
+                {instantBusy ? "Generating…" : "Generate report"}
+              </button>
+
+              <div className="text-[11px] text-gray-500 text-center mt-2">
+                After generation, the report will appear in{" "}
+                <strong>My Profile</strong>.
+              </div>
+            </div>
+          </div>
         </div>
-      </div>
-    </div>
-  </div>
-)}
-
+      )}
 
       {/* ✅ Choose between Instant vs Pre-Book — improved scroll + “single glance” */}
       {prebookPromptOpen && (
@@ -2080,52 +2101,50 @@ async function generateInstantNow() {
           >
             {/* Header (fixed) */}
             {!instantOtpStep && (
-            <div className="bg-gradient-to-br from-blue-700 via-blue-600 to-sky-500 px-5 pt-5 pb-4">
-              <div className="flex items-start justify-between">
-                <div className="min-w-0">
-                  <div className="text-white/90 text-xs font-semibold tracking-wide">
+              <div className="bg-gradient-to-br from-blue-700 via-blue-600 to-sky-500 px-5 pt-5 pb-4">
+                <div className="flex items-start justify-between">
+                  <div className="min-w-0">
+                    <div className="text-white/90 text-xs font-semibold tracking-wide"></div>
+                    <h2 className="text-white text-lg font-extrabold leading-tight mt-1">
+                      Report not found for
+                      <span className="block truncate mt-0.5">
+                        “{prebookQuery}”
+                      </span>
+                    </h2>
+                    <div className="mt-2 text-white/90 text-xs leading-snug"></div>
                   </div>
-                  <h2 className="text-white text-lg font-extrabold leading-tight mt-1">
-                    Report not found for
-                    <span className="block truncate mt-0.5">
-                      “{prebookQuery}”
-                    </span>
-                  </h2>
-                  <div className="mt-2 text-white/90 text-xs leading-snug">
-                  </div>
+
+                  <button
+                    onClick={() => setPrebookPromptOpen(false)}
+                    className="shrink-0 h-9 w-9 rounded-full bg-white/20 hover:bg-white/30 text-white flex items-center justify-center"
+                    aria-label="Close"
+                  >
+                    ✕
+                  </button>
                 </div>
 
-                <button
-                  onClick={() => setPrebookPromptOpen(false)}
-                  className="shrink-0 h-9 w-9 rounded-full bg-white/20 hover:bg-white/30 text-white flex items-center justify-center"
-                  aria-label="Close"
-                >
-                  ✕
-                </button>
-              </div>
-
-              {/* Trust strip */}
-              <div className="mt-4 grid grid-cols-3 gap-2">
-                <div className="rounded-xl bg-white/15 px-2 py-2 text-center">
-                  <div className="text-white text-sm">🔒</div>
-                  <div className="text-white/90 text-[10px] font-semibold">
-                    Secure pay
+                {/* Trust strip */}
+                <div className="mt-4 grid grid-cols-3 gap-2">
+                  <div className="rounded-xl bg-white/15 px-2 py-2 text-center">
+                    <div className="text-white text-sm">🔒</div>
+                    <div className="text-white/90 text-[10px] font-semibold">
+                      Secure pay
+                    </div>
                   </div>
-                </div>
-                <div className="rounded-xl bg-white/15 px-2 py-2 text-center">
-                  <div className="text-white text-sm">📩</div>
-                  <div className="text-white/90 text-[10px] font-semibold">
-                    OTP login
+                  <div className="rounded-xl bg-white/15 px-2 py-2 text-center">
+                    <div className="text-white text-sm">📩</div>
+                    <div className="text-white/90 text-[10px] font-semibold">
+                      OTP login
+                    </div>
                   </div>
-                </div>
-                <div className="rounded-xl bg-white/15 px-2 py-2 text-center">
-                  <div className="text-white text-sm">👤</div>
-                  <div className="text-white/90 text-[10px] font-semibold">
-                    My Profile
+                  <div className="rounded-xl bg-white/15 px-2 py-2 text-center">
+                    <div className="text-white text-sm">👤</div>
+                    <div className="text-white/90 text-[10px] font-semibold">
+                      My Profile
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
             )}
 
             {/* Body (scrollable) */}
@@ -2134,213 +2153,155 @@ async function generateInstantNow() {
               style={{ WebkitOverflowScrolling: "touch" }}
             >
               {!instantOtpStep && (
-
-              <p className="text-gray-700 text-sm leading-snug mb-3">
-                But our database can generate a report for <strong>“{prebookQuery}”</strong>{" "} — please choose an option below.
-              </p>
+                <p className="text-gray-700 text-sm leading-snug mb-3">
+                  But our database can generate a report for{" "}
+                  <strong>“{prebookQuery}”</strong>{" "}
+                  — please choose an option below.
+                </p>
               )}
-
 
               {/* ✅ Step switch: chooser ↔ OTP (inline) */}
               {instantOtpStep ? (
                 <div className="px-1 pb-2 flex justify-center">
-                  <div style={{ transform: "scale(0.7)", transformOrigin: "top center", width: "100%" }}>
-                  {/* Slim loading bar */}
-                  <div className="text-center text-3xl sm:text-4xl font-light text-gray-600 mt-1">
-                    Loading Level
-                  </div>
-
+                  {/* ✅ UI-only sizing change: scale down OTP verification UI by 40% */}
                   <div
-                    className="mx-auto mt-4 mb-8"
                     style={{
-                      width: "min(520px, 92%)",
-                      background: "#ffffff",
-                      borderRadius: "999px",
-                      boxShadow: "0 10px 30px rgba(0,0,0,0.10)",
-                      padding: "12px 16px", // compact height
+                      transform: "scale(0.6)",
+                      transformOrigin: "top center",
+                      width: "100%",
                     }}
                   >
+                    {/* Slim loading bar */}
+                    <div className="text-center text-3xl sm:text-4xl font-light text-gray-600 mt-1">
+                      Loading Level
+                    </div>
+
                     <div
+                      className="mx-auto mt-4 mb-8"
                       style={{
-                        border: "2px solid #0b3bff",
+                        width: "min(520px, 92%)",
+                        background: "#ffffff",
                         borderRadius: "999px",
-                        padding: "4px",
+                        boxShadow: "0 10px 30px rgba(0,0,0,0.10)",
+                        padding: "12px 16px", // compact height
                       }}
                     >
                       <div
                         style={{
-                          height: "14px", // compact bar height
+                          border: "2px solid #0b3bff",
                           borderRadius: "999px",
-                          background: "#d5dcff",
-                          overflow: "hidden",
+                          padding: "4px",
                         }}
                       >
                         <div
                           style={{
-                            width: "55%",
-                            height: "100%",
-                            background: "#0b3bff",
+                            height: "14px", // compact bar height
+                            borderRadius: "999px",
+                            background: "#d5dcff",
+                            overflow: "hidden",
                           }}
-                        />
+                        >
+                          <div
+                            style={{
+                              width: "55%",
+                              height: "100%",
+                              background: "#0b3bff",
+                            }}
+                          />
+                        </div>
                       </div>
                     </div>
-                  </div>
 
-                  {/* Verification content */}
-                  <div className="text-center text-4xl sm:text-5xl font-light text-gray-700 mb-3">
-                    Verification Code
-                  </div>
-                  <div className="text-center text-lg sm:text-xl text-gray-700 mb-6">
-                    Please enter the verification code sent to your mobile
-                  </div>
-
-                  <div className="flex items-center justify-center gap-3 mb-7" onPaste={onOtpPaste}>
-                    {Array.from({ length: OTP_LEN }).map((_, i) => (
-                      <React.Fragment key={i}>
-                        <input
-                          ref={(el) => (otpBoxesRef.current[i] = el)}
-                          value={otpDigits[i] || ""}
-                          onChange={(e) => onOtpChange(i, e)}
-                          onKeyDown={(e) => onOtpKeyDown(i, e)}
-                          inputMode="numeric"
-                          maxLength={1}
-                          className={
-                            "w-12 h-12 sm:w-14 sm:h-14 text-2xl text-center border rounded-md focus:outline-none " +
-                            (i === Math.min(otpValue.replace(/\D/g, "").length, OTP_LEN - 1)
-                              ? "border-black"
-                              : "border-gray-300")
-                          }
-                          aria-label={`OTP digit ${i + 1}`}
-                        />
-                        {i < OTP_LEN - 1 && (
-                          <span className="text-gray-500 text-2xl" aria-hidden>
-                            ·
-                          </span>
-                        )}
-                      </React.Fragment>
-                    ))}
-                  </div>
-
-                  {otpError && (
-                    <div className="text-center text-sm text-red-600 -mt-3 mb-4">
-                      {otpError}
+                    {/* Verification content */}
+                    <div className="text-center text-4xl sm:text-5xl font-light text-gray-700 mb-3">
+                      Verification Code
                     </div>
-                  )}
+                    <div className="text-center text-lg sm:text-xl text-gray-700 mb-6">
+                      Please enter the verification code sent to your mobile
+                    </div>
 
-                  <div className="flex flex-col items-center gap-3">
-                    <button
-                      type="button"
-                      onClick={verifyOtpAndProceedInstant}
-                      disabled={otpVerifying}
-                      className="w-[220px] sm:w-[260px] bg-indigo-600 hover:bg-indigo-700 text-white text-xl sm:text-2xl font-medium py-3 rounded-md shadow"
+                    <div
+                      className="flex items-center justify-center gap-3 mb-7"
+                      onPaste={onOtpPaste}
                     >
-                      {otpVerifying ? "VERIFYING…" : "VERIFY"}
-                    </button>
-                  </div>
+                      {Array.from({ length: OTP_LEN }).map((_, i) => (
+                        <React.Fragment key={i}>
+                          <input
+                            ref={(el) => (otpBoxesRef.current[i] = el)}
+                            value={otpDigits[i] || ""}
+                            onChange={(e) => onOtpChange(i, e)}
+                            onKeyDown={(e) => onOtpKeyDown(i, e)}
+                            inputMode="numeric"
+                            maxLength={1}
+                            className={
+                              "w-12 h-12 sm:w-14 sm:h-14 text-2xl text-center border rounded-md focus:outline-none " +
+                              (i ===
+                              Math.min(
+                                otpValue.replace(/\D/g, "").length,
+                                OTP_LEN - 1
+                              )
+                                ? "border-black"
+                                : "border-gray-300")
+                            }
+                            aria-label={`OTP digit ${i + 1}`}
+                          />
+                          {i < OTP_LEN - 1 && (
+                            <span
+                              className="text-gray-500 text-2xl"
+                              aria-hidden
+                            >
+                              ·
+                            </span>
+                          )}
+                        </React.Fragment>
+                      ))}
+                    </div>
+
+                    {otpError && (
+                      <div className="text-center text-sm text-red-600 -mt-3 mb-4">
+                        {otpError}
+                      </div>
+                    )}
+
+                    <div className="flex flex-col items-center gap-3">
+                      <button
+                        type="button"
+                        onClick={verifyOtpAndProceedInstant}
+                        disabled={otpVerifying}
+                        className="w-[220px] sm:w-[260px] bg-indigo-600 hover:bg-indigo-700 text-white text-xl sm:text-2xl font-medium py-3 rounded-md shadow"
+                      >
+                        {otpVerifying ? "VERIFYING…" : "VERIFY"}
+                      </button>
+                    </div>
                   </div>
                 </div>
               ) : (
                 <div className="grid grid-cols-2 gap-3">
-                {/* INSTANT */}
-                <div className="relative rounded-2xl border border-blue-200 bg-gradient-to-b from-blue-50 to-white p-3 flex flex-col">
-                  <div className="absolute -top-2 right-2">
-                    <span className="inline-flex items-center gap-1 rounded-full bg-blue-600 text-white text-[10px] font-extrabold px-2 py-1 shadow">
-                      ⭐ Recommended
-                    </span>
-                  </div>
-
-                  <div className="text-[11px] font-semibold text-blue-700">
-                    FASTEST
-                  </div>
-                  <div className="text-sm font-extrabold text-gray-900 leading-tight mt-1">
-                    Instant 10-Page
-                  </div>
-                  <div className="text-xl font-extrabold text-blue-700 mt-1">
-                    ₹199
-                  </div>
-
-                  <div className="text-[11px] text-gray-700 mt-2 leading-snug">
-                    Quick evaluation: overview, trends, key players.
-                  </div>
-
-                  {/* FORCE confirmation for NEW users: show name/phone fields here too */}
-                  {!prebookHasKnownUser && (
-                    <div className="mt-2 space-y-2">
-                      <input
-                        type="text"
-                        value={prebookName}
-                        onChange={(e) => setPrebookName(e.target.value)}
-                        placeholder="Your name"
-                        className="w-full border border-gray-300 rounded-lg px-2.5 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      />
-                      <input
-                        type="tel"
-                        value={prebookPhone}
-                        onChange={(e) => setPrebookPhone(e.target.value)}
-                        placeholder="WhatsApp number"
-                        className="w-full border border-gray-300 rounded-lg px-2.5 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      />
+                  {/* INSTANT */}
+                  <div className="relative rounded-2xl border border-blue-200 bg-gradient-to-b from-blue-50 to-white p-3 flex flex-col">
+                    <div className="absolute -top-2 right-2">
+                      <span className="inline-flex items-center gap-1 rounded-full bg-blue-600 text-white text-[10px] font-extrabold px-2 py-1 shadow">
+                        ⭐ Recommended
+                      </span>
                     </div>
-                  )}
 
-                  {instantChooserError && (
-                    <p className="text-xs text-red-600 mt-2">{instantChooserError}</p>
-                  )}
-
-                  <button
-                    type="button"
-                    onClick={() => triggerInstant(prebookQuery)}
-                    className="mt-3 w-full bg-blue-600 hover:bg-blue-700 text-white font-extrabold py-2.5 rounded-xl active:scale-[0.98] shadow"
-                  >
-                    Generate
-                  </button>
-
-                  <div className="text-[10px] text-gray-500 text-center mt-1">
-                    Secure checkout • View in <strong>My Profile</strong>
-                  </div>
-
-                  <div className="mt-2 text-[10px] text-gray-500 text-center">
-                    Auto-generated (not a custom deep-dive)
-                  </div>
-                </div>
-
-                {/* PREBOOK */}
-                <div className="rounded-2xl border border-gray-200 bg-white p-3 flex flex-col">
-                  <div className="text-[11px] font-semibold text-gray-700">
-                    DETAILED
-                  </div>
-                  <div className="text-sm font-extrabold text-gray-900 leading-tight mt-1">
-                    Full Report
-                  </div>
-                  <div className="text-xl font-extrabold text-gray-900 mt-1">
-                    ₹499
-                  </div>
-
-                  <div className="text-[11px] text-gray-700 mt-2 leading-snug">
-                    Delivered within 72 hours. ₹499 adjusted in final price.
-                  </div>
-
-                  <details className="mt-2 rounded-xl border border-gray-200 bg-gray-50/60 px-3 py-2">
-                    <summary className="cursor-pointer select-none text-xs font-semibold text-gray-800">
-                      What happens after
-                    </summary>
-                    <div className="mt-2 text-[11px] text-gray-700 leading-relaxed">
-                      <ul className="ml-4 list-disc space-y-1">
-                        <li>OTP login to your account.</li>
-                        <li>
-                          Report unlocks in <strong>My Profile</strong>.
-                        </li>
-                        <li>
-                          Delivery: <strong>within 72 hours</strong>.
-                        </li>
-                      </ul>
+                    <div className="text-[11px] font-semibold text-blue-700">
+                      FASTEST
                     </div>
-                  </details>
+                    <div className="text-sm font-extrabold text-gray-900 leading-tight mt-1">
+                      Instant 10-Page
+                    </div>
+                    <div className="text-xl font-extrabold text-blue-700 mt-1">
+                      ₹199
+                    </div>
 
-                  {/* Form is ONLY required for new users; kept as-is for pre-book */}
-                  <form onSubmit={handlePrebookSubmit} className="space-y-2 mt-2">
+                    <div className="text-[11px] text-gray-700 mt-2 leading-snug">
+                      Quick evaluation: overview, trends, key players.
+                    </div>
+
+                    {/* FORCE confirmation for NEW users: show name/phone fields here too */}
                     {!prebookHasKnownUser && (
-                      <>
+                      <div className="mt-2 space-y-2">
                         <input
                           type="text"
                           value={prebookName}
@@ -2355,32 +2316,113 @@ async function generateInstantNow() {
                           placeholder="WhatsApp number"
                           className="w-full border border-gray-300 rounded-lg px-2.5 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
                         />
-                      </>
+                      </div>
                     )}
 
-                    {prebookError && (
-                      <p className="text-xs text-red-600">{prebookError}</p>
+                    {instantChooserError && (
+                      <p className="text-xs text-red-600 mt-2">
+                        {instantChooserError}
+                      </p>
                     )}
 
                     <button
-                      type="submit"
-                      className="mt-1 w-full bg-gray-900 hover:bg-black text-white font-extrabold py-2.5 rounded-xl active:scale-[0.98]"
+                      type="button"
+                      onClick={() => triggerInstant(prebookQuery)}
+                      className="mt-3 w-full bg-blue-600 hover:bg-blue-700 text-white font-extrabold py-2.5 rounded-xl active:scale-[0.98] shadow"
                     >
-                      Pre-book
+                      Generate
                     </button>
 
-                    <div className="text-[10px] text-gray-500 text-center -mt-1">
-                      Razorpay • OTP login • Access in <strong>My Profile</strong>
+                    <div className="text-[10px] text-gray-500 text-center mt-1">
+                      Secure checkout • View in <strong>My Profile</strong>
                     </div>
-                  </form>
+
+                    <div className="mt-2 text-[10px] text-gray-500 text-center">
+                      Auto-generated (not a custom deep-dive)
+                    </div>
+                  </div>
+
+                  {/* PREBOOK */}
+                  <div className="rounded-2xl border border-gray-200 bg-white p-3 flex flex-col">
+                    <div className="text-[11px] font-semibold text-gray-700">
+                      DETAILED
+                    </div>
+                    <div className="text-sm font-extrabold text-gray-900 leading-tight mt-1">
+                      Full Report
+                    </div>
+                    <div className="text-xl font-extrabold text-gray-900 mt-1">
+                      ₹499
+                    </div>
+
+                    <div className="text-[11px] text-gray-700 mt-2 leading-snug">
+                      Delivered within 72 hours. ₹499 adjusted in final price.
+                    </div>
+
+                    <details className="mt-2 rounded-xl border border-gray-200 bg-gray-50/60 px-3 py-2">
+                      <summary className="cursor-pointer select-none text-xs font-semibold text-gray-800">
+                        What happens after
+                      </summary>
+                      <div className="mt-2 text-[11px] text-gray-700 leading-relaxed">
+                        <ul className="ml-4 list-disc space-y-1">
+                          <li>OTP login to your account.</li>
+                          <li>
+                            Report unlocks in <strong>My Profile</strong>.
+                          </li>
+                          <li>
+                            Delivery: <strong>within 72 hours</strong>.
+                          </li>
+                        </ul>
+                      </div>
+                    </details>
+
+                    {/* Form is ONLY required for new users; kept as-is for pre-book */}
+                    <form
+                      onSubmit={handlePrebookSubmit}
+                      className="space-y-2 mt-2"
+                    >
+                      {!prebookHasKnownUser && (
+                        <>
+                          <input
+                            type="text"
+                            value={prebookName}
+                            onChange={(e) => setPrebookName(e.target.value)}
+                            placeholder="Your name"
+                            className="w-full border border-gray-300 rounded-lg px-2.5 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          />
+                          <input
+                            type="tel"
+                            value={prebookPhone}
+                            onChange={(e) => setPrebookPhone(e.target.value)}
+                            placeholder="WhatsApp number"
+                            className="w-full border border-gray-300 rounded-lg px-2.5 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          />
+                        </>
+                      )}
+
+                      {prebookError && (
+                        <p className="text-xs text-red-600">{prebookError}</p>
+                      )}
+
+                      <button
+                        type="submit"
+                        className="mt-1 w-full bg-gray-900 hover:bg-black text-white font-extrabold py-2.5 rounded-xl active:scale-[0.98]"
+                      >
+                        Pre-book
+                      </button>
+
+                      <div className="text-[10px] text-gray-500 text-center -mt-1">
+                        Razorpay • OTP login • Access in{" "}
+                        <strong>My Profile</strong>
+                      </div>
+                    </form>
+                  </div>
                 </div>
-              </div>
               )}
 
               {/* Footer reassurance */}
               <div className="mt-4 text-[11px] text-gray-500 text-center px-2">
-                By continuing, you agree to receive updates on WhatsApp / SMS
-                for your report status.
+                By continuing, you agree to receive updates on WhatsApp / SMS for
+                your report status.
               </div>
             </div>
           </div>
