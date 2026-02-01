@@ -2196,20 +2196,31 @@ const ReportsMobile = () => {
                       >
                         <div
                           style={{
-                            height: "14px", // compact bar height
+                            height: "14px",
                             borderRadius: "999px",
                             background: "#d5dcff",
                             overflow: "hidden",
+                            position: "relative",
                           }}
                         >
-                          <div
-                            style={{
-                              width: "55%",
-                              height: "100%",
-                              background: "#0b3bff",
-                            }}
-                          />
+                          <div className="rbr-otp-loadingbar" />
                         </div>
+                        
+                        <style>{`
+                          @keyframes rbrIndeterminate {
+                            0%   { transform: translateX(-60%); }
+                            100% { transform: translateX(260%); }
+                          }
+                          .rbr-otp-loadingbar{
+                            position:absolute;
+                            top:0; left:0;
+                            height:100%;
+                            width:35%;
+                            background:#0b3bff;
+                            border-radius:999px;
+                            animation:rbrIndeterminate 1.15s ease-in-out infinite;
+                          }
+                        `}</style>
                       </div>
                     </div>
 
