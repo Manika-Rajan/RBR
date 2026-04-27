@@ -838,6 +838,7 @@ const ProfilePage = () => {
                 <Worker workerUrl="https://unpkg.com/pdfjs-dist@3.4.120/build/pdf.worker.min.js">
                   <Viewer
                     fileUrl={selectedUrl}
+                    defaultScale={SpecialZoomLevel.PageWidth}
                     renderTextLayer={false}
                     renderAnnotationLayer={false}
                     onDocumentLoadFailed={(e) =>
