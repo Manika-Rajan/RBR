@@ -315,12 +315,6 @@
   background-color: #2563eb;
 }
 
-.full-page-modal .modal-dialog {
-  max-width: 96vw !important;
-  width: 96vw !important;
-  margin: 2vh auto !important;
-}
-
 .rbr-viewer-content {
   height: 96vh;
   border-radius: 14px;
@@ -415,12 +409,6 @@
     padding: 4px 8px;
     font-size: 14px;
   }
-  .full-page-modal .modal-dialog {
-    max-width: 100vw !important;
-    width: 100vw !important;
-    height: 100vh !important;
-    margin: 0 !important;
-  }
   
   .rbr-viewer-content {
     height: 100vh;
@@ -429,5 +417,66 @@
   
   .rbr-viewer-body {
     height: calc(100vh - 56px);
+  }
+}
+
+/* PDF viewer modal only */
+.rbr-pdf-modal.modal-dialog {
+  max-width: 96vw !important;
+  width: 96vw !important;
+  height: 96vh !important;
+  margin: 2vh auto !important;
+}
+
+.rbr-pdf-modal .modal-content,
+.rbr-viewer-content {
+  height: 96vh !important;
+  max-height: 96vh !important;
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.rbr-viewer-body {
+  height: calc(96vh - 56px) !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  background: #f5f6f8;
+}
+
+.rbr-viewer-scroll {
+  height: 100% !important;
+  width: 100% !important;
+  overflow: auto !important;
+}
+
+/* Keep report title beside icon */
+.rbr-report-cell {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  gap: 10px !important;
+}
+
+.rbr-report-thumb {
+  flex: 0 0 28px;
+}
+
+@media (max-width: 768px) {
+  .rbr-pdf-modal.modal-dialog {
+    max-width: 100vw !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    margin: 0 !important;
+  }
+
+  .rbr-pdf-modal .modal-content,
+  .rbr-viewer-content {
+    height: 100vh !important;
+    max-height: 100vh !important;
+    border-radius: 0;
+  }
+
+  .rbr-viewer-body {
+    height: calc(100vh - 56px) !important;
   }
 }
