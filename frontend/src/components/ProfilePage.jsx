@@ -557,40 +557,7 @@ const ProfilePage = () => {
   return (
     <div className="profile-page">
       {/* ---- modal sizing helpers (scoped to this page) ---- */}
-      <style>{`
-        .rbr-viewer-content { height: 92vh; }
-        .rbr-viewer-body { height: calc(92vh - 56px); padding: 0; overflow: hidden; }
-        .rbr-viewer-scroll { height: 100%; width: 100%; overflow: auto; }
-        .rbr-report-cell {
-          display: flex;
-          align-items: center;
-          gap: 10px;
-        }
-        .rbr-report-thumb {
-          width: 28px;
-          height: 28px;
-          border-radius: 6px;
-          background: #f3f6ff;
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 16px;
-        }
-        .rbr-recent-list {
-          list-style: none;
-          padding-left: 0;
-          margin: 0;
-        }
-        .rbr-recent-item-button {
-          background: none;
-          border: none;
-          padding: 0;
-          color: #0d6efd;
-          text-decoration: underline;
-          cursor: pointer;
-          font-size: 0.95rem;
-        }
-      `}</style>
+      
 
       <div className="profile-container">
         <div className="profile-card">
@@ -823,7 +790,6 @@ const ProfilePage = () => {
           isOpen={!!selectedUrl}
           toggle={() => setSelectedUrl(null)}
           className="full-page-modal"
-          size="xl"
           contentClassName="rbr-viewer-content"
         >
           <ModalHeader toggle={() => setSelectedUrl(null)}>
