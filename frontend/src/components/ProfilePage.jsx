@@ -789,7 +789,8 @@ const ProfilePage = () => {
         <Modal
           isOpen={!!selectedUrl}
           toggle={() => setSelectedUrl(null)}
-          className="full-page-modal"
+          className="rbr-pdf-modal"
+          size="xl"
           contentClassName="rbr-viewer-content"
         >
           <ModalHeader toggle={() => setSelectedUrl(null)}>
@@ -828,7 +829,7 @@ const ProfilePage = () => {
         <Modal
           isOpen={showEditModal}
           toggle={() => setShowEditModal(false)}
-          className="full-page-modal"
+          className="profile-modal"
         >
           <ModalHeader toggle={() => setShowEditModal(false)}>
             Edit Profile
