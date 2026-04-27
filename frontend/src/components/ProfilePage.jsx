@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { Modal, ModalBody, ModalHeader } from 'reactstrap';
 
 // Use the same PDF viewer stack you already use in ReportsDisplay
-import { Worker, Viewer } from '@react-pdf-viewer/core';
+import { Worker, Viewer, SpecialZoomLevel } from '@react-pdf-viewer/core';
 import '@react-pdf-viewer/core/lib/styles/index.css';
 
 const DEFAULT_PROFILE_ICON = '/default-avatar.png';
