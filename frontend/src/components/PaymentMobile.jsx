@@ -619,7 +619,7 @@ const PaymentMobile = () => {
         </div>
         <div className="payments-mobile-row payments-mobile-row--amount">
           <span className="payments-mobile-label">Amount</span>
-          <span className="payments-mobile-amount">₹{amount || 0}</span>
+          <span className="payments-mobile-amount">{REGION.currencySymbol}{amount || 0}</span>
         </div>
       </div>
 
