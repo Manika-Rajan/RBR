@@ -3,7 +3,7 @@
 const REGION_CONFIGS = {
   IN: {
     region: "IN",
-    currencySymbol: "₹",
+    currencySymbol: formatPrice(FINAL),
     currencyCode: "INR",
 
     instantPrice: 199,
@@ -15,7 +15,7 @@ const REGION_CONFIGS = {
 
   US: {
     region: "US",
-    currencySymbol: "$",
+    currencySymbol: formatPrice(FINAL),
     currencyCode: "USD",
 
     instantPrice: 9,
@@ -27,7 +27,7 @@ const REGION_CONFIGS = {
 
   UK: {
     region: "UK",
-    currencySymbol: "£",
+    currencySymbol: formatPrice(FINAL),
     currencyCode: "GBP",
 
     instantPrice: 7,
@@ -57,6 +57,11 @@ export function getRegionConfig() {
 
   // India default
   return REGION_CONFIGS.IN;
+}
+
+export function formatPrice(value) {
+  const cfg = getRegionConfig();
+  return `${cfg.currencySymbol}${value}`;
 }
 
 export default REGION_CONFIGS;
