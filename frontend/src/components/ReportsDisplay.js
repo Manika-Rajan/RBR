@@ -9,13 +9,16 @@ import "@react-pdf-viewer/default-layout/lib/styles/index.css";
 import Login from "./Login";
 import { useStore } from "../Store";
 import { Modal, ModalBody } from "reactstrap";
+import { getRegionConfig } from "../config/regionConfig";
 
 const PRESIGN_URL =
   "https://vtwyu7hv50.execute-api.ap-south-1.amazonaws.com/default/RBR_report_pre-signed_URL";
 
-const MRP = 2999;
-const PROMO_PCT = 25;
-const FINAL = Math.round(MRP * (1 - PROMO_PCT / 100));
+const REGION = getRegionConfig();
+
+const MRP = REGION.instantMrp;
+const PROMO_PCT = REGION.promoPct;
+const FINAL = REGION.instantPrice;
 const UNLOCKED_MAX_PAGE = 3; // page index 0-3 = first 4 pages free
 
 const ReportsDisplay = () => {
