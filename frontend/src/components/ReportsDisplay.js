@@ -16,9 +16,9 @@ const PRESIGN_URL =
 
 const REGION = getRegionConfig();
 
-const MRP = REGION.instantMrp;
+const MRP = REGION.finalReportMrp;
 const PROMO_PCT = REGION.promoPct;
-const FINAL = REGION.instantPrice;
+const FINAL = REGION.finalReportPrice;
 const UNLOCKED_MAX_PAGE = 3; // page index 0-3 = first 4 pages free
 
 const ReportsDisplay = () => {
