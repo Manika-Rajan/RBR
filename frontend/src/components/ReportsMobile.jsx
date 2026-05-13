@@ -16,6 +16,9 @@ import { useNavigate } from "react-router-dom";
 import { Store } from "../Store";
 import { Worker, Viewer } from "@react-pdf-viewer/core";
 import "@react-pdf-viewer/core/lib/styles/index.css";
+import { getRegionConfig } from "../config/regionConfig";
+
+const REGION = getRegionConfig();
 
 const POPULAR_REPORTS = [
   "Restaurant Business in India",
@@ -121,16 +124,16 @@ const INSTANT_DEFAULT_QUESTIONS = [
   "What is the 3–5 year outlook with opportunities and recommendations?",
 ];
 
-// ✅ Google Ads conversion for PREBOOK (₹499) — hardcoded
+// ✅ Google Ads conversion for PREBOOK
 const PREBOOK_CONV_SEND_TO = "AW-824378442/X8klCKyRw9EbEMqIjIkD";
-// ✅ Google Ads conversion for INSTANT (₹199)
+// ✅ Google Ads conversion for INSTANT
 const INSTANT_CONV_SEND_TO = "AW-824378442/6TR6CLvQ1-kbEMqIjIkD";
 
 // ✅ Search input max length
 const MAX_QUERY_CHARS = 50;
 
 // Fire Google Ads conversion safely (once per paymentId)
-function fireGoogleAdsPrebookConversion({ paymentId, valueINR }) {
+function fireGoogleAdsPrebookConversion({ paymentId, value }) {
   try {
     if (!paymentId) return;
 
@@ -143,12 +146,12 @@ function fireGoogleAdsPrebookConversion({ paymentId, valueINR }) {
     if (typeof window !== "undefined" && typeof window.gtag === "function") {
       window.gtag("event", "conversion", {
         send_to: PREBOOK_CONV_SEND_TO,
-        value: Number(valueINR) || 499.0,
-        currency: "INR",
+        value: Number(value) || REGION.prebookPrice,
+        currency: REGION.currencyCode,
         transaction_id: paymentId, // use Razorpay payment_id as transaction id
       });
       sessionStorage.setItem(guardKey, "1");
-      console.log("[Ads] Prebook conversion fired:", { paymentId, valueINR });
+      console.log("[Ads] Prebook conversion fired:", { paymentId, value });
     } else {
       console.warn("[Ads] gtag not available; skip prebook conversion fire.");
     }
@@ -157,15 +160,15 @@ function fireGoogleAdsPrebookConversion({ paymentId, valueINR }) {
   }
 }
 
-// Fire Google Ads conversion safely (once per paymentId) — Instant ₹199
-function fireGoogleAdsInstantConversion({ paymentId, valueINR = 199 }) {
+// Fire Google Ads conversion safely (once per paymentId) — Instant
+function fireGoogleAdsInstantConversion({ paymentId, value = REGION.instantPrice }) {
   try {
     // ✅ Prevent firing the same conversion multiple times per payment
     const key = `rbr_ads_conv_instant_${paymentId || "na"}`;
     if (paymentId && sessionStorage.getItem(key) === "1") return;
 
     const sendTo = "AW-824378442/6TR6CLvQ1-kbEMqIjIkD";
-    const conversionValue = Number(valueINR) || 199;
+    const conversionValue = Number(value) || REGION.instantPrice;
 
     const attemptFire = () => {
       if (typeof window.gtag !== "function") return false;
@@ -173,7 +176,7 @@ function fireGoogleAdsInstantConversion({ paymentId, valueINR = 199 }) {
       window.gtag("event", "conversion", {
         send_to: sendTo,
         value: conversionValue,
-        currency: "INR",
+        currency: REGION.currencyCode,
         transaction_id: paymentId || undefined,
       });
 
@@ -523,7 +526,7 @@ const ReportsMobile = () => {
         amount,
         currency,
         name: "Rajan Business Reports",
-        description: `Pre-book ₹499 (Adjusted): ${trimmed} | Access in My Profile`,
+        description: `Pre-book ${REGION.currencySymbol}${REGION.prebookPrice} (Adjusted): ${trimmed} | Access in My Profile`,
         order_id: razorpayOrderId,
         prefill: { name: userName || "RBR User", contact: userPhone },
         notes: {
@@ -531,6 +534,8 @@ const ReportsMobile = () => {
           prebookId,
           reportTitle: trimmed,
           searchQuery: trimmed,
+          region: REGION.region,
+          currency: REGION.currencyCode,
         },
 
         handler: async (response) => {
@@ -544,7 +549,7 @@ const ReportsMobile = () => {
           // ✅ Google Ads conversion: Instant purchase
           fireGoogleAdsInstantConversion({
             paymentId: payId,
-            valueINR: 199,
+            value: REGION.instantPrice,
           });
 
           // After 1s, proceed to the questions modal
@@ -650,6 +655,9 @@ const ReportsMobile = () => {
           reportTitle: trimmed,
           searchQuery: trimmed,
           notes: "",
+          amount: REGION.prebookPrice,
+          currency: REGION.currencyCode,
+          region: REGION.region,
         }),
       });
 
@@ -737,7 +745,7 @@ const ReportsMobile = () => {
     setPrebookPromptOpen(true);
   };
 
-  // ✅ Instant report (₹199) — Payment first, then ask 5 questions, then generate with loading modal
+  // ✅ Instant report — Payment first, then ask 5 questions, then generate with loading modal
   // ✅ FORCE name/phone confirmation for NEW users: if no saved phone -> fields are shown in the chooser modal.
   const sendOtpForInstant = async (phone10) => {
     const digits = String(phone10 || "").replace(/\D/g, "").slice(-10);
@@ -955,8 +963,9 @@ const ReportsMobile = () => {
           userPhone: phoneDigits,
           userName: nm,
           query: trimmed,
-          amount: 199,
-          currency: "INR",
+          amount: REGION.instantPrice,
+          currency: REGION.currencyCode,
+          region: REGION.region,
           type: "instant",
         }),
       });
@@ -978,8 +987,8 @@ const ReportsMobile = () => {
         data?.razorpay_key_id ||
         data?.keyId ||
         data?.key_id;
-      const amount = data?.amount || 19900; // paise usually
-      const currency = data?.currency || "INR";
+      const amount = data?.amount || Math.round(Number(REGION.instantPrice) * 100); // paise/cents/pence usually
+      const currency = data?.currency || REGION.currencyCode;
 
       if (!razorpayOrderId || !razorpayKeyId) {
         console.error("Instant create-order response:", data);
@@ -996,7 +1005,7 @@ const ReportsMobile = () => {
         amount,
         currency,
         name: "Rajan Business Reports",
-        description: `Instant ₹199: ${trimmed}`,
+        description: `Instant ${REGION.currencySymbol}${REGION.instantPrice}: ${trimmed}`,
         order_id: razorpayOrderId,
         prefill: { name: nm, contact: phoneDigits },
         notes: {
@@ -1004,6 +1013,8 @@ const ReportsMobile = () => {
           reportTitle: trimmed,
           searchQuery: trimmed,
           userPhone: phoneDigits,
+          region: REGION.region,
+          currency: REGION.currencyCode,
         },
         handler: async (response) => {
           // Payment success → now ask 5 questions
@@ -1013,7 +1024,7 @@ const ReportsMobile = () => {
           // ✅ Google Ads conversion: Instant purchase
           fireGoogleAdsInstantConversion({
             paymentId: payId,
-            valueINR: 199,
+            value: REGION.instantPrice,
           });
 
           setInstantError("");
@@ -1977,7 +1988,7 @@ const runSampleSearch = (query) => {
                 <li>
                   Delivery within <strong>72 hours</strong>
                 </li>
-                <li>₹499 is adjusted in final price</li>
+                <li>{REGION.currencySymbol}{REGION.prebookPrice} is adjusted in final price</li>
               </ul>
             </div>
 
@@ -2096,7 +2107,7 @@ const runSampleSearch = (query) => {
                   </h2>
                   <div className="mt-2 text-white/90 text-xs leading-snug">
                     We’ll send an OTP to the number below. After verification,
-                    we’ll open the ₹199 payment gateway.
+                    we’ll open the {REGION.currencySymbol}{REGION.instantPrice} payment gateway.
                   </div>
                 </div>
 
@@ -2201,7 +2212,7 @@ const runSampleSearch = (query) => {
               <div className="flex items-start justify-between">
                 <div className="min-w-0">
                   <div className="text-white/90 text-xs font-semibold tracking-wide">
-                    Instant Report — ₹199 Paid ✅
+                    Instant Report — {REGION.currencySymbol}{REGION.instantPrice} Paid ✅
                   </div>
                   <h2 className="text-white text-lg font-extrabold leading-tight mt-1">
                     {instantTopic}
@@ -2483,7 +2494,7 @@ const runSampleSearch = (query) => {
                       Instant 10-Page
                     </div>
                     <div className="text-xl font-extrabold text-blue-700 mt-1">
-                      ₹199
+                      {REGION.currencySymbol}{REGION.instantPrice}
                     </div>
 
                     <div className="text-[11px] text-gray-700 mt-2 leading-snug">
@@ -2542,11 +2553,11 @@ const runSampleSearch = (query) => {
                       Full Report
                     </div>
                     <div className="text-xl font-extrabold text-gray-900 mt-1">
-                      ₹499
+                      {REGION.currencySymbol}{REGION.prebookPrice}
                     </div>
 
                     <div className="text-[11px] text-gray-700 mt-2 leading-snug">
-                      Delivered within 72 hours. ₹499 adjusted in final price.
+                      Delivered within 72 hours. {REGION.currencySymbol}{REGION.prebookPrice} adjusted in final price.
                     </div>
 
                     <details className="mt-2 rounded-xl border border-gray-200 bg-gray-50/60 px-3 py-2">
