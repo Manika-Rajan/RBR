@@ -706,7 +706,7 @@ const Payment = () => {
       {/* Right Section */}
       <div className="payments-right">
         <div className="row">
-          <p className="pay-price">Total Price: ₹{amount || 0}</p>
+          <p className="pay-price">Total Price: {REGION.currencySymbol}{amount || 0}</p>
         </div>
         <div className="row">
           <button
