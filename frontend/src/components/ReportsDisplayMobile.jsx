@@ -7,11 +7,14 @@ import "@react-pdf-viewer/core/lib/styles/index.css";
 import { useStore } from "../Store";
 import { Modal, ModalBody } from "reactstrap";
 import Login from "./Login";
+import { getRegionConfig } from "../config/regionConfig";
 
 // ====== Pricing ======
-const MRP = 2999;
-const PROMO_PCT = 25;
-const FINAL = Math.round(MRP * (1 - PROMO_PCT / 100));
+const REGION = getRegionConfig();
+
+const MRP = REGION.instantMrp;
+const PROMO_PCT = REGION.promoPct;
+const FINAL = REGION.instantPrice;
 
 // ====== Lead API ======
 const LEAD_API_URL =
