@@ -6,6 +6,9 @@ import Personal from '../assets/Personal.svg';
 import Delivery from '../assets/Delivery.svg';
 import pencil from '../assets/pencil.svg';
 import green from '../assets/green-tick.svg';
+import { getRegionConfig } from "../config/regionConfig";
+
+const REGION = getRegionConfig();
 
 const CONVERSION_SEND_TO = 'AW-824378442/NWTVCJbO_bobEMqIjIkD'; // Google Ads ID/Label
 
@@ -22,7 +25,7 @@ function fireGoogleAdsPurchase({ paymentId, valueINR }) {
       window.gtag('event', 'conversion', {
         send_to: CONVERSION_SEND_TO,
         value: Number(valueINR) || 1.0,
-        currency: 'INR',
+        currency: REGION.currencyCode,
         transaction_id: paymentId,
       });
       sessionStorage.setItem(guardKey, '1');
