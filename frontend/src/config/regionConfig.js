@@ -5,30 +5,37 @@ const REGION_CONFIGS = {
     region: "IN",
     currencySymbol: "₹",
     currencyCode: "INR",
+  
     instantPrice: 199,
     prebookPrice: 499,
-    instantMrp: 2999,
+    finalReportPrice: 2999,
+  
+    finalReportMrp: 3999,
     promoPct: 25,
   },
-
   US: {
     region: "US",
     currencySymbol: "$",
     currencyCode: "USD",
+  
     instantPrice: 9,
     prebookPrice: 19,
-    instantMrp: 49,
-    promoPct: 0,
+    finalReportPrice: 49,
+  
+    finalReportMrp: 69,
+    promoPct: 25,
   },
-
   UK: {
     region: "UK",
     currencySymbol: "£",
     currencyCode: "GBP",
+  
     instantPrice: 7,
     prebookPrice: 15,
-    instantMrp: 39,
-    promoPct: 0,
+    finalReportPrice: 39,
+  
+    finalReportMrp: 55,
+    promoPct: 25,
   },
 };
 
