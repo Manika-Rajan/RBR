@@ -341,6 +341,8 @@ const PaymentMobile = () => {
         body: JSON.stringify({
           reportId,
           amount: Math.round(Number(amount) * 100),
+          currency: REGION.currencyCode,
+          region: REGION.region,
           userId,
         }),
       });
@@ -357,6 +359,8 @@ const PaymentMobile = () => {
             body: JSON.stringify({
               reportId,
               amount: Math.round(Number(amount) * 100),
+              currency: REGION.currencyCode,
+              region: REGION.region,
               userId,
             }),
           }),
@@ -384,7 +388,7 @@ const PaymentMobile = () => {
       const orderAmount =
         parsedBody?.razorpay_response?.amount ||
         Math.round(Number(amount) * 100);
-      const orderCurrency = parsedBody?.razorpay_response?.currency || 'INR';
+      const orderCurrency = parsedBody?.razorpay_response?.currency || REGION.currencyCode;
       const keyFromOrder = parsedBody?.key_id || null;
 
       const razorpayKey =
@@ -455,6 +459,8 @@ const PaymentMobile = () => {
                     razorpay_payment_id: response.razorpay_payment_id,
                     razorpay_order_id: response.razorpay_order_id,
                     razorpay_signature: response.razorpay_signature,
+                    currency: orderCurrency,
+                    region: REGION.region,
                   }),
                 }),
               }
@@ -489,6 +495,8 @@ const PaymentMobile = () => {
                   userId,
                   status: 'success',
                   amount: Math.round(Number(amount) * 100),
+                  currency: orderCurrency,
+                  region: REGION.region,
                   razorpayPaymentId: response.razorpay_payment_id,
                   razorpayOrderId: response.razorpay_order_id,
                   razorpaySignature: response.razorpay_signature,
@@ -513,6 +521,8 @@ const PaymentMobile = () => {
                 reportId,
                 fileKey: file_key,
                 razorpayPaymentId: response.razorpay_payment_id,
+                currency: orderCurrency,
+                region: REGION.region,
                 loggedIn: true,
               },
             });
@@ -573,6 +583,8 @@ const PaymentMobile = () => {
                 userId,
                 status: 'failed',
                 amount: Math.round(Number(amount) * 100),
+                currency: orderCurrency,
+                region: REGION.region,
                 razorpayPaymentId:
                   response?.error?.metadata?.payment_id || null,
                 razorpayOrderId: orderId,
