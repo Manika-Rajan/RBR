@@ -1714,16 +1714,6 @@ const runSampleSearch = (query) => {
       <p className="text-gray-600 text-center mb-6 text-sm sm:text-base px-2">
         Search 1000+ industry reports. Accurate. Reliable. Ready for your business.
       </p>
-      <div className="w-full max-w-md mb-5 rounded-2xl border border-blue-100 bg-blue-50 px-4 py-3 text-center">
-        <h2 className="text-sm font-bold text-blue-900">
-          Rajan Business Reports Traffic Intelligence
-        </h2>
-        <p className="mt-1 text-xs leading-relaxed text-blue-800">
-          Rajan Business Reports Traffic Intelligence is an internal analytics tool
-          used by Rajan Business Reports to review Google Ads campaign performance,
-          search terms, website searches, leads, and report sales.
-        </p>
-      </div>
 
       {/* Search */}
       <form onSubmit={onSubmit} className="w-full mb-3">
@@ -2641,6 +2631,28 @@ const runSampleSearch = (query) => {
         </div>
       )}
 
+      {/* Subtle footer for Google OAuth branding verification */}
+      <footer className="mt-auto pt-10 pb-1 text-center text-[9px] leading-tight text-gray-300">
+        <p>
+          Rajan Business Reports Traffic Intelligence is an internal analytics tool of Rajan Business Reports.
+        </p>
+      
+        <div className="mt-1 flex items-center justify-center gap-2">
+          <a
+            href="/privacy-policy"
+            className="text-gray-300 underline decoration-gray-200 underline-offset-2"
+          >
+            Privacy Policy
+          </a>
+          <span className="text-gray-200">•</span>
+          <a
+            href="/terms"
+            className="text-gray-300 underline decoration-gray-200 underline-offset-2"
+          >
+            Terms of Service
+          </a>
+        </div>
+      </footer>
       {/* Did you mean modal */}
       {suggestOpen && (
         <div
