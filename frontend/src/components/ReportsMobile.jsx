@@ -2631,28 +2631,7 @@ const runSampleSearch = (query) => {
         </div>
       )}
 
-      {/* Subtle footer for Google OAuth branding verification */}
-      <footer className="mt-auto pt-10 pb-1 text-center text-[9px] leading-tight text-gray-300">
-        <p>
-          Rajan Business Reports Traffic Intelligence is an internal analytics tool of Rajan Business Reports.
-        </p>
       
-        <div className="mt-1 flex items-center justify-center gap-2">
-          <a
-            href="/privacy-policy"
-            className="text-gray-300 underline decoration-gray-200 underline-offset-2"
-          >
-            Privacy Policy
-          </a>
-          <span className="text-gray-200">•</span>
-          <a
-            href="/terms"
-            className="text-gray-300 underline decoration-gray-200 underline-offset-2"
-          >
-            Terms of Service
-          </a>
-        </div>
-      </footer>
       {/* Did you mean modal */}
       {suggestOpen && (
         <div
