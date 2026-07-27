@@ -258,7 +258,54 @@ const ReportsDisplay = () => {
 
             <div className="collapse navbar-collapse" id="navbarSupportedContent">
               <ul className="navbar-nav ms-auto">
-                <li className="nav-item">
+                <li
+                  className="nav-item"
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "14px",
+                  }}
+                >
+                  {!isPurchased && (
+                    <div
+                      style={{
+                        textAlign: "right",
+                        lineHeight: 1.1,
+                        minWidth: "100px",
+                      }}
+                    >
+                      <div
+                        style={{
+                          color: "#64748b",
+                          fontSize: "12px",
+                          textDecoration: "line-through",
+                          marginBottom: "3px",
+                        }}
+                      >
+                        {currencySymbol}{MRP.toLocaleString("en-IN")}
+                      </div>
+                      <div
+                        style={{
+                          color: "#0f172a",
+                          fontSize: "22px",
+                          fontWeight: 800,
+                        }}
+                      >
+                        {currencySymbol}{FINAL.toLocaleString("en-IN")}
+                      </div>
+                      <div
+                        style={{
+                          color: "#15803d",
+                          fontSize: "11px",
+                          fontWeight: 700,
+                          marginTop: "2px",
+                        }}
+                      >
+                        {PROMO_PCT}% off
+                      </div>
+                    </div>
+                  )}
+
                   <button
                     className="buy-btn"
                     onClick={handlePayment}
