@@ -413,12 +413,22 @@ const ReportsDisplayMobile = () => {
                 ✅ Purchased
               </span>
             ) : (
-              <button
-                onClick={goToPayment}
-                className="ml-auto rounded-full bg-white text-[11px] font-semibold text-blue-700 px-3 py-1.5 active:scale-[0.96] shadow-sm"
-              >
-                Unlock now
-              </button>
+              <div className="ml-auto flex items-center gap-2">
+                <div className="text-right leading-tight">
+                  <div className="text-[10px] text-blue-100 line-through">
+                    {currencySymbol}{MRP.toLocaleString("en-IN")}
+                  </div>
+                  <div className="text-sm font-extrabold text-amber-300">
+                    {currencySymbol}{FINAL.toLocaleString("en-IN")}
+                  </div>
+                </div>
+                <button
+                  onClick={goToPayment}
+                  className="rounded-full bg-white text-[11px] font-semibold text-blue-700 px-3 py-1.5 active:scale-[0.96] shadow-sm"
+                >
+                  Unlock now
+                </button>
+              </div>
             )}
           </div>
         </header>
