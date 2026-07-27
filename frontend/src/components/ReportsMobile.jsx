@@ -33,6 +33,7 @@ const TRENDING_INDUSTRIES = [
 ];
 
 const SUGGESTIONS = [
+  "Import Export Data Provider India",
   "FMCG market report India",
   "IT services market size 2024",
   "Edtech growth forecast",
@@ -1183,12 +1184,67 @@ const ReportsMobile = () => {
     }
   };
 
-  const goToReportBySlug = async (reportSlug) => {
+  const goToReportBySlug = async (reportOrSlug) => {
+    const reportMeta =
+      typeof reportOrSlug === "string"
+        ? { slug: reportOrSlug }
+        : reportOrSlug || {};
+
+    const reportSlug =
+      reportMeta.slug || resolveSlug(reportMeta.title || "");
+
     if (!reportSlug) return;
+
     setSearchLoading(true);
+
     try {
-      const reportId = `RBR1${Math.floor(Math.random() * 900 + 100)}`;
-      const previewKey = `${reportSlug}_preview.pdf`;
+      // Use the permanent catalogue report ID when one is available.
+      // Older catalogue reports continue using the existing fallback ID.
+      const reportId =
+        reportMeta.report_id ||
+        reportMeta.reportId ||
+        `RBR1${Math.floor(Math.random() * 900 + 100)}`;
+
+      const previewKey =
+        reportMeta.preview_key ||
+        reportMeta.previewKey ||
+        `${reportSlug}_preview.pdf`;
+
+      const fullKey =
+        reportMeta.full_key ||
+        reportMeta.fullKey ||
+        `${reportSlug}.pdf`;
+
+      const reportTitle =
+        reportMeta.title ||
+        reportSlug
+          .replace(/_/g, " ")
+          .replace(/\b\w/g, (character) => character.toUpperCase());
+
+      const cataloguePrice = Number(reportMeta.price);
+      const catalogueMrp = Number(reportMeta.mrp);
+      const cataloguePromoPct = Number(reportMeta.promo_pct);
+
+      // Reports with catalogue pricing use it. Older reports fall back
+      // to the standard final-report pricing in regionConfig.js.
+      const price =
+        Number.isFinite(cataloguePrice) && cataloguePrice > 0
+          ? cataloguePrice
+          : REGION.finalReportPrice;
+
+      const mrp =
+        Number.isFinite(catalogueMrp) && catalogueMrp > 0
+          ? catalogueMrp
+          : REGION.finalReportMrp;
+
+      const promoPct =
+        Number.isFinite(cataloguePromoPct) && cataloguePromoPct >= 0
+          ? cataloguePromoPct
+          : REGION.promoPct;
+
+      const currency = reportMeta.currency || REGION.currencyCode;
+      const reportType =
+        reportMeta.report_type || reportMeta.reportType || "catalogue";
 
       const presignResp = await fetch(PRESIGN_URL, {
         method: "POST",
@@ -1210,6 +1266,7 @@ const ReportsMobile = () => {
 
       const presignData = await presignResp.json();
       const url = presignData?.presigned_url;
+
       if (!url) {
         setModalTitle("Preview not ready");
         setModalMsgNode(
@@ -1226,11 +1283,14 @@ const ReportsMobile = () => {
           method: "GET",
           headers: { Range: "bytes=0-1" },
         });
-        const ct = (probe.headers.get("content-type") || "").toLowerCase();
+        const contentType = (
+          probe.headers.get("content-type") || ""
+        ).toLowerCase();
+
         if (
           !probe.ok ||
           !(probe.status === 200 || probe.status === 206) ||
-          !ct.includes("pdf")
+          !contentType.includes("pdf")
         ) {
           setModalTitle("Preview not ready");
           setModalMsgNode(
@@ -1241,7 +1301,10 @@ const ReportsMobile = () => {
           setOpenModal(true);
           return;
         }
-      } catch {}
+      } catch {
+        // Keep the existing behaviour: if the lightweight probe is blocked
+        // by CORS, allow the report display page to try loading the PDF.
+      }
 
       if (samplePreviewMode) {
         setPdfViewerUrl(url);
@@ -1250,9 +1313,22 @@ const ReportsMobile = () => {
         return;
       }
 
-      navigate("/report-display", { state: { reportSlug, reportId } });
-    } catch (e) {
-      console.error("goToReportBySlug error:", e);
+      navigate("/report-display", {
+        state: {
+          reportSlug,
+          reportId,
+          reportTitle,
+          price,
+          mrp,
+          promoPct,
+          currency,
+          previewKey,
+          fullKey,
+          reportType,
+        },
+      });
+    } catch (error) {
+      console.error("goToReportBySlug error:", error);
       setModalTitle("Error");
       setModalMsgNode(
         <span>
@@ -1262,7 +1338,6 @@ const ReportsMobile = () => {
       setOpenModal(true);
     } finally {
       setSearchLoading(false);
-      // Safety: reset sample mode if something failed mid-way
       setSamplePreviewMode(false);
     }
   };
@@ -1315,10 +1390,34 @@ const ReportsMobile = () => {
       const { items, hint } = await fetchSuggestions(trimmed);
 
       if (items && items.length > 0) {
-        const mapped = items.map((it) => ({
-          title: it.title || it.slug,
-          slug: it.slug,
-        }));
+        const mapped = items
+          .map((it) => ({
+            title: it.title || it.slug,
+            slug: it.slug,
+            report_id: it.report_id || null,
+            preview_key: it.preview_key || null,
+            full_key: it.full_key || null,
+            has_preview: it.has_preview !== false,
+            has_full: it.has_full === true,
+            price: it.price ?? null,
+            mrp: it.mrp ?? null,
+            promo_pct: it.promo_pct ?? null,
+            currency: it.currency || null,
+            report_type: it.report_type || null,
+            pin_to_top: it.pin_to_top === true,
+            suggestion_priority: Number(it.suggestion_priority || 0),
+          }))
+          // Frontend safety ordering. The Lambda already sorts this way,
+          // but this keeps pinned reports first if its response order changes.
+          .sort((a, b) => {
+            const pinnedDifference =
+              Number(b.pin_to_top) - Number(a.pin_to_top);
+
+            if (pinnedDifference !== 0) return pinnedDifference;
+
+            return b.suggestion_priority - a.suggestion_priority;
+          });
+
         setSuggestItems(mapped.slice(0, 3));
         setSuggestOpen(true);
         return;
@@ -2670,7 +2769,7 @@ const runSampleSearch = (query) => {
                   className="w-full text-left rounded-xl border border-blue-100 bg-white/80 hover:bg-white hover:border-blue-200 hover:shadow-md active:scale-[0.99] transition-all p-3 flex items-center gap-3"
                   onClick={() => {
                     setSuggestOpen(false);
-                    goToReportBySlug(s.slug || resolveSlug(s.title || ""));
+                    goToReportBySlug(s);
                   }}
                 >
                   <div className="shrink-0 h-8 w-8 rounded-lg bg-blue-50 flex items-center justify-center">
