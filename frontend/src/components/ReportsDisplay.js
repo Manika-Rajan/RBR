@@ -16,9 +16,9 @@ const PRESIGN_URL =
 
 const REGION = getRegionConfig();
 
-const MRP = REGION.finalReportMrp;
-const PROMO_PCT = REGION.promoPct;
-const FINAL = REGION.finalReportPrice;
+const DEFAULT_MRP = REGION.finalReportMrp;
+const DEFAULT_PROMO_PCT = REGION.promoPct;
+const DEFAULT_FINAL = REGION.finalReportPrice;
 const UNLOCKED_MAX_PAGE = 3; // page index 0-3 = first 4 pages free
 
 const ReportsDisplay = () => {
@@ -30,6 +30,39 @@ const ReportsDisplay = () => {
   const reportSlugFromState = location.state?.reportSlug || "";
   const incomingFileKey = location.state?.fileKey || "";
   const incomingReportId = location.state?.reportId || "";
+  const incomingReportTitle = location.state?.reportTitle || "";
+  const incomingPreviewKey = location.state?.previewKey || "";
+  const incomingFullKey = location.state?.fullKey || "";
+  const incomingCurrency = location.state?.currency || REGION.currencyCode;
+  const incomingReportType = location.state?.reportType || "catalogue";
+
+  const incomingPrice = Number(location.state?.price);
+  const incomingMrp = Number(location.state?.mrp);
+  const incomingPromoPct = Number(location.state?.promoPct);
+
+  const FINAL =
+    Number.isFinite(incomingPrice) && incomingPrice > 0
+      ? incomingPrice
+      : DEFAULT_FINAL;
+
+  const MRP =
+    Number.isFinite(incomingMrp) && incomingMrp > 0
+      ? incomingMrp
+      : DEFAULT_MRP;
+
+  const PROMO_PCT =
+    Number.isFinite(incomingPromoPct) && incomingPromoPct >= 0
+      ? incomingPromoPct
+      : DEFAULT_PROMO_PCT;
+
+  const currencySymbol =
+    incomingCurrency === "INR"
+      ? "₹"
+      : incomingCurrency === "USD"
+      ? "$"
+      : incomingCurrency === "GBP"
+      ? "£"
+      : REGION.currencySymbol;
 
   const { status = false, email = "", userInfo = {} } = state || {};
   const isLoggedIn = !!userInfo?.isLogin;
@@ -47,9 +80,22 @@ const ReportsDisplay = () => {
   const isPurchased = purchases.includes(reportSlug);
 
   const desiredKey = useMemo(() => {
-    if (incomingFileKey) return incomingFileKey;
-    return `${reportSlug}${isPurchased ? "" : "_preview"}.pdf`;
-  }, [incomingFileKey, reportSlug, isPurchased]);
+    if (isPurchased) {
+      return incomingFullKey || `${reportSlug}.pdf`;
+    }
+
+    return (
+      incomingPreviewKey ||
+      incomingFileKey ||
+      `${reportSlug}_preview.pdf`
+    );
+  }, [
+    incomingFileKey,
+    incomingPreviewKey,
+    incomingFullKey,
+    reportSlug,
+    isPurchased,
+  ]);
 
   const [openModel, setOpenModel] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -77,22 +123,32 @@ const ReportsDisplay = () => {
       .replace(/\b\w/g, (c) => c.toUpperCase());
   };
 
-  const pageTitle = formatSlugTitle(reportSlug);
+  const pageTitle = incomingReportTitle || formatSlugTitle(reportSlug);
   const pageDesc = isPurchased
     ? "You’ve unlocked this report from Rajan Business Reports."
     : "Preview this report and unlock the full version for complete data, analysis, and forecasts.";
 
   const handlePayment = () => {
+    const paymentFileKey = incomingFullKey || `${reportSlug}.pdf`;
+
     cxtDispatch({
       type: "SET_FILE_REPORT",
       payload: {
-        fileKey: `${reportSlug}.pdf`,
+        fileKey: paymentFileKey,
         reportId: localReportId,
         reportSlug,
+        reportTitle: pageTitle,
+        price: FINAL,
+        mrp: MRP,
+        promoPct: PROMO_PCT,
+        currency: incomingCurrency,
+        reportType: incomingReportType,
       },
     });
 
     localStorage.setItem("amount", String(FINAL));
+    localStorage.setItem("reportId", localReportId || "");
+    localStorage.setItem("fileKey", paymentFileKey);
 
     if (isLoggedIn) {
       navigate("/payment", {
@@ -101,8 +157,13 @@ const ReportsDisplay = () => {
           fromReport: true,
           amount: FINAL,
           reportId: localReportId,
-          fileKey: `${reportSlug}.pdf`,
+          fileKey: paymentFileKey,
           reportSlug,
+          reportTitle: pageTitle,
+          mrp: MRP,
+          promoPct: PROMO_PCT,
+          currency: incomingCurrency,
+          reportType: incomingReportType,
         },
       });
     } else {
@@ -313,7 +374,7 @@ const ReportsDisplay = () => {
                               fontSize: "12px",
                             }}
                           >
-                            ₹{MRP.toLocaleString("en-IN")}
+                            {currencySymbol}{MRP.toLocaleString("en-IN")}
                           </div>
                           <div
                             style={{
@@ -323,7 +384,7 @@ const ReportsDisplay = () => {
                               lineHeight: 1.1,
                             }}
                           >
-                            ₹{FINAL.toLocaleString("en-IN")}
+                            {currencySymbol}{FINAL.toLocaleString("en-IN")}
                           </div>
                           <div style={{ fontSize: "11px", color: "#86efac" }}>
                             {PROMO_PCT}% launch discount
@@ -361,7 +422,7 @@ const ReportsDisplay = () => {
                           marginBottom: "10px",
                         }}
                       >
-                        Pay & unlock full report — ₹{FINAL.toLocaleString("en-IN")}
+                        Pay & unlock full report — {currencySymbol}{FINAL.toLocaleString("en-IN")}
                       </button>
 
                       <div
