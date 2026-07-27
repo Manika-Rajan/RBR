@@ -12,9 +12,9 @@ import { getRegionConfig } from "../config/regionConfig";
 // ====== Pricing ======
 const REGION = getRegionConfig();
 
-const MRP = REGION.instantMrp;
-const PROMO_PCT = REGION.promoPct;
-const FINAL = REGION.instantPrice;
+const DEFAULT_MRP = REGION.finalReportMrp;
+const DEFAULT_PROMO_PCT = REGION.promoPct;
+const DEFAULT_FINAL = REGION.finalReportPrice;
 
 // ====== Lead API ======
 const LEAD_API_URL =
@@ -32,6 +32,39 @@ const ReportsDisplayMobile = () => {
   const reportSlugFromState = location.state?.reportSlug || "";
   const fileKeyLegacy = location.state?.fileKey || ""; // legacy fallback
   const reportId = location.state?.reportId || "";
+  const reportTitleFromState = location.state?.reportTitle || "";
+  const previewKeyFromState = location.state?.previewKey || "";
+  const fullKeyFromState = location.state?.fullKey || "";
+  const currencyCode = location.state?.currency || REGION.currencyCode;
+  const reportType = location.state?.reportType || "catalogue";
+
+  const incomingPrice = Number(location.state?.price);
+  const incomingMrp = Number(location.state?.mrp);
+  const incomingPromoPct = Number(location.state?.promoPct);
+
+  const FINAL =
+    Number.isFinite(incomingPrice) && incomingPrice > 0
+      ? incomingPrice
+      : DEFAULT_FINAL;
+
+  const MRP =
+    Number.isFinite(incomingMrp) && incomingMrp > 0
+      ? incomingMrp
+      : DEFAULT_MRP;
+
+  const PROMO_PCT =
+    Number.isFinite(incomingPromoPct) && incomingPromoPct >= 0
+      ? incomingPromoPct
+      : DEFAULT_PROMO_PCT;
+
+  const currencySymbol =
+    currencyCode === "INR"
+      ? "₹"
+      : currencyCode === "USD"
+      ? "$"
+      : currencyCode === "GBP"
+      ? "£"
+      : REGION.currencySymbol;
 
   const { state, dispatch: cxtDispatch } = useStore();
   const { status = false, email = "", userInfo = {} } = state || {};
@@ -54,7 +87,11 @@ const ReportsDisplayMobile = () => {
   const isPurchased = purchases.includes(reportSlug);
 
   // Key to pre-sign
-  const desiredKey = `${reportSlug}${isPurchased ? "" : "_preview"}.pdf`;
+  const desiredKey = isPurchased
+    ? fullKeyFromState || `${reportSlug}.pdf`
+    : previewKeyFromState ||
+      fileKeyLegacy ||
+      `${reportSlug}_preview.pdf`;
 
   // UI state
   const [openModel, setOpenModel] = useState(false); // login/payment modal
@@ -138,33 +175,53 @@ const ReportsDisplayMobile = () => {
 
   // ====== PAYMENT FLOW ======
   const goToPayment = () => {
+    const paymentFileKey = fullKeyFromState || `${reportSlug}.pdf`;
+
     window.gtag?.("event", "buy_now_click", {
       event_category: "engagement",
       event_label: "mobile_reports_display",
       value: FINAL,
+      currency: currencyCode,
       report_id: reportId,
       report_slug: reportSlug,
       price_mrp: MRP,
       price_final: FINAL,
-      promo: "RBideas25",
+      promo_pct: PROMO_PCT,
     });
 
     cxtDispatch({
       type: "SET_FILE_REPORT",
-      payload: { fileKey: `${reportSlug}.pdf`, reportId, reportSlug },
+      payload: {
+        fileKey: paymentFileKey,
+        reportId,
+        reportSlug,
+        reportTitle: title,
+        price: FINAL,
+        mrp: MRP,
+        promoPct: PROMO_PCT,
+        currency: currencyCode,
+        reportType,
+      },
     });
 
-    // ✅ Surgical: persist amount for Payment page fallback / refresh safety
+    // Persist payment context for refresh/login fallback safety.
     localStorage.setItem("amount", String(FINAL));
+    localStorage.setItem("reportId", reportId || "");
+    localStorage.setItem("fileKey", paymentFileKey);
 
     if (isLoggedIn) {
       navigate("/payment", {
         state: {
           fromReport: true,
-          amount: FINAL, // ✅ pass discounted amount
-          reportId, // ✅ keeps context
-          fileKey: `${reportSlug}.pdf`, // ✅ keeps context
+          amount: FINAL,
+          reportId,
+          fileKey: paymentFileKey,
           reportSlug,
+          reportTitle: title,
+          mrp: MRP,
+          promoPct: PROMO_PCT,
+          currency: currencyCode,
+          reportType,
         },
       });
     } else {
@@ -177,7 +234,11 @@ const ReportsDisplayMobile = () => {
     cxtDispatch({ type: "SET_REPORT_STATUS" });
   };
 
-  const title = `${reportSlug.replace(/_/g, " ")} in India`;
+  const title =
+    reportTitleFromState ||
+    reportSlug
+      .replace(/_/g, " ")
+      .replace(/\b\w/g, (character) => character.toUpperCase());
   const subtitle = isPurchased
     ? "You’ve unlocked this report from Rajan Business Reports."
     : "Preview of this Rajan Business Reports industry study. Unlock the full report for complete data & forecasts.";
@@ -471,10 +532,10 @@ const ReportsDisplayMobile = () => {
                         </div>
                         <div className="text-right text-[11px]">
                           <div className="line-through text-slate-400">
-                            ₹{MRP.toLocaleString("en-IN")}
+                            {currencySymbol}{MRP.toLocaleString("en-IN")}
                           </div>
                           <div className="text-base font-semibold text-amber-300 leading-tight">
-                            ₹{FINAL.toLocaleString("en-IN")}
+                            {currencySymbol}{FINAL.toLocaleString("en-IN")}
                           </div>
                           <div className="text-[10px] text-emerald-300">
                             {PROMO_PCT}% launch discount
@@ -495,7 +556,7 @@ const ReportsDisplayMobile = () => {
                           onClick={goToPayment}
                           className="w-full rounded-xl bg-gradient-to-r from-amber-400 via-amber-300 to-yellow-300 text-slate-900 text-sm py-2.5 font-semibold active:scale-[0.98]"
                         >
-                          Pay & unlock full report — ₹{FINAL.toLocaleString("en-IN")}
+                          Pay & unlock full report — {currencySymbol}{FINAL.toLocaleString("en-IN")}
                         </button>
 
                         <div className="text-center text-[10px] text-slate-300 uppercase tracking-[0.18em]">
@@ -540,12 +601,16 @@ const ReportsDisplayMobile = () => {
               <>
                 <div className="ml-2 text-right">
                   <div className="text-[11px] text-slate-500 line-through">
-                    ₹{MRP.toLocaleString("en-IN")}
+                    {currencySymbol}{MRP.toLocaleString("en-IN")}
                   </div>
                   <div className="text-base font-semibold text-amber-300 leading-tight">
-                    ₹{FINAL.toLocaleString("en-IN")}
+                    {currencySymbol}{FINAL.toLocaleString("en-IN")}
                   </div>
-                  <div className="text-[11px] text-emerald-300">RBideas25 applied</div>
+                  <div className="text-[11px] text-emerald-300">
+                    {PROMO_PCT > 0
+                      ? `${PROMO_PCT}% discount applied`
+                      : "Catalogue price"}
+                  </div>
                 </div>
                 <button
                   onClick={goToPayment}
@@ -736,7 +801,7 @@ const ReportsDisplayMobile = () => {
                   <ul className="mt-2 list-disc list-inside text-[11px] text-slate-200 space-y-1">
                     <li>Open WhatsApp on your phone.</li>
                     <li>
-                      Find the message about “{reportSlug.replace(/_/g, " ")} in India”.
+                      Find the message about “{title}”.
                     </li>
                     <li>
                       Tap <strong>“Yes, I requested”</strong>.
