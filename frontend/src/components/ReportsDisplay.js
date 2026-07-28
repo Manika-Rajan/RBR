@@ -14,6 +14,9 @@ import { getRegionConfig } from "../config/regionConfig";
 const PRESIGN_URL =
   "https://vtwyu7hv50.execute-api.ap-south-1.amazonaws.com/default/RBR_report_pre-signed_URL";
 
+const SUGGEST_URL =
+  "https://vtwyu7hv50.execute-api.ap-south-1.amazonaws.com/default/suggest";
+
 const REGION = getRegionConfig();
 
 const DEFAULT_MRP = REGION.finalReportMrp;
@@ -28,17 +31,70 @@ const ReportsDisplay = () => {
   const { state, dispatch: cxtDispatch } = useStore();
 
   const reportSlugFromState = location.state?.reportSlug || "";
-  const incomingFileKey = location.state?.fileKey || "";
-  const incomingReportId = location.state?.reportId || "";
-  const incomingReportTitle = location.state?.reportTitle || "";
-  const incomingPreviewKey = location.state?.previewKey || "";
-  const incomingFullKey = location.state?.fullKey || "";
-  const incomingCurrency = location.state?.currency || REGION.currencyCode;
-  const incomingReportType = location.state?.reportType || "catalogue";
 
-  const incomingPrice = Number(location.state?.price);
-  const incomingMrp = Number(location.state?.mrp);
-  const incomingPromoPct = Number(location.state?.promoPct);
+  // Direct links from generated PDFs use:
+  // /report-display?slug=<catalogue-slug>
+  const reportSlugFromQuery = useMemo(() => {
+    const params = new URLSearchParams(location.search);
+    return (params.get("slug") || "").trim();
+  }, [location.search]);
+
+  const needsCatalogueLookup =
+    !!reportSlugFromQuery && !reportSlugFromState;
+
+  const [catalogReport, setCatalogReport] = useState(null);
+  const [catalogLoading, setCatalogLoading] = useState(needsCatalogueLookup);
+  const [catalogError, setCatalogError] = useState("");
+
+  const incomingFileKey = location.state?.fileKey || "";
+
+  // Navigation state continues to take priority. Catalogue values are used
+  // only for direct ?slug= links that do not have React router state.
+  const incomingReportId =
+    location.state?.reportId ||
+    catalogReport?.report_id ||
+    catalogReport?.reportId ||
+    "";
+
+  const incomingReportTitle =
+    location.state?.reportTitle ||
+    catalogReport?.title ||
+    "";
+
+  const incomingPreviewKey =
+    location.state?.previewKey ||
+    catalogReport?.preview_key ||
+    catalogReport?.previewKey ||
+    "";
+
+  const incomingFullKey =
+    location.state?.fullKey ||
+    catalogReport?.full_key ||
+    catalogReport?.fullKey ||
+    "";
+
+  const incomingCurrency =
+    location.state?.currency ||
+    catalogReport?.currency ||
+    REGION.currencyCode;
+
+  const incomingReportType =
+    location.state?.reportType ||
+    catalogReport?.report_type ||
+    catalogReport?.reportType ||
+    "catalogue";
+
+  const incomingPrice = Number(
+    location.state?.price ?? catalogReport?.price
+  );
+  const incomingMrp = Number(
+    location.state?.mrp ?? catalogReport?.mrp
+  );
+  const incomingPromoPct = Number(
+    location.state?.promoPct ??
+      catalogReport?.promo_pct ??
+      catalogReport?.promoPct
+  );
 
   const FINAL =
     Number.isFinite(incomingPrice) && incomingPrice > 0
@@ -75,11 +131,19 @@ const ReportsDisplay = () => {
   }, [incomingFileKey]);
 
   const reportSlug =
-    reportSlugFromState || derivedSlugFromFileKey || "paper_industry";
+    reportSlugFromState ||
+    catalogReport?.slug ||
+    reportSlugFromQuery ||
+    derivedSlugFromFileKey ||
+    "paper_industry";
 
   const isPurchased = purchases.includes(reportSlug);
 
   const desiredKey = useMemo(() => {
+    if (needsCatalogueLookup && catalogLoading) {
+      return "";
+    }
+
     if (isPurchased) {
       return incomingFullKey || `${reportSlug}.pdf`;
     }
@@ -90,6 +154,8 @@ const ReportsDisplay = () => {
       `${reportSlug}_preview.pdf`
     );
   }, [
+    needsCatalogueLookup,
+    catalogLoading,
     incomingFileKey,
     incomingPreviewKey,
     incomingFullKey,
@@ -104,6 +170,106 @@ const ReportsDisplay = () => {
   const [localFileKey, setLocalFileKey] = useState(desiredKey);
   const [localReportId, setLocalReportId] = useState(incomingReportId);
   const [currentPage, setCurrentPage] = useState(0);
+
+  // ====== Resolve direct ?slug= links from the catalogue ======
+  useEffect(() => {
+    if (!needsCatalogueLookup) {
+      setCatalogReport(null);
+      setCatalogLoading(false);
+      setCatalogError("");
+      return;
+    }
+
+    const controller = new AbortController();
+
+    const parsePayload = (raw) => {
+      if (typeof raw?.body === "string") {
+        try {
+          return JSON.parse(raw.body);
+        } catch {
+          return {};
+        }
+      }
+
+      if (raw?.body && typeof raw.body === "object") {
+        return raw.body;
+      }
+
+      return raw || {};
+    };
+
+    const fetchExactCatalogueReport = async () => {
+      setCatalogLoading(true);
+      setCatalogError("");
+      setError("");
+      setPdfUrl("");
+
+      try {
+        const lookupQueries = [
+          reportSlugFromQuery,
+          reportSlugFromQuery.replace(/_/g, " "),
+        ];
+
+        let exactMatch = null;
+
+        for (const query of lookupQueries) {
+          const response = await fetch(SUGGEST_URL, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ q: query, limit: 25 }),
+            signal: controller.signal,
+          });
+
+          if (!response.ok) {
+            const responseText = await response.text();
+            throw new Error(
+              `Catalogue lookup failed (${response.status}): ${responseText}`
+            );
+          }
+
+          const raw = await response.json();
+          const payload = parsePayload(raw);
+          const items = Array.isArray(payload?.items) ? payload.items : [];
+
+          exactMatch = items.find(
+            (item) =>
+              String(item?.slug || "").trim().toLowerCase() ===
+              reportSlugFromQuery.toLowerCase()
+          );
+
+          if (exactMatch) break;
+        }
+
+        if (!exactMatch) {
+          throw new Error(
+            "This report could not be found in the catalogue."
+          );
+        }
+
+        setCatalogReport(exactMatch);
+      } catch (lookupError) {
+        if (lookupError?.name === "AbortError") return;
+
+        console.error("Direct report catalogue lookup error:", lookupError);
+        const message =
+          lookupError?.message ||
+          "This report could not be loaded from the catalogue.";
+
+        setCatalogReport(null);
+        setCatalogError(message);
+        setError(message);
+        setIsLoading(false);
+      } finally {
+        if (!controller.signal.aborted) {
+          setCatalogLoading(false);
+        }
+      }
+    };
+
+    fetchExactCatalogueReport();
+
+    return () => controller.abort();
+  }, [needsCatalogueLookup, reportSlugFromQuery]);
 
   useEffect(() => {
     setLocalFileKey(desiredKey);
@@ -178,6 +344,15 @@ const ReportsDisplay = () => {
 
   useEffect(() => {
     const fetchPresignedUrl = async () => {
+      if (catalogLoading) return;
+
+      if (catalogError) {
+        setError(catalogError);
+        setPdfUrl("");
+        setIsLoading(false);
+        return;
+      }
+
       if (!localFileKey) {
         setError("No report key determined. Please try again.");
         setPdfUrl("");
@@ -217,7 +392,7 @@ const ReportsDisplay = () => {
     };
 
     fetchPresignedUrl();
-  }, [localFileKey]);
+  }, [localFileKey, catalogLoading, catalogError]);
 
   return (
     <>
