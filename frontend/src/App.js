@@ -33,6 +33,7 @@ import ReportsDisplayMobile from "./components/ReportsDisplayMobile";
 import PurchaseSuccess from "./components/PurchaseSuccess";
 import ReportRequestsDashboard from "./components/ReportRequestsDashboard";
 import PrebookSuccess from "./components/PrebookSuccess";
+import IndiaSectorRotationTracker from "./components/India-sector-rotation-tracker";
 
 // ✅ Keep PROD-only route/import so you don’t lose production changes
 import Testpage from "./components/test-page";
@@ -69,6 +70,11 @@ function AppContent() {
         <Route path="/testpage" element={<Testpage />} />
 
         <Route path="/" element={isMobile ? <ReportsMobile /> : <Reports />} />
+
+        <Route
+          path="/India-sector-rotation-tracker"
+          element={<IndiaSectorRotationTracker />}
+        />
 
         <Route path="/contact" element={<Contact />} />
         <Route path="/report-display" element={<ReportDisplayResponsive />} />
