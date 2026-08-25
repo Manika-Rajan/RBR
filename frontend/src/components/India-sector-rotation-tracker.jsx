@@ -26,7 +26,7 @@ import React, { useMemo, useState } from "react";
 */
 
 const CONFIG = {
-  previewAsSubscriber: false,
+  previewAsSubscriber: true,
   showSampleDataNotice: true,
   monthlyPrice: 199,
 };
