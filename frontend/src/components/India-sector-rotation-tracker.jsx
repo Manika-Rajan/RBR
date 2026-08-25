@@ -2,27 +2,26 @@ import React, { useMemo, useState } from "react";
 
 /*
   ============================================================
-  RBR - INDIA SECTOR ROTATION TRACKER
+  RAJAN BUSINESS REPORTS
+  INDIA SECTOR ROTATION TRACKER
   ============================================================
 
-  DESIGN DIRECTION
-  - Familiar Indian financial-data website layout
-  - Compact header
-  - Public market overview
-  - Horizontal tabs
-  - Heatmap / market tiles
-  - Dense financial tables
-  - Premium data teased rather than hidden behind large locks
-  - No additional npm packages required
+  CURRENT VERSION
+  - Finance-portal inspired visual design
+  - Strong sector heatmap
+  - Compact / dense market presentation
+  - Public overview
+  - Premium tabs
+  - Sample data only
+  - No external npm package required
 
-  CURRENT STATUS
-  - Data below is SAMPLE DATA.
-  - Login integration will be connected later.
-  - ₹199/month subscription integration will be connected later.
-  - Daily live data API will be connected later.
+  TEMPORARY TEST:
+  Change previewAsSubscriber to true to inspect premium tabs.
 
-  DEVELOPMENT:
-  Set previewAsSubscriber = true to inspect all premium sections.
+  LATER:
+  1. Connect existing RBR login state.
+  2. Connect ₹199/month subscription entitlement.
+  3. Connect live 10 AM market-data API.
 */
 
 const CONFIG = {
@@ -31,14 +30,6 @@ const CONFIG = {
   monthlyPrice: 199,
 };
 
-/*
-  TEMPORARY AUTH STATE
-
-  Later this will be replaced by your existing RBR Store:
-  state.userInfo.isLogin
-
-  and subscription entitlement returned from backend.
-*/
 const TEMP_USER_STATE = {
   isLoggedIn: false,
   hasActiveSubscription: false,
@@ -64,6 +55,7 @@ const SECTORS = [
     advanceDecline: "11 / 4",
     pe: "23.8",
     marketCap: "₹17.4L Cr",
+    heatSize: "xl",
     sparkline: [42, 46, 44, 50, 56, 55, 61, 65, 71, 76, 82, 91],
   },
   {
@@ -85,6 +77,7 @@ const SECTORS = [
     advanceDecline: "10 / 5",
     pe: "18.6",
     marketCap: "₹14.1L Cr",
+    heatSize: "lg",
     sparkline: [48, 50, 54, 52, 58, 61, 63, 69, 72, 78, 81, 86],
   },
   {
@@ -106,6 +99,7 @@ const SECTORS = [
     advanceDecline: "8 / 2",
     pe: "29.1",
     marketCap: "₹39.2L Cr",
+    heatSize: "xl",
     sparkline: [37, 35, 39, 41, 44, 49, 53, 57, 62, 68, 70, 79],
   },
   {
@@ -127,6 +121,7 @@ const SECTORS = [
     advanceDecline: "7 / 3",
     pe: "34.4",
     marketCap: "₹7.8L Cr",
+    heatSize: "md",
     sparkline: [40, 38, 39, 43, 45, 48, 52, 57, 61, 65, 67, 74],
   },
   {
@@ -148,6 +143,7 @@ const SECTORS = [
     advanceDecline: "8 / 4",
     pe: "16.8",
     marketCap: "₹41.7L Cr",
+    heatSize: "lg",
     sparkline: [45, 47, 46, 48, 52, 54, 55, 58, 61, 63, 66, 69],
   },
   {
@@ -169,6 +165,7 @@ const SECTORS = [
     advanceDecline: "13 / 7",
     pe: "18.1",
     marketCap: "₹57.5L Cr",
+    heatSize: "md",
     sparkline: [46, 45, 48, 49, 52, 55, 54, 57, 60, 62, 64, 66],
   },
   {
@@ -190,6 +187,7 @@ const SECTORS = [
     advanceDecline: "8 / 12",
     pe: "36.7",
     marketCap: "₹15.9L Cr",
+    heatSize: "md",
     sparkline: [81, 84, 82, 79, 77, 75, 72, 69, 66, 63, 60, 57],
   },
   {
@@ -211,6 +209,7 @@ const SECTORS = [
     advanceDecline: "7 / 8",
     pe: "38.2",
     marketCap: "₹20.1L Cr",
+    heatSize: "sm",
     sparkline: [69, 71, 69, 66, 64, 63, 61, 58, 56, 55, 53, 51],
   },
   {
@@ -232,6 +231,7 @@ const SECTORS = [
     advanceDecline: "6 / 6",
     pe: "9.7",
     marketCap: "₹6.9L Cr",
+    heatSize: "sm",
     sparkline: [65, 67, 66, 63, 61, 60, 57, 55, 53, 51, 50, 48],
   },
   {
@@ -253,6 +253,7 @@ const SECTORS = [
     advanceDecline: "4 / 16",
     pe: "14.9",
     marketCap: "₹31.6L Cr",
+    heatSize: "md",
     sparkline: [58, 56, 54, 51, 49, 47, 46, 43, 42, 40, 39, 38],
   },
   {
@@ -274,10 +275,11 @@ const SECTORS = [
     advanceDecline: "2 / 8",
     pe: "22.3",
     marketCap: "₹1.4L Cr",
+    heatSize: "sm",
     sparkline: [53, 51, 48, 46, 44, 42, 39, 37, 36, 34, 33, 31],
   },
   {
-    id: "consumer-durables",
+    id: "consumer",
     name: "Nifty Consumer Durables",
     shortName: "Consumer",
     status: "Lagging",
@@ -295,6 +297,7 @@ const SECTORS = [
     advanceDecline: "6 / 9",
     pe: "54.1",
     marketCap: "₹8.2L Cr",
+    heatSize: "sm",
     sparkline: [47, 45, 43, 41, 39, 37, 35, 34, 33, 34, 34, 35],
   },
 ];
@@ -302,69 +305,69 @@ const SECTORS = [
 const ROTATION_HISTORY = [
   {
     sector: "IT",
-    d5: "Lagging",
-    d4: "Improving",
-    d3: "Improving",
-    d2: "Improving",
+    old1: "Lagging",
+    old2: "Improving",
+    old3: "Improving",
+    previous: "Improving",
     current: "Improving",
-    score: "+9",
+    change: 9,
   },
   {
     sector: "Auto",
-    d5: "Improving",
-    d4: "Leading",
-    d3: "Leading",
-    d2: "Leading",
+    old1: "Improving",
+    old2: "Leading",
+    old3: "Leading",
+    previous: "Leading",
     current: "Leading",
-    score: "+5",
+    change: 5,
   },
   {
     sector: "Metal",
-    d5: "Improving",
-    d4: "Leading",
-    d3: "Leading",
-    d2: "Leading",
+    old1: "Improving",
+    old2: "Leading",
+    old3: "Leading",
+    previous: "Leading",
     current: "Leading",
-    score: "+2",
+    change: 2,
   },
   {
     sector: "Pharma",
-    d5: "Leading",
-    d4: "Leading",
-    d3: "Weakening",
-    d2: "Weakening",
+    old1: "Leading",
+    old2: "Leading",
+    old3: "Weakening",
+    previous: "Weakening",
     current: "Weakening",
-    score: "-8",
+    change: -8,
   },
   {
     sector: "Realty",
-    d5: "Lagging",
-    d4: "Improving",
-    d3: "Improving",
-    d2: "Improving",
+    old1: "Lagging",
+    old2: "Improving",
+    old3: "Improving",
+    previous: "Improving",
     current: "Improving",
-    score: "+7",
+    change: 7,
   },
 ];
 
 const STOCK_DRIVERS = {
   Auto: [
-    { name: "Mahindra & Mahindra", contribution: "+1.7%", signal: "Positive" },
-    { name: "Maruti Suzuki", contribution: "+1.2%", signal: "Positive" },
-    { name: "Bajaj Auto", contribution: "+0.9%", signal: "Positive" },
-    { name: "Eicher Motors", contribution: "+0.6%", signal: "Positive" },
+    { name: "Mahindra & Mahindra", move: 1.7 },
+    { name: "Maruti Suzuki", move: 1.2 },
+    { name: "Bajaj Auto", move: 0.9 },
+    { name: "Eicher Motors", move: 0.6 },
   ],
   IT: [
-    { name: "Infosys", contribution: "+1.8%", signal: "Positive" },
-    { name: "TCS", contribution: "+1.4%", signal: "Positive" },
-    { name: "HCL Technologies", contribution: "+1.1%", signal: "Positive" },
-    { name: "Tech Mahindra", contribution: "+0.8%", signal: "Positive" },
+    { name: "Infosys", move: 1.8 },
+    { name: "TCS", move: 1.4 },
+    { name: "HCL Technologies", move: 1.1 },
+    { name: "Tech Mahindra", move: 0.8 },
   ],
   Metal: [
-    { name: "Tata Steel", contribution: "+1.3%", signal: "Positive" },
-    { name: "Hindalco", contribution: "+1.1%", signal: "Positive" },
-    { name: "JSW Steel", contribution: "+0.8%", signal: "Positive" },
-    { name: "Vedanta", contribution: "+0.6%", signal: "Positive" },
+    { name: "Tata Steel", move: 1.3 },
+    { name: "Hindalco", move: 1.1 },
+    { name: "JSW Steel", move: 0.8 },
+    { name: "Vedanta", move: 0.6 },
   ],
 };
 
@@ -377,24 +380,24 @@ const TABS = [
 ];
 
 function formatPercent(value) {
-  const prefix = value > 0 ? "+" : "";
-  return `${prefix}${value.toFixed(2)}%`;
+  if (value === null || value === undefined) return "—";
+  return `${value > 0 ? "+" : ""}${value.toFixed(2)}%`;
 }
 
-function getMovementClass(value) {
-  if (value > 0) return "rbr-srt-positive";
-  if (value < 0) return "rbr-srt-negative";
-  return "rbr-srt-neutral";
+function movementClass(value) {
+  if (value > 0) return "srt-positive";
+  if (value < 0) return "srt-negative";
+  return "srt-neutral";
 }
 
-function getStatusClass(status) {
-  return `rbr-srt-status-${status.toLowerCase()}`;
+function statusClass(status) {
+  return `srt-${status.toLowerCase()}`;
 }
 
 function Sparkline({ values, status }) {
-  const width = 120;
-  const height = 38;
-  const padding = 3;
+  const width = 104;
+  const height = 30;
+  const padding = 2;
 
   const min = Math.min(...values);
   const max = Math.max(...values);
@@ -417,20 +420,25 @@ function Sparkline({ values, status }) {
 
   return (
     <svg
-      className={`rbr-srt-sparkline ${getStatusClass(status)}`}
+      className={`srt-sparkline ${statusClass(status)}`}
       viewBox={`0 0 ${width} ${height}`}
       preserveAspectRatio="none"
       aria-hidden="true"
     >
-      <polyline points={points} fill="none" strokeWidth="2.2" />
+      <polyline
+        points={points}
+        fill="none"
+        strokeWidth="2"
+        vectorEffect="non-scaling-stroke"
+      />
     </svg>
   );
 }
 
 function StatusBadge({ status }) {
   return (
-    <span className={`rbr-srt-status-badge ${getStatusClass(status)}`}>
-      <span className="rbr-srt-status-dot" />
+    <span className={`srt-status ${statusClass(status)}`}>
+      <i />
       {status}
     </span>
   );
@@ -439,7 +447,7 @@ function StatusBadge({ status }) {
 function IndiaSectorRotationTracker() {
   const [activeTab, setActiveTab] = useState("overview");
   const [timeframe, setTimeframe] = useState("1M");
-  const [heatmapMetric, setHeatmapMetric] = useState("rotation");
+  const [heatMetric, setHeatMetric] = useState("rotation");
   const [selectedSectorId, setSelectedSectorId] = useState("it");
   const [modal, setModal] = useState(null);
 
@@ -459,27 +467,60 @@ function IndiaSectorRotationTracker() {
   const selectedSector =
     SECTORS.find((sector) => sector.id === selectedSectorId) || SECTORS[0];
 
-  const leading = SECTORS.filter((sector) => sector.status === "Leading");
-  const improving = SECTORS.filter((sector) => sector.status === "Improving");
-  const weakening = SECTORS.filter((sector) => sector.status === "Weakening");
-  const lagging = SECTORS.filter((sector) => sector.status === "Lagging");
+  const leading = SECTORS.filter((x) => x.status === "Leading");
+  const improving = SECTORS.filter((x) => x.status === "Improving");
+  const weakening = SECTORS.filter((x) => x.status === "Weakening");
+  const lagging = SECTORS.filter((x) => x.status === "Lagging");
 
-  const topSector = sortedSectors[0];
+  const strongest = sortedSectors[0];
 
   const fastestImproving = [...SECTORS].sort(
     (a, b) => b.scoreChange - a.scoreChange
   )[0];
 
-  const fastestWeakening = [...SECTORS].sort(
+  const fastestDeclining = [...SECTORS].sort(
     (a, b) => a.scoreChange - b.scoreChange
   )[0];
 
-  const handleTabClick = (tab) => {
-    if (!tab.premium || hasSubscription) {
-      setActiveTab(tab.id);
-      return;
+  const strengtheningCount = leading.length + improving.length;
+
+  const getTimeValue = (sector) => {
+    if (timeframe === "1D") return sector.oneDay;
+    if (timeframe === "5D") return sector.fiveDay;
+    if (timeframe === "1M") return sector.oneMonth;
+    if (timeframe === "3M") return sector.threeMonth;
+    if (timeframe === "6M") return sector.sixMonth;
+    return sector.oneYear;
+  };
+
+  const getHeatValue = (sector) => {
+    if (heatMetric === "1D") return formatPercent(sector.oneDay);
+    if (heatMetric === "5D") return formatPercent(sector.fiveDay);
+    if (heatMetric === "1M") return formatPercent(sector.oneMonth);
+    return `${sector.score}`;
+  };
+
+  const getHeatTileClass = (sector) => {
+    if (heatMetric === "rotation") {
+      return statusClass(sector.status);
     }
 
+    const value =
+      heatMetric === "1D"
+        ? sector.oneDay
+        : heatMetric === "5D"
+        ? sector.fiveDay
+        : sector.oneMonth;
+
+    if (value >= 2) return "srt-heat-strong-positive";
+    if (value > 0) return "srt-heat-positive";
+    if (value <= -2) return "srt-heat-strong-negative";
+    if (value < 0) return "srt-heat-negative";
+
+    return "srt-heat-neutral";
+  };
+
+  const requestPremium = () => {
     if (!isLoggedIn) {
       setModal("login");
       return;
@@ -488,564 +529,156 @@ function IndiaSectorRotationTracker() {
     setModal("subscribe");
   };
 
-  const handlePremiumAction = () => {
-    if (!isLoggedIn) {
-      setModal("login");
+  const handleTab = (tab) => {
+    if (!tab.premium || hasSubscription) {
+      setActiveTab(tab.id);
       return;
     }
 
-    if (!hasSubscription) {
-      setModal("subscribe");
-    }
+    requestPremium();
   };
 
-  const getTimeframeValue = (sector) => {
-    switch (timeframe) {
-      case "1D":
-        return sector.oneDay;
-      case "5D":
-        return sector.fiveDay;
-      case "1M":
-        return sector.oneMonth;
-      case "3M":
-        return sector.threeMonth;
-      case "6M":
-        return sector.sixMonth;
-      case "1Y":
-        return sector.oneYear;
-      default:
-        return sector.oneMonth;
-    }
-  };
+  const renderSummaryStrip = () => (
+    <div className="srt-summary-strip">
+      <div className="srt-summary-item">
+        <span>TOP SECTOR</span>
 
-  const getHeatmapValue = (sector) => {
-    switch (heatmapMetric) {
-      case "1D":
-        return formatPercent(sector.oneDay);
-      case "5D":
-        return formatPercent(sector.fiveDay);
-      case "1M":
-        return formatPercent(sector.oneMonth);
-      default:
-        return `Score ${sector.score}`;
-    }
-  };
-
-  const renderMarketGroup = (title, sectors) => (
-    <div className="rbr-srt-market-group">
-      <div className="rbr-srt-market-group-header">
-        <span className={`rbr-srt-market-dot ${getStatusClass(title)}`} />
-        <strong>{title}</strong>
-        <span>{sectors.length}</span>
+        <div>
+          <strong>{strongest.shortName}</strong>
+          <b>{strongest.score}</b>
+          <em className="srt-positive">
+            ▲ {strongest.scoreChange}
+          </em>
+        </div>
       </div>
 
-      <div className="rbr-srt-market-group-list">
-        {sectors.map((sector) => (
-          <div className="rbr-srt-market-row" key={sector.id}>
-            <div>
-              <strong>{sector.shortName}</strong>
-              <span>{sector.score}</span>
-            </div>
+      <div className="srt-summary-item">
+        <span>FASTEST IMPROVING</span>
 
-            <span
-              className={
-                sector.scoreChange >= 0
-                  ? "rbr-srt-positive"
-                  : "rbr-srt-negative"
-              }
-            >
-              {sector.scoreChange >= 0 ? "▲" : "▼"}{" "}
-              {Math.abs(sector.scoreChange)}
-            </span>
-          </div>
-        ))}
+        <div>
+          <strong>{fastestImproving.shortName}</strong>
+          <b>{fastestImproving.score}</b>
+          <em className="srt-positive">
+            ▲ {fastestImproving.scoreChange}
+          </em>
+        </div>
+      </div>
+
+      <div className="srt-summary-item">
+        <span>LOSING MOMENTUM</span>
+
+        <div>
+          <strong>{fastestDeclining.shortName}</strong>
+          <b>{fastestDeclining.score}</b>
+          <em className="srt-negative">
+            ▼ {Math.abs(fastestDeclining.scoreChange)}
+          </em>
+        </div>
+      </div>
+
+      <div className="srt-summary-item">
+        <span>MARKET BREADTH</span>
+
+        <div>
+          <strong>{strengtheningCount} / {SECTORS.length}</strong>
+          <em className="srt-positive">Positive</em>
+        </div>
       </div>
     </div>
   );
 
-  const renderOverview = () => (
-    <>
-      <section className="rbr-srt-market-overview">
-        <div className="rbr-srt-section-title-row">
-          <div>
-            <span className="rbr-srt-kicker">MARKET OVERVIEW</span>
-            <h2>Sector Rotation Today</h2>
-          </div>
-
-          <div className="rbr-srt-market-condition">
-            <span className="rbr-srt-market-condition-dot" />
-            Market breadth positive
-          </div>
+  const renderHeatmap = () => (
+    <section className="srt-card srt-heatmap-card">
+      <div className="srt-card-header">
+        <div>
+          <h2>Sector Heatmap</h2>
+          <p>
+            Quickly identify market leadership and relative sector strength.
+          </p>
         </div>
 
-        <div className="rbr-srt-market-grid">
-          {renderMarketGroup("Leading", leading)}
-          {renderMarketGroup("Improving", improving)}
-          {renderMarketGroup("Weakening", weakening)}
-          {renderMarketGroup("Lagging", lagging)}
+        <div className="srt-selector">
+          {[
+            ["rotation", "Rotation"],
+            ["1D", "1D"],
+            ["5D", "5D"],
+            ["1M", "1M"],
+          ].map(([id, label]) => (
+            <button
+              type="button"
+              key={id}
+              className={heatMetric === id ? "active" : ""}
+              onClick={() => setHeatMetric(id)}
+            >
+              {label}
+            </button>
+          ))}
         </div>
-      </section>
+      </div>
 
-      <section className="rbr-srt-insight-strip">
-        <div className="rbr-srt-insight-card">
-          <span>TOP SECTOR</span>
+      <div className="srt-heatmap">
+        {SECTORS.map((sector) => (
+          <button
+            key={sector.id}
+            type="button"
+            className={`
+              srt-heat-tile
+              ${sector.heatSize}
+              ${getHeatTileClass(sector)}
+            `}
+            onClick={() => {
+              if (!hasSubscription) {
+                requestPremium();
+                return;
+              }
 
-          <div className="rbr-srt-insight-main">
-            <strong>{topSector.shortName}</strong>
-            <b>{topSector.score}</b>
-          </div>
+              setSelectedSectorId(sector.id);
+              setActiveTab("details");
+            }}
+          >
+            <div className="srt-heat-top">
+              <strong>{sector.shortName}</strong>
 
-          <div className="rbr-srt-insight-sub">
-            <span>Rotation score</span>
-            <span className="rbr-srt-positive">
-              ▲ {topSector.scoreChange}
-            </span>
-          </div>
-        </div>
-
-        <div className="rbr-srt-insight-card">
-          <span>FASTEST IMPROVING</span>
-
-          <div className="rbr-srt-insight-main">
-            <strong>{fastestImproving.shortName}</strong>
-            <b>{fastestImproving.score}</b>
-          </div>
-
-          <div className="rbr-srt-insight-sub">
-            <span>{fastestImproving.momentum}</span>
-            <span className="rbr-srt-positive">
-              ▲ {fastestImproving.scoreChange}
-            </span>
-          </div>
-        </div>
-
-        <div className="rbr-srt-insight-card">
-          <span>LOSING MOMENTUM</span>
-
-          <div className="rbr-srt-insight-main">
-            <strong>{fastestWeakening.shortName}</strong>
-            <b>{fastestWeakening.score}</b>
-          </div>
-
-          <div className="rbr-srt-insight-sub">
-            <span>{fastestWeakening.momentum}</span>
-            <span className="rbr-srt-negative">
-              ▼ {Math.abs(fastestWeakening.scoreChange)}
-            </span>
-          </div>
-        </div>
-
-        <div className="rbr-srt-insight-card">
-          <span>SECTORS STRENGTHENING</span>
-
-          <div className="rbr-srt-insight-main">
-            <strong>{leading.length + improving.length}</strong>
-            <b className="rbr-srt-mini-label">of {SECTORS.length}</b>
-          </div>
-
-          <div className="rbr-srt-insight-sub">
-            <span>Leading + Improving</span>
-            <span className="rbr-srt-positive">Positive</span>
-          </div>
-        </div>
-      </section>
-
-      <section className="rbr-srt-panel">
-        <div className="rbr-srt-panel-header">
-          <div>
-            <h3>Sector Performance</h3>
-            <p>
-              Compare current sector movement across commonly used market
-              timeframes.
-            </p>
-          </div>
-
-          <div className="rbr-srt-timeframes">
-            {["1D", "5D", "1M", "3M", "6M", "1Y"].map((item) => (
-              <button
-                type="button"
-                key={item}
-                className={timeframe === item ? "active" : ""}
-                onClick={() => setTimeframe(item)}
+              <span
+                className={
+                  sector.scoreChange >= 0
+                    ? "srt-positive"
+                    : "srt-negative"
+                }
               >
-                {item}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="rbr-srt-table-wrap">
-          <table className="rbr-srt-table">
-            <thead>
-              <tr>
-                <th>Sector</th>
-                <th>Status</th>
-                <th>Rotation Score</th>
-                <th>{timeframe}</th>
-                <th>Momentum</th>
-                <th>Trend</th>
-              </tr>
-            </thead>
-
-            <tbody>
-              {sortedSectors.slice(0, 5).map((sector, index) => (
-                <tr key={sector.id}>
-                  <td>
-                    <div className="rbr-srt-sector-name-cell">
-                      <span>{index + 1}</span>
-                      <strong>{sector.name}</strong>
-                    </div>
-                  </td>
-
-                  <td>
-                    <StatusBadge status={sector.status} />
-                  </td>
-
-                  <td>
-                    <div className="rbr-srt-score-display">
-                      <strong>{sector.score}</strong>
-
-                      <div className="rbr-srt-score-track">
-                        <div
-                          className={`rbr-srt-score-progress ${getStatusClass(
-                            sector.status
-                          )}`}
-                          style={{ width: `${sector.score}%` }}
-                        />
-                      </div>
-                    </div>
-                  </td>
-
-                  <td
-                    className={getMovementClass(
-                      getTimeframeValue(sector)
-                    )}
-                  >
-                    <strong>
-                      {formatPercent(getTimeframeValue(sector))}
-                    </strong>
-                  </td>
-
-                  <td>{sector.momentum}</td>
-
-                  <td>
-                    <Sparkline
-                      values={sector.sparkline}
-                      status={sector.status}
-                    />
-                  </td>
-                </tr>
-              ))}
-
-              {!hasSubscription &&
-                sortedSectors.slice(5, 8).map((sector, index) => (
-                  <tr
-                    className="rbr-srt-locked-table-row"
-                    key={`locked-${index}`}
-                  >
-                    <td>
-                      <div className="rbr-srt-sector-name-cell">
-                        <span>{index + 6}</span>
-                        <strong>{sector.name}</strong>
-                      </div>
-                    </td>
-
-                    <td>
-                      <StatusBadge status={sector.status} />
-                    </td>
-
-                    <td>{sector.score}</td>
-                    <td>••••</td>
-                    <td>Subscriber</td>
-                    <td>••••••••</td>
-                  </tr>
-                ))}
-            </tbody>
-          </table>
-        </div>
-
-        {!hasSubscription && (
-          <div className="rbr-srt-table-unlock">
-            <div>
-              <strong>View the complete sector leaderboard</strong>
-              <span>
-                Rankings, momentum, multi-period performance and rotation
-                history.
+                {sector.scoreChange >= 0 ? "▲" : "▼"}{" "}
+                {Math.abs(sector.scoreChange)}
               </span>
             </div>
 
-            <button type="button" onClick={handlePremiumAction}>
-              Unlock for ₹{CONFIG.monthlyPrice}/month
-            </button>
-          </div>
-        )}
-      </section>
+            <span className="srt-heat-status">
+              {heatMetric === "rotation"
+                ? sector.status
+                : `${heatMetric} performance`}
+            </span>
 
-      <section className="rbr-srt-panel">
-        <div className="rbr-srt-panel-header">
-          <div>
-            <h3>Sector Heatmap</h3>
-            <p>
-              A visual snapshot of sector leadership and performance.
-            </p>
-          </div>
-
-          <div className="rbr-srt-timeframes">
-            {[
-              { id: "rotation", label: "Rotation" },
-              { id: "1D", label: "1D" },
-              { id: "5D", label: "5D" },
-              { id: "1M", label: "1M" },
-            ].map((item) => (
-              <button
-                type="button"
-                key={item.id}
-                className={heatmapMetric === item.id ? "active" : ""}
-                onClick={() => setHeatmapMetric(item.id)}
-              >
-                {item.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="rbr-srt-heatmap">
-          {sortedSectors.map((sector, index) => (
-            <button
-              type="button"
-              key={sector.id}
-              className={`rbr-srt-heatmap-tile ${getStatusClass(
-                sector.status
-              )} ${index < 2 ? "large" : ""}`}
-              onClick={() => {
-                if (hasSubscription) {
-                  setSelectedSectorId(sector.id);
-                  setActiveTab("details");
-                } else {
-                  handlePremiumAction();
-                }
-              }}
-            >
-              <strong>{sector.shortName}</strong>
-
-              <span>{sector.status}</span>
-
-              <b
-                className={
-                  heatmapMetric === "rotation"
-                    ? ""
-                    : getMovementClass(
-                        heatmapMetric === "1D"
-                          ? sector.oneDay
-                          : heatmapMetric === "5D"
-                          ? sector.fiveDay
-                          : sector.oneMonth
-                      )
-                }
-              >
-                {getHeatmapValue(sector)}
-              </b>
-            </button>
-          ))}
-        </div>
-      </section>
-
-      <section className="rbr-srt-today-watch">
-        <div className="rbr-srt-watch-left">
-          <span className="rbr-srt-kicker">TODAY'S ROTATION WATCH</span>
-
-          <h3>IT is gaining momentum toward market leadership</h3>
-
-          <p>
-            The IT sector currently has the largest positive change in its
-            rotation score among the sectors shown in this preview.
-          </p>
-        </div>
-
-        <div className="rbr-srt-watch-score">
-          <span>ROTATION SCORE</span>
-          <strong>79</strong>
-          <b className="rbr-srt-positive">▲ 9</b>
-        </div>
-
-        <div className="rbr-srt-watch-action">
-          <button type="button" onClick={handlePremiumAction}>
-            View detailed analysis
+            <b className="srt-heat-number">
+              {heatMetric === "rotation"
+                ? `Score ${sector.score}`
+                : getHeatValue(sector)}
+            </b>
           </button>
-
-          <span>Included with ₹{CONFIG.monthlyPrice}/month access</span>
-        </div>
-      </section>
-    </>
-  );
-
-  const renderRotationMap = () => (
-    <section className="rbr-srt-panel rbr-srt-premium-panel">
-      <div className="rbr-srt-panel-header">
-        <div>
-          <span className="rbr-srt-kicker">RELATIVE ROTATION</span>
-          <h3>Sector Rotation Map</h3>
-          <p>
-            Track sector positioning across Leading, Improving, Weakening and
-            Lagging phases.
-          </p>
-        </div>
-      </div>
-
-      <div className="rbr-srt-rrg-axis-label rbr-srt-rrg-y-label">
-        MOMENTUM ↑
-      </div>
-
-      <div className="rbr-srt-rrg">
-        <div className="rbr-srt-rrg-quadrant improving">
-          <div className="rbr-srt-rrg-title">
-            <strong>IMPROVING</strong>
-            <span>Momentum rising</span>
-          </div>
-
-          {improving.map((sector, index) => (
-            <div
-              key={sector.id}
-              className="rbr-srt-rrg-point improving"
-              style={{
-                left: `${24 + index * 18}%`,
-                top: `${34 + (index % 2) * 24}%`,
-              }}
-            >
-              <span>{sector.shortName}</span>
-              <i />
-            </div>
-          ))}
-        </div>
-
-        <div className="rbr-srt-rrg-quadrant leading">
-          <div className="rbr-srt-rrg-title">
-            <strong>LEADING</strong>
-            <span>Strong momentum</span>
-          </div>
-
-          {leading.map((sector, index) => (
-            <div
-              key={sector.id}
-              className="rbr-srt-rrg-point leading"
-              style={{
-                left: `${38 + index * 30}%`,
-                top: `${35 + index * 20}%`,
-              }}
-            >
-              <span>{sector.shortName}</span>
-              <i />
-            </div>
-          ))}
-        </div>
-
-        <div className="rbr-srt-rrg-quadrant lagging">
-          <div className="rbr-srt-rrg-title">
-            <strong>LAGGING</strong>
-            <span>Relative weakness</span>
-          </div>
-
-          {lagging.map((sector, index) => (
-            <div
-              key={sector.id}
-              className="rbr-srt-rrg-point lagging"
-              style={{
-                left: `${25 + index * 20}%`,
-                top: `${38 + index * 16}%`,
-              }}
-            >
-              <span>{sector.shortName}</span>
-              <i />
-            </div>
-          ))}
-        </div>
-
-        <div className="rbr-srt-rrg-quadrant weakening">
-          <div className="rbr-srt-rrg-title">
-            <strong>WEAKENING</strong>
-            <span>Momentum falling</span>
-          </div>
-
-          {weakening.map((sector, index) => (
-            <div
-              key={sector.id}
-              className="rbr-srt-rrg-point weakening"
-              style={{
-                left: `${28 + index * 25}%`,
-                top: `${36 + index * 19}%`,
-              }}
-            >
-              <span>{sector.shortName}</span>
-              <i />
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <div className="rbr-srt-rrg-x-label">
-        RELATIVE STRENGTH →
-      </div>
-
-      <div className="rbr-srt-rotation-history">
-        <h4>Recent Rotation History</h4>
-
-        <div className="rbr-srt-table-wrap">
-          <table className="rbr-srt-table">
-            <thead>
-              <tr>
-                <th>Sector</th>
-                <th>5 Sessions Ago</th>
-                <th>4 Sessions Ago</th>
-                <th>3 Sessions Ago</th>
-                <th>Previous</th>
-                <th>Current</th>
-                <th>Score Change</th>
-              </tr>
-            </thead>
-
-            <tbody>
-              {ROTATION_HISTORY.map((item) => (
-                <tr key={item.sector}>
-                  <td>
-                    <strong>{item.sector}</strong>
-                  </td>
-                  <td>{item.d5}</td>
-                  <td>{item.d4}</td>
-                  <td>{item.d3}</td>
-                  <td>{item.d2}</td>
-                  <td>
-                    <StatusBadge status={item.current} />
-                  </td>
-                  <td
-                    className={
-                      item.score.startsWith("+")
-                        ? "rbr-srt-positive"
-                        : "rbr-srt-negative"
-                    }
-                  >
-                    <strong>{item.score}</strong>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        ))}
       </div>
     </section>
   );
 
-  const renderRanking = () => (
-    <section className="rbr-srt-panel">
-      <div className="rbr-srt-panel-header">
+  const renderPublicLeaderboard = () => (
+    <section className="srt-card">
+      <div className="srt-card-header">
         <div>
-          <span className="rbr-srt-kicker">COMPLETE DATA</span>
-          <h3>Sector Ranking</h3>
+          <h2>Sector Leaderboard</h2>
           <p>
-            Ranked using the current RBR sector rotation score.
+            Ranking by current rotation score and market momentum.
           </p>
         </div>
 
-        <div className="rbr-srt-timeframes">
+        <div className="srt-selector">
           {["1D", "5D", "1M", "3M", "6M", "1Y"].map((item) => (
             <button
               type="button"
@@ -1059,34 +692,468 @@ function IndiaSectorRotationTracker() {
         </div>
       </div>
 
-      <div className="rbr-srt-table-wrap">
-        <table className="rbr-srt-table rbr-srt-full-ranking">
+      <div className="srt-table-scroll">
+        <table className="srt-table">
           <thead>
             <tr>
-              <th>Rank</th>
+              <th>#</th>
               <th>Sector</th>
               <th>Status</th>
-              <th>Rotation Score</th>
+              <th>1D</th>
+              <th>5D</th>
+              <th>1M</th>
+              <th>Score</th>
               <th>Change</th>
+              <th>Momentum</th>
+              <th>Trend</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            {sortedSectors.slice(0, 5).map((sector, index) => (
+              <tr key={sector.id}>
+                <td className="srt-rank">{index + 1}</td>
+
+                <td>
+                  <strong className="srt-sector-name">
+                    {sector.name}
+                  </strong>
+                </td>
+
+                <td>
+                  <StatusBadge status={sector.status} />
+                </td>
+
+                <td className={movementClass(sector.oneDay)}>
+                  {formatPercent(sector.oneDay)}
+                </td>
+
+                <td className={movementClass(sector.fiveDay)}>
+                  {formatPercent(sector.fiveDay)}
+                </td>
+
+                <td className={movementClass(sector.oneMonth)}>
+                  {formatPercent(sector.oneMonth)}
+                </td>
+
+                <td>
+                  <div className="srt-score">
+                    <strong>{sector.score}</strong>
+
+                    <span>
+                      <i
+                        className={statusClass(sector.status)}
+                        style={{ width: `${sector.score}%` }}
+                      />
+                    </span>
+                  </div>
+                </td>
+
+                <td
+                  className={
+                    sector.scoreChange >= 0
+                      ? "srt-positive"
+                      : "srt-negative"
+                  }
+                >
+                  <strong>
+                    {sector.scoreChange > 0 ? "+" : ""}
+                    {sector.scoreChange}
+                  </strong>
+                </td>
+
+                <td>{sector.momentum}</td>
+
+                <td>
+                  <Sparkline
+                    values={sector.sparkline}
+                    status={sector.status}
+                  />
+                </td>
+              </tr>
+            ))}
+
+            {!hasSubscription &&
+              sortedSectors.slice(5, 8).map((sector, index) => (
+                <tr
+                  key={sector.id}
+                  className="srt-teaser-row"
+                >
+                  <td className="srt-rank">{index + 6}</td>
+
+                  <td>
+                    <strong className="srt-sector-name">
+                      {sector.name}
+                    </strong>
+                  </td>
+
+                  <td>
+                    <StatusBadge status={sector.status} />
+                  </td>
+
+                  <td>••••</td>
+                  <td>••••</td>
+                  <td>••••</td>
+                  <td>••</td>
+                  <td>••</td>
+                  <td>Subscriber</td>
+                  <td>••••••</td>
+                </tr>
+              ))}
+          </tbody>
+        </table>
+      </div>
+
+      {!hasSubscription && (
+        <div className="srt-table-footer">
+          <div>
+            <strong>Show all {SECTORS.length} sectors</strong>
+
+            <span>
+              Complete scores, performance, momentum and rotation history.
+            </span>
+          </div>
+
+          <button type="button" onClick={requestPremium}>
+            Full tracker ₹{CONFIG.monthlyPrice}/month
+          </button>
+        </div>
+      )}
+    </section>
+  );
+
+  const renderMarketGroups = () => {
+    const groups = [
+      ["Leading", leading],
+      ["Improving", improving],
+      ["Weakening", weakening],
+      ["Lagging", lagging],
+    ];
+
+    return (
+      <section className="srt-card">
+        <div className="srt-card-header srt-compact-heading">
+          <div>
+            <h2>Market Rotation</h2>
+
+            <p>
+              Current position of major Indian equity sectors.
+            </p>
+          </div>
+
+          <span className="srt-market-positive">
+            ● Market breadth positive
+          </span>
+        </div>
+
+        <div className="srt-group-grid">
+          {groups.map(([title, sectors]) => (
+            <div
+              className={`srt-group-column ${statusClass(title)}`}
+              key={title}
+            >
+              <div className="srt-group-title">
+                <div>
+                  <i />
+                  <strong>{title}</strong>
+                </div>
+
+                <span>{sectors.length}</span>
+              </div>
+
+              {sectors.map((sector) => (
+                <div className="srt-group-sector" key={sector.id}>
+                  <div>
+                    <strong>{sector.shortName}</strong>
+                    <span>Score {sector.score}</span>
+                  </div>
+
+                  <b
+                    className={
+                      sector.scoreChange >= 0
+                        ? "srt-positive"
+                        : "srt-negative"
+                    }
+                  >
+                    {sector.scoreChange >= 0 ? "▲" : "▼"}{" "}
+                    {Math.abs(sector.scoreChange)}
+                  </b>
+                </div>
+              ))}
+            </div>
+          ))}
+        </div>
+      </section>
+    );
+  };
+
+  const renderRotationWatch = () => (
+    <section className="srt-watch">
+      <div className="srt-watch-copy">
+        <span>TODAY'S ROTATION WATCH</span>
+
+        <h2>IT is gaining momentum toward market leadership</h2>
+
+        <p>
+          IT currently has the strongest positive change in rotation
+          score among the tracked sectors.
+        </p>
+      </div>
+
+      <div className="srt-watch-metric">
+        <span>ROTATION SCORE</span>
+        <strong>79</strong>
+        <b className="srt-positive">▲ 9</b>
+      </div>
+
+      <button type="button" onClick={requestPremium}>
+        Why is IT improving?
+        <span>Subscriber analysis</span>
+      </button>
+    </section>
+  );
+
+  const renderOverview = () => (
+    <>
+      {renderSummaryStrip()}
+
+      <div className="srt-overview-grid">
+        <div className="srt-overview-main">
+          {renderHeatmap()}
+        </div>
+
+        <div className="srt-overview-side">
+          {renderMarketGroups()}
+        </div>
+      </div>
+
+      {renderPublicLeaderboard()}
+
+      {renderRotationWatch()}
+    </>
+  );
+
+  const renderRotationMap = () => (
+    <>
+      <section className="srt-card">
+        <div className="srt-card-header">
+          <div>
+            <h2>Sector Rotation Map</h2>
+
+            <p>
+              Relative strength versus momentum across the four rotation
+              phases.
+            </p>
+          </div>
+        </div>
+
+        <div className="srt-rrg-wrapper">
+          <div className="srt-y-label">MOMENTUM ↑</div>
+
+          <div className="srt-rrg">
+            <div className="srt-quadrant improving">
+              <div className="srt-quadrant-title">
+                <strong>IMPROVING</strong>
+                <span>Momentum rising</span>
+              </div>
+
+              {improving.map((sector, index) => (
+                <div
+                  key={sector.id}
+                  className="srt-rrg-point improving"
+                  style={{
+                    left: `${22 + index * 17}%`,
+                    top: `${40 + (index % 2) * 22}%`,
+                  }}
+                >
+                  <i />
+                  <span>{sector.shortName}</span>
+                </div>
+              ))}
+            </div>
+
+            <div className="srt-quadrant leading">
+              <div className="srt-quadrant-title">
+                <strong>LEADING</strong>
+                <span>Strong relative momentum</span>
+              </div>
+
+              {leading.map((sector, index) => (
+                <div
+                  key={sector.id}
+                  className="srt-rrg-point leading"
+                  style={{
+                    left: `${40 + index * 28}%`,
+                    top: `${38 + index * 20}%`,
+                  }}
+                >
+                  <i />
+                  <span>{sector.shortName}</span>
+                </div>
+              ))}
+            </div>
+
+            <div className="srt-quadrant lagging">
+              <div className="srt-quadrant-title">
+                <strong>LAGGING</strong>
+                <span>Relative weakness</span>
+              </div>
+
+              {lagging.map((sector, index) => (
+                <div
+                  key={sector.id}
+                  className="srt-rrg-point lagging"
+                  style={{
+                    left: `${22 + index * 19}%`,
+                    top: `${38 + index * 17}%`,
+                  }}
+                >
+                  <i />
+                  <span>{sector.shortName}</span>
+                </div>
+              ))}
+            </div>
+
+            <div className="srt-quadrant weakening">
+              <div className="srt-quadrant-title">
+                <strong>WEAKENING</strong>
+                <span>Momentum falling</span>
+              </div>
+
+              {weakening.map((sector, index) => (
+                <div
+                  key={sector.id}
+                  className="srt-rrg-point weakening"
+                  style={{
+                    left: `${28 + index * 22}%`,
+                    top: `${40 + index * 18}%`,
+                  }}
+                >
+                  <i />
+                  <span>{sector.shortName}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="srt-x-label">
+            RELATIVE STRENGTH →
+          </div>
+        </div>
+      </section>
+
+      <section className="srt-card">
+        <div className="srt-card-header">
+          <div>
+            <h2>Recent Rotation History</h2>
+
+            <p>
+              How selected sectors have moved through rotation phases.
+            </p>
+          </div>
+        </div>
+
+        <div className="srt-table-scroll">
+          <table className="srt-table">
+            <thead>
+              <tr>
+                <th>Sector</th>
+                <th>5 sessions ago</th>
+                <th>4 sessions ago</th>
+                <th>3 sessions ago</th>
+                <th>Previous</th>
+                <th>Current</th>
+                <th>Score change</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              {ROTATION_HISTORY.map((item) => (
+                <tr key={item.sector}>
+                  <td>
+                    <strong>{item.sector}</strong>
+                  </td>
+                  <td>{item.old1}</td>
+                  <td>{item.old2}</td>
+                  <td>{item.old3}</td>
+                  <td>{item.previous}</td>
+
+                  <td>
+                    <StatusBadge status={item.current} />
+                  </td>
+
+                  <td
+                    className={
+                      item.change >= 0
+                        ? "srt-positive"
+                        : "srt-negative"
+                    }
+                  >
+                    <strong>
+                      {item.change >= 0 ? "+" : ""}
+                      {item.change}
+                    </strong>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </>
+  );
+
+  const renderRanking = () => (
+    <section className="srt-card">
+      <div className="srt-card-header">
+        <div>
+          <h2>Complete Sector Ranking</h2>
+          <p>
+            Compare rotation score, trend and multi-period performance.
+          </p>
+        </div>
+
+        <div className="srt-selector">
+          {["1D", "5D", "1M", "3M", "6M", "1Y"].map((item) => (
+            <button
+              type="button"
+              key={item}
+              className={timeframe === item ? "active" : ""}
+              onClick={() => setTimeframe(item)}
+            >
+              {item}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="srt-table-scroll">
+        <table className="srt-table srt-full-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Sector</th>
+              <th>Status</th>
               <th>1D</th>
               <th>5D</th>
               <th>1M</th>
               <th>3M</th>
+              <th>Rotation score</th>
+              <th>Change</th>
               <th>Momentum</th>
+              <th>Trend</th>
             </tr>
           </thead>
 
           <tbody>
             {sortedSectors.map((sector, index) => (
               <tr key={sector.id}>
-                <td>
-                  <span className="rbr-srt-rank">#{index + 1}</span>
-                </td>
+                <td className="srt-rank">{index + 1}</td>
 
                 <td>
                   <button
                     type="button"
-                    className="rbr-srt-sector-link"
+                    className="srt-sector-link"
                     onClick={() => {
                       setSelectedSectorId(sector.id);
                       setActiveTab("details");
@@ -1100,51 +1167,54 @@ function IndiaSectorRotationTracker() {
                   <StatusBadge status={sector.status} />
                 </td>
 
+                <td className={movementClass(sector.oneDay)}>
+                  {formatPercent(sector.oneDay)}
+                </td>
+
+                <td className={movementClass(sector.fiveDay)}>
+                  {formatPercent(sector.fiveDay)}
+                </td>
+
+                <td className={movementClass(sector.oneMonth)}>
+                  {formatPercent(sector.oneMonth)}
+                </td>
+
+                <td className={movementClass(sector.threeMonth)}>
+                  {formatPercent(sector.threeMonth)}
+                </td>
+
                 <td>
-                  <div className="rbr-srt-score-display">
+                  <div className="srt-score">
                     <strong>{sector.score}</strong>
 
-                    <div className="rbr-srt-score-track">
-                      <div
-                        className={`rbr-srt-score-progress ${getStatusClass(
-                          sector.status
-                        )}`}
+                    <span>
+                      <i
+                        className={statusClass(sector.status)}
                         style={{ width: `${sector.score}%` }}
                       />
-                    </div>
+                    </span>
                   </div>
                 </td>
 
                 <td
                   className={
                     sector.scoreChange >= 0
-                      ? "rbr-srt-positive"
-                      : "rbr-srt-negative"
+                      ? "srt-positive"
+                      : "srt-negative"
                   }
                 >
-                  <strong>
-                    {sector.scoreChange >= 0 ? "+" : ""}
-                    {sector.scoreChange}
-                  </strong>
-                </td>
-
-                <td className={getMovementClass(sector.oneDay)}>
-                  {formatPercent(sector.oneDay)}
-                </td>
-
-                <td className={getMovementClass(sector.fiveDay)}>
-                  {formatPercent(sector.fiveDay)}
-                </td>
-
-                <td className={getMovementClass(sector.oneMonth)}>
-                  {formatPercent(sector.oneMonth)}
-                </td>
-
-                <td className={getMovementClass(sector.threeMonth)}>
-                  {formatPercent(sector.threeMonth)}
+                  {sector.scoreChange > 0 ? "+" : ""}
+                  {sector.scoreChange}
                 </td>
 
                 <td>{sector.momentum}</td>
+
+                <td>
+                  <Sparkline
+                    values={sector.sparkline}
+                    status={sector.status}
+                  />
+                </td>
               </tr>
             ))}
           </tbody>
@@ -1154,85 +1224,78 @@ function IndiaSectorRotationTracker() {
   );
 
   const renderPerformance = () => (
-    <>
-      <section className="rbr-srt-panel">
-        <div className="rbr-srt-panel-header">
-          <div>
-            <span className="rbr-srt-kicker">MULTI-PERIOD PERFORMANCE</span>
-            <h3>Sector Performance Comparison</h3>
-            <p>
-              Compare short and medium-term sector returns alongside current
-              rotation status.
-            </p>
-          </div>
+    <section className="srt-card">
+      <div className="srt-card-header">
+        <div>
+          <h2>Sector Performance</h2>
+          <p>
+            Multi-period performance alongside current rotation position.
+          </p>
         </div>
+      </div>
 
-        <div className="rbr-srt-performance-grid">
-          {sortedSectors.map((sector) => (
-            <button
-              className="rbr-srt-performance-card"
-              type="button"
-              key={sector.id}
-              onClick={() => {
-                setSelectedSectorId(sector.id);
-                setActiveTab("details");
-              }}
-            >
-              <div className="rbr-srt-performance-card-top">
-                <div>
-                  <strong>{sector.shortName}</strong>
-                  <StatusBadge status={sector.status} />
-                </div>
-
-                <span className="rbr-srt-performance-score">
-                  {sector.score}
-                </span>
+      <div className="srt-performance-grid">
+        {sortedSectors.map((sector) => (
+          <button
+            type="button"
+            key={sector.id}
+            className="srt-performance-tile"
+            onClick={() => {
+              setSelectedSectorId(sector.id);
+              setActiveTab("details");
+            }}
+          >
+            <div className="srt-performance-heading">
+              <div>
+                <strong>{sector.shortName}</strong>
+                <StatusBadge status={sector.status} />
               </div>
 
-              <Sparkline
-                values={sector.sparkline}
-                status={sector.status}
-              />
+              <b>{sector.score}</b>
+            </div>
 
-              <div className="rbr-srt-performance-periods">
-                <div>
-                  <span>1D</span>
-                  <b className={getMovementClass(sector.oneDay)}>
-                    {formatPercent(sector.oneDay)}
-                  </b>
-                </div>
+            <Sparkline
+              values={sector.sparkline}
+              status={sector.status}
+            />
 
-                <div>
-                  <span>1M</span>
-                  <b className={getMovementClass(sector.oneMonth)}>
-                    {formatPercent(sector.oneMonth)}
-                  </b>
-                </div>
-
-                <div>
-                  <span>3M</span>
-                  <b className={getMovementClass(sector.threeMonth)}>
-                    {formatPercent(sector.threeMonth)}
-                  </b>
-                </div>
+            <div className="srt-performance-values">
+              <div>
+                <span>1D</span>
+                <strong className={movementClass(sector.oneDay)}>
+                  {formatPercent(sector.oneDay)}
+                </strong>
               </div>
-            </button>
-          ))}
-        </div>
-      </section>
-    </>
+
+              <div>
+                <span>1M</span>
+                <strong className={movementClass(sector.oneMonth)}>
+                  {formatPercent(sector.oneMonth)}
+                </strong>
+              </div>
+
+              <div>
+                <span>3M</span>
+                <strong className={movementClass(sector.threeMonth)}>
+                  {formatPercent(sector.threeMonth)}
+                </strong>
+              </div>
+            </div>
+          </button>
+        ))}
+      </div>
+    </section>
   );
 
   const renderDetails = () => {
     const drivers =
-      STOCK_DRIVERS[selectedSector.shortName] ||
-      STOCK_DRIVERS.IT;
+      STOCK_DRIVERS[selectedSector.shortName] || STOCK_DRIVERS.IT;
 
     return (
       <>
-        <section className="rbr-srt-panel">
-          <div className="rbr-srt-sector-picker">
-            <span>View sector</span>
+        <section className="srt-card">
+          <div className="srt-sector-picker">
+            <span>SELECT SECTOR</span>
 
             <select
               value={selectedSectorId}
@@ -1248,30 +1311,31 @@ function IndiaSectorRotationTracker() {
             </select>
           </div>
 
-          <div className="rbr-srt-sector-detail-header">
+          <div className="srt-detail-header">
             <div>
-              <span className="rbr-srt-kicker">SECTOR DEEP DIVE</span>
+              <span className="srt-label">SECTOR DEEP DIVE</span>
 
-              <h2>{selectedSector.name}</h2>
+              <h1>{selectedSector.name}</h1>
 
-              <div className="rbr-srt-sector-detail-status">
+              <div className="srt-detail-status">
                 <StatusBadge status={selectedSector.status} />
 
                 <span>
-                  Momentum: <strong>{selectedSector.momentum}</strong>
+                  Momentum:
+                  <strong> {selectedSector.momentum}</strong>
                 </span>
               </div>
             </div>
 
-            <div className="rbr-srt-big-score">
+            <div className="srt-big-score">
               <span>RBR ROTATION SCORE</span>
               <strong>{selectedSector.score}</strong>
 
               <b
                 className={
                   selectedSector.scoreChange >= 0
-                    ? "rbr-srt-positive"
-                    : "rbr-srt-negative"
+                    ? "srt-positive"
+                    : "srt-negative"
                 }
               >
                 {selectedSector.scoreChange >= 0 ? "▲" : "▼"}{" "}
@@ -1280,7 +1344,7 @@ function IndiaSectorRotationTracker() {
             </div>
           </div>
 
-          <div className="rbr-srt-sector-stats">
+          <div className="srt-detail-metrics">
             <div>
               <span>Relative Strength</span>
               <strong>{selectedSector.relativeStrength}</strong>
@@ -1308,15 +1372,13 @@ function IndiaSectorRotationTracker() {
           </div>
         </section>
 
-        <section className="rbr-srt-detail-columns">
-          <div className="rbr-srt-panel">
-            <div className="rbr-srt-panel-header">
-              <div>
-                <h3>Performance</h3>
-              </div>
+        <div className="srt-detail-grid">
+          <section className="srt-card">
+            <div className="srt-card-header">
+              <h2>Performance</h2>
             </div>
 
-            <div className="rbr-srt-detail-performance-list">
+            <div className="srt-detail-list">
               {[
                 ["1 Day", selectedSector.oneDay],
                 ["5 Days", selectedSector.fiveDay],
@@ -1327,38 +1389,34 @@ function IndiaSectorRotationTracker() {
               ].map(([label, value]) => (
                 <div key={label}>
                   <span>{label}</span>
-                  <strong className={getMovementClass(value)}>
+
+                  <strong className={movementClass(value)}>
                     {formatPercent(value)}
                   </strong>
                 </div>
               ))}
             </div>
-          </div>
+          </section>
 
-          <div className="rbr-srt-panel">
-            <div className="rbr-srt-panel-header">
-              <div>
-                <h3>Stocks Driving Movement</h3>
-              </div>
+          <section className="srt-card">
+            <div className="srt-card-header">
+              <h2>Stocks Driving Movement</h2>
             </div>
 
-            <div className="rbr-srt-stock-driver-list">
+            <div className="srt-driver-list">
               {drivers.map((stock, index) => (
                 <div key={stock.name}>
-                  <span className="rbr-srt-stock-rank">
-                    {index + 1}
-                  </span>
-
+                  <span>{index + 1}</span>
                   <strong>{stock.name}</strong>
 
-                  <b className="rbr-srt-positive">
-                    {stock.contribution}
+                  <b className={movementClass(stock.move)}>
+                    {formatPercent(stock.move)}
                   </b>
                 </div>
               ))}
             </div>
-          </div>
-        </section>
+          </section>
+        </div>
       </>
     );
   };
@@ -1366,1657 +1424,1576 @@ function IndiaSectorRotationTracker() {
   return (
     <>
       <style>{`
-        .rbr-srt-page {
-          --rbr-ink: #1d2735;
-          --rbr-muted: #697586;
-          --rbr-border: #e5e9ef;
-          --rbr-soft: #f7f9fb;
-          --rbr-blue: #1769d2;
-          --rbr-blue-dark: #1155ad;
-          --rbr-green: #15845b;
-          --rbr-green-soft: #eaf7f1;
-          --rbr-blue-soft: #edf4ff;
-          --rbr-orange: #a36b14;
-          --rbr-orange-soft: #fff5e6;
-          --rbr-red: #bd4c4c;
-          --rbr-red-soft: #fff0f0;
+        .srt-page {
+          --ink: #202b38;
+          --muted: #697687;
+          --border: #dde3ea;
+          --soft: #f5f7f9;
+          --blue: #1670cf;
+          --blue-dark: #0e59ad;
+          --green: #17835c;
+          --red: #bd4d4d;
+          --amber: #a66b13;
 
+          background: #f4f6f8;
           min-height: 100vh;
-          background: #f6f8fa;
-          color: var(--rbr-ink);
+          color: var(--ink);
           font-family:
             Inter,
             -apple-system,
             BlinkMacSystemFont,
             "Segoe UI",
             Roboto,
-            Helvetica,
             Arial,
             sans-serif;
           text-align: left;
         }
 
-        .rbr-srt-page * {
+        .srt-page * {
           box-sizing: border-box;
         }
 
-        .rbr-srt-container {
-          width: min(1220px, calc(100% - 36px));
+        .srt-container {
+          width: min(1240px, calc(100% - 32px));
           margin: 0 auto;
         }
 
-        .rbr-srt-page-header {
-          background: #ffffff;
-          border-bottom: 1px solid var(--rbr-border);
+        /* HEADER */
+
+        .srt-header {
+          background: #fff;
+          border-bottom: 1px solid var(--border);
         }
 
-        .rbr-srt-header-inner {
-          padding: 26px 0 0;
+        .srt-header-inner {
+          padding-top: 20px;
         }
 
-        .rbr-srt-breadcrumb {
-          font-size: 12px;
-          color: #7b8593;
-          margin-bottom: 22px;
+        .srt-breadcrumb {
+          color: #758192;
+          font-size: 11px;
+          margin-bottom: 16px;
         }
 
-        .rbr-srt-breadcrumb b {
-          color: #4c5969;
-          font-weight: 500;
+        .srt-breadcrumb strong {
+          color: #465365;
+          font-weight: 600;
         }
 
-        .rbr-srt-title-row {
+        .srt-title-row {
           display: flex;
-          align-items: flex-start;
           justify-content: space-between;
+          align-items: flex-start;
           gap: 30px;
-          padding-bottom: 22px;
+          padding-bottom: 17px;
         }
 
-        .rbr-srt-title-row h1 {
+        .srt-title-row h1 {
           margin: 0;
-          font-size: clamp(27px, 3vw, 38px);
+          font-size: 32px;
           line-height: 1.1;
           letter-spacing: -0.035em;
-          font-weight: 720;
+          font-weight: 730;
         }
 
-        .rbr-srt-title-row p {
-          margin: 8px 0 0;
-          font-size: 14px;
-          line-height: 1.5;
-          color: var(--rbr-muted);
+        .srt-title-row p {
+          margin: 6px 0 0;
+          color: var(--muted);
+          font-size: 13px;
         }
 
-        .rbr-srt-update-box {
-          flex: 0 0 auto;
+        .srt-update {
           text-align: right;
         }
 
-        .rbr-srt-update-box strong {
+        .srt-update span,
+        .srt-update strong {
           display: block;
-          font-size: 13px;
         }
 
-        .rbr-srt-update-box span {
-          display: block;
-          margin-top: 4px;
-          font-size: 11px;
-          color: var(--rbr-muted);
+        .srt-update span:first-child {
+          margin-bottom: 4px;
+          color: var(--green);
+          font-size: 10px;
+          font-weight: 650;
         }
 
-        .rbr-srt-live {
-          display: inline-flex !important;
-          align-items: center;
-          gap: 7px;
-          margin-bottom: 6px;
-          color: #327154 !important;
+        .srt-update strong {
+          font-size: 12px;
         }
 
-        .rbr-srt-live::before {
-          content: "";
-          width: 7px;
-          height: 7px;
-          background: #24a66a;
-          border-radius: 50%;
+        .srt-update span:last-child {
+          margin-top: 3px;
+          color: var(--muted);
+          font-size: 9px;
         }
 
-        .rbr-srt-main-tabs {
+        .srt-tabs {
           display: flex;
+          gap: 0;
           overflow-x: auto;
-          gap: 3px;
           scrollbar-width: none;
         }
 
-        .rbr-srt-main-tabs::-webkit-scrollbar {
+        .srt-tabs::-webkit-scrollbar {
           display: none;
         }
 
-        .rbr-srt-main-tab {
+        .srt-tabs button {
           position: relative;
-          flex: 0 0 auto;
-          padding: 13px 17px 14px;
           border: 0;
           background: transparent;
-          color: #657184;
-          cursor: pointer;
-          font-size: 13px;
+          padding: 11px 15px 13px;
+          color: #5e6b7d;
+          font-size: 12px;
           font-weight: 600;
+          cursor: pointer;
           white-space: nowrap;
         }
 
-        .rbr-srt-main-tab:hover {
-          color: var(--rbr-blue);
+        .srt-tabs button:hover,
+        .srt-tabs button.active {
+          color: var(--blue);
         }
 
-        .rbr-srt-main-tab.active {
-          color: var(--rbr-blue);
-        }
-
-        .rbr-srt-main-tab.active::after {
+        .srt-tabs button.active::after {
           content: "";
           position: absolute;
           left: 12px;
           right: 12px;
           bottom: 0;
           height: 3px;
-          border-radius: 3px 3px 0 0;
-          background: var(--rbr-blue);
+          background: var(--blue);
         }
 
-        .rbr-srt-tab-premium {
+        .srt-tabs small {
           margin-left: 5px;
-          font-size: 9px;
-          color: #9aa4b1;
+          color: #9ba5b2;
+          font-size: 8px;
         }
 
-        .rbr-srt-body {
-          padding: 22px 0 84px;
+        /* BODY */
+
+        .srt-body {
+          padding: 15px 0 70px;
         }
 
-        .rbr-srt-sample-notice {
+        .srt-preview-notice {
           display: flex;
-          align-items: flex-start;
-          gap: 10px;
-          margin-bottom: 16px;
-          padding: 11px 14px;
-          border: 1px solid #ead8a3;
-          background: #fffbed;
-          border-radius: 5px;
-          font-size: 12px;
-          line-height: 1.5;
-          color: #725f27;
-        }
-
-        .rbr-srt-sample-notice strong {
-          flex: 0 0 auto;
-        }
-
-        .rbr-srt-market-overview,
-        .rbr-srt-panel {
-          background: #ffffff;
-          border: 1px solid var(--rbr-border);
-          border-radius: 5px;
-          margin-bottom: 16px;
-        }
-
-        .rbr-srt-market-overview {
-          padding: 21px;
-        }
-
-        .rbr-srt-section-title-row,
-        .rbr-srt-panel-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: flex-start;
-          gap: 20px;
-        }
-
-        .rbr-srt-section-title-row {
-          margin-bottom: 20px;
-        }
-
-        .rbr-srt-panel-header {
-          padding: 19px 20px 15px;
-          border-bottom: 1px solid var(--rbr-border);
-        }
-
-        .rbr-srt-kicker {
-          display: block;
-          margin-bottom: 5px;
-          font-size: 10px;
-          font-weight: 750;
-          letter-spacing: 0.08em;
-          color: #7b8798;
-        }
-
-        .rbr-srt-section-title-row h2,
-        .rbr-srt-panel-header h3 {
-          margin: 0;
-          letter-spacing: -0.02em;
-        }
-
-        .rbr-srt-section-title-row h2 {
-          font-size: 21px;
-        }
-
-        .rbr-srt-panel-header h3 {
-          font-size: 18px;
-        }
-
-        .rbr-srt-panel-header p {
-          margin: 5px 0 0;
-          font-size: 12px;
-          color: var(--rbr-muted);
-        }
-
-        .rbr-srt-market-condition {
-          display: flex;
+          gap: 8px;
           align-items: center;
-          gap: 7px;
-          font-size: 11px;
-          color: #3f6e57;
+          margin-bottom: 10px;
+          padding: 9px 12px;
+          background: #fff9e7;
+          border: 1px solid #e7d7a0;
+          border-radius: 3px;
+          color: #6f5e28;
+          font-size: 10px;
         }
 
-        .rbr-srt-market-condition-dot {
-          width: 7px;
-          height: 7px;
-          border-radius: 50%;
-          background: #28a16a;
-        }
+        /* SUMMARY BAR */
 
-        .rbr-srt-market-grid {
+        .srt-summary-strip {
           display: grid;
           grid-template-columns: repeat(4, 1fr);
-          border: 1px solid var(--rbr-border);
+          margin-bottom: 10px;
+          border: 1px solid var(--border);
           border-radius: 4px;
+          background: #fff;
           overflow: hidden;
         }
 
-        .rbr-srt-market-group {
-          min-width: 0;
-          border-right: 1px solid var(--rbr-border);
+        .srt-summary-item {
+          padding: 12px 15px;
+          border-right: 1px solid var(--border);
         }
 
-        .rbr-srt-market-group:last-child {
+        .srt-summary-item:last-child {
           border-right: 0;
         }
 
-        .rbr-srt-market-group-header {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          padding: 11px 13px;
-          background: var(--rbr-soft);
-          border-bottom: 1px solid var(--rbr-border);
-          font-size: 11px;
-        }
-
-        .rbr-srt-market-group-header strong {
-          flex: 1;
-          font-size: 11px;
-          letter-spacing: 0.03em;
-          text-transform: uppercase;
-        }
-
-        .rbr-srt-market-group-header > span:last-child {
-          color: #8791a0;
-        }
-
-        .rbr-srt-market-dot,
-        .rbr-srt-status-dot {
-          width: 7px;
-          height: 7px;
-          border-radius: 50%;
-          flex: 0 0 auto;
-        }
-
-        .rbr-srt-market-dot.rbr-srt-status-leading,
-        .rbr-srt-status-leading .rbr-srt-status-dot {
-          background: var(--rbr-green);
-        }
-
-        .rbr-srt-market-dot.rbr-srt-status-improving,
-        .rbr-srt-status-improving .rbr-srt-status-dot {
-          background: var(--rbr-blue);
-        }
-
-        .rbr-srt-market-dot.rbr-srt-status-weakening,
-        .rbr-srt-status-weakening .rbr-srt-status-dot {
-          background: #d7932d;
-        }
-
-        .rbr-srt-market-dot.rbr-srt-status-lagging,
-        .rbr-srt-status-lagging .rbr-srt-status-dot {
-          background: var(--rbr-red);
-        }
-
-        .rbr-srt-market-row {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          gap: 10px;
-          padding: 11px 13px;
-          border-bottom: 1px solid #edf0f4;
-        }
-
-        .rbr-srt-market-row:last-child {
-          border-bottom: 0;
-        }
-
-        .rbr-srt-market-row > div {
-          min-width: 0;
-        }
-
-        .rbr-srt-market-row > div strong {
-          display: inline-block;
-          margin-right: 7px;
-          font-size: 13px;
-        }
-
-        .rbr-srt-market-row > div span {
-          font-size: 11px;
-          color: #8993a1;
-        }
-
-        .rbr-srt-market-row > span {
-          font-size: 10px;
-          font-weight: 650;
-        }
-
-        .rbr-srt-positive {
-          color: #15845b !important;
-        }
-
-        .rbr-srt-negative {
-          color: #c04c4c !important;
-        }
-
-        .rbr-srt-neutral {
-          color: #697586 !important;
-        }
-
-        .rbr-srt-insight-strip {
-          display: grid;
-          grid-template-columns: repeat(4, 1fr);
-          gap: 10px;
-          margin-bottom: 16px;
-        }
-
-        .rbr-srt-insight-card {
-          padding: 15px 16px;
-          background: #ffffff;
-          border: 1px solid var(--rbr-border);
-          border-radius: 5px;
-        }
-
-        .rbr-srt-insight-card > span:first-child {
+        .srt-summary-item > span {
           display: block;
-          margin-bottom: 12px;
-          font-size: 9px;
+          margin-bottom: 7px;
+          color: #778394;
+          font-size: 8px;
           font-weight: 750;
-          letter-spacing: 0.07em;
-          color: #838e9e;
+          letter-spacing: .07em;
         }
 
-        .rbr-srt-insight-main {
+        .srt-summary-item > div {
           display: flex;
           align-items: baseline;
-          justify-content: space-between;
-          gap: 12px;
+          gap: 8px;
         }
 
-        .rbr-srt-insight-main strong {
-          min-width: 0;
-          font-size: 20px;
-          letter-spacing: -0.025em;
+        .srt-summary-item strong {
+          font-size: 17px;
         }
 
-        .rbr-srt-insight-main b {
-          font-size: 20px;
+        .srt-summary-item b {
+          color: #465365;
+          font-size: 14px;
+        }
+
+        .srt-summary-item em {
+          margin-left: auto;
+          font-size: 10px;
+          font-style: normal;
           font-weight: 650;
         }
 
-        .rbr-srt-mini-label {
-          font-size: 11px !important;
-          color: var(--rbr-muted);
+        .srt-positive {
+          color: var(--green) !important;
         }
 
-        .rbr-srt-insight-sub {
+        .srt-negative {
+          color: var(--red) !important;
+        }
+
+        .srt-neutral {
+          color: var(--muted) !important;
+        }
+
+        /* OVERVIEW GRID */
+
+        .srt-overview-grid {
+          display: grid;
+          grid-template-columns: 1.45fr .75fr;
+          gap: 10px;
+          align-items: stretch;
+        }
+
+        .srt-card {
+          margin-bottom: 10px;
+          border: 1px solid var(--border);
+          border-radius: 4px;
+          background: #fff;
+          overflow: hidden;
+        }
+
+        .srt-overview-grid .srt-card {
+          height: calc(100% - 10px);
+        }
+
+        .srt-card-header {
+          min-height: 59px;
           display: flex;
           justify-content: space-between;
           align-items: center;
-          gap: 10px;
-          margin-top: 6px;
-          font-size: 10px;
-          color: var(--rbr-muted);
+          gap: 15px;
+          padding: 13px 15px;
+          border-bottom: 1px solid var(--border);
         }
 
-        .rbr-srt-timeframes {
+        .srt-card-header h2 {
+          margin: 0;
+          font-size: 16px;
+          letter-spacing: -0.015em;
+        }
+
+        .srt-card-header p {
+          margin: 3px 0 0;
+          color: var(--muted);
+          font-size: 9px;
+        }
+
+        .srt-selector {
           display: flex;
-          align-items: center;
-          overflow-x: auto;
-          border: 1px solid var(--rbr-border);
-          border-radius: 4px;
+          border: 1px solid #dce2e9;
+          border-radius: 3px;
+          overflow: hidden;
           background: #fff;
         }
 
-        .rbr-srt-timeframes button {
-          padding: 7px 9px;
+        .srt-selector button {
           border: 0;
-          border-right: 1px solid var(--rbr-border);
-          background: transparent;
-          color: #667285;
-          cursor: pointer;
-          font-size: 10px;
+          border-right: 1px solid #dce2e9;
+          padding: 6px 9px;
+          background: #fff;
+          color: #5f6b7b;
+          font-size: 9px;
           font-weight: 650;
-          white-space: nowrap;
+          cursor: pointer;
         }
 
-        .rbr-srt-timeframes button:last-child {
+        .srt-selector button:last-child {
           border-right: 0;
         }
 
-        .rbr-srt-timeframes button.active {
-          color: var(--rbr-blue);
-          background: #edf4ff;
+        .srt-selector button.active {
+          background: #eaf3ff;
+          color: var(--blue);
         }
 
-        .rbr-srt-table-wrap {
-          width: 100%;
-          overflow-x: auto;
-        }
+        /* HEATMAP */
 
-        .rbr-srt-table {
-          width: 100%;
-          min-width: 760px;
-          border-collapse: collapse;
-        }
-
-        .rbr-srt-table th {
-          padding: 10px 14px;
-          background: #f8f9fb;
-          border-bottom: 1px solid var(--rbr-border);
-          color: #778292;
-          font-size: 9px;
-          font-weight: 750;
-          letter-spacing: 0.045em;
-          text-align: left;
-          text-transform: uppercase;
-          white-space: nowrap;
-        }
-
-        .rbr-srt-table td {
-          padding: 12px 14px;
-          border-bottom: 1px solid #edf0f4;
-          font-size: 11px;
-          color: #465365;
-          white-space: nowrap;
-          vertical-align: middle;
-        }
-
-        .rbr-srt-table tbody tr:last-child td {
-          border-bottom: 0;
-        }
-
-        .rbr-srt-table tbody tr:hover {
-          background: #fafbfd;
-        }
-
-        .rbr-srt-sector-name-cell {
-          display: flex;
-          align-items: center;
-          gap: 10px;
-        }
-
-        .rbr-srt-sector-name-cell > span {
-          width: 18px;
-          color: #9aa4b2;
-          font-size: 10px;
-        }
-
-        .rbr-srt-sector-name-cell strong {
-          color: #293545;
-          font-size: 12px;
-        }
-
-        .rbr-srt-status-badge {
-          display: inline-flex;
-          align-items: center;
-          gap: 6px;
-          padding: 4px 7px;
-          border-radius: 3px;
-          font-size: 9px;
-          font-weight: 650;
-        }
-
-        .rbr-srt-status-badge.rbr-srt-status-leading {
-          color: #176a4b;
-          background: var(--rbr-green-soft);
-        }
-
-        .rbr-srt-status-badge.rbr-srt-status-improving {
-          color: #235da4;
-          background: var(--rbr-blue-soft);
-        }
-
-        .rbr-srt-status-badge.rbr-srt-status-weakening {
-          color: #8f6119;
-          background: var(--rbr-orange-soft);
-        }
-
-        .rbr-srt-status-badge.rbr-srt-status-lagging {
-          color: #a84949;
-          background: var(--rbr-red-soft);
-        }
-
-        .rbr-srt-score-display {
-          display: flex;
-          align-items: center;
-          gap: 9px;
-        }
-
-        .rbr-srt-score-display strong {
-          width: 22px;
-          font-size: 11px;
-        }
-
-        .rbr-srt-score-track {
-          width: 70px;
-          height: 4px;
-          overflow: hidden;
-          border-radius: 5px;
-          background: #e9edf2;
-        }
-
-        .rbr-srt-score-progress {
-          height: 100%;
-          border-radius: inherit;
-        }
-
-        .rbr-srt-score-progress.rbr-srt-status-leading {
-          background: var(--rbr-green);
-        }
-
-        .rbr-srt-score-progress.rbr-srt-status-improving {
-          background: var(--rbr-blue);
-        }
-
-        .rbr-srt-score-progress.rbr-srt-status-weakening {
-          background: #d7932d;
-        }
-
-        .rbr-srt-score-progress.rbr-srt-status-lagging {
-          background: var(--rbr-red);
-        }
-
-        .rbr-srt-sparkline {
-          display: block;
-          width: 78px;
-          height: 25px;
-        }
-
-        .rbr-srt-sparkline.rbr-srt-status-leading polyline {
-          stroke: var(--rbr-green);
-        }
-
-        .rbr-srt-sparkline.rbr-srt-status-improving polyline {
-          stroke: var(--rbr-blue);
-        }
-
-        .rbr-srt-sparkline.rbr-srt-status-weakening polyline {
-          stroke: #d18b23;
-        }
-
-        .rbr-srt-sparkline.rbr-srt-status-lagging polyline {
-          stroke: var(--rbr-red);
-        }
-
-        .rbr-srt-locked-table-row {
-          position: relative;
-          filter: blur(3.2px);
-          user-select: none;
-          opacity: 0.43;
-        }
-
-        .rbr-srt-table-unlock {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          gap: 20px;
-          padding: 14px 18px;
-          border-top: 1px solid var(--rbr-border);
-          background: #fbfcfd;
-        }
-
-        .rbr-srt-table-unlock > div strong,
-        .rbr-srt-table-unlock > div span {
-          display: block;
-        }
-
-        .rbr-srt-table-unlock > div strong {
-          margin-bottom: 3px;
-          font-size: 12px;
-        }
-
-        .rbr-srt-table-unlock > div span {
-          font-size: 10px;
-          color: var(--rbr-muted);
-        }
-
-        .rbr-srt-table-unlock button,
-        .rbr-srt-watch-action button,
-        .rbr-srt-subscription-button,
-        .rbr-srt-modal-primary {
-          border: 1px solid var(--rbr-blue);
-          background: var(--rbr-blue);
-          color: #ffffff;
-          border-radius: 4px;
-          cursor: pointer;
-          font-weight: 650;
-        }
-
-        .rbr-srt-table-unlock button {
-          padding: 9px 12px;
-          font-size: 10px;
-        }
-
-        .rbr-srt-table-unlock button:hover,
-        .rbr-srt-watch-action button:hover,
-        .rbr-srt-subscription-button:hover,
-        .rbr-srt-modal-primary:hover {
-          background: var(--rbr-blue-dark);
-        }
-
-        .rbr-srt-heatmap {
+        .srt-heatmap {
           display: grid;
           grid-template-columns: repeat(6, 1fr);
           grid-auto-rows: 92px;
           gap: 3px;
           padding: 4px;
-          background: #f0f2f5;
+          background: #e9edf2;
         }
 
-        .rbr-srt-heatmap-tile {
-          min-width: 0;
-          padding: 11px;
+        .srt-heat-tile {
           border: 0;
           border-radius: 2px;
+          padding: 11px;
           text-align: left;
           cursor: pointer;
+          overflow: hidden;
           transition:
-            transform 0.12s ease,
-            filter 0.12s ease;
+            transform .1s ease,
+            filter .1s ease;
         }
 
-        .rbr-srt-heatmap-tile:hover {
-          filter: brightness(0.98);
+        .srt-heat-tile:hover {
+          filter: brightness(.97);
           transform: translateY(-1px);
         }
 
-        .rbr-srt-heatmap-tile.large {
+        .srt-heat-tile.xl {
+          grid-column: span 2;
+          grid-row: span 2;
+        }
+
+        .srt-heat-tile.lg {
           grid-column: span 2;
         }
 
-        .rbr-srt-heatmap-tile.rbr-srt-status-leading {
-          background: #dff3e8;
-          color: #155d42;
+        .srt-heat-tile.md {
+          grid-column: span 1;
         }
 
-        .rbr-srt-heatmap-tile.rbr-srt-status-improving {
-          background: #e4efff;
-          color: #21599c;
+        .srt-heat-tile.sm {
+          grid-column: span 1;
         }
 
-        .rbr-srt-heatmap-tile.rbr-srt-status-weakening {
-          background: #fff0d8;
-          color: #895a15;
+        .srt-heat-tile.srt-leading {
+          background: #cdebdc;
+          color: #125b40;
         }
 
-        .rbr-srt-heatmap-tile.rbr-srt-status-lagging {
-          background: #f9dfdf;
-          color: #984343;
+        .srt-heat-tile.srt-improving {
+          background: #cfe2fb;
+          color: #174e8e;
         }
 
-        .rbr-srt-heatmap-tile strong,
-        .rbr-srt-heatmap-tile span,
-        .rbr-srt-heatmap-tile b {
-          display: block;
+        .srt-heat-tile.srt-weakening {
+          background: #f8e4b8;
+          color: #80540f;
         }
 
-        .rbr-srt-heatmap-tile strong {
-          margin-bottom: 4px;
-          overflow: hidden;
-          text-overflow: ellipsis;
-          font-size: 13px;
+        .srt-heat-tile.srt-lagging {
+          background: #efc8c8;
+          color: #8e3838;
         }
 
-        .rbr-srt-heatmap-tile span {
-          margin-bottom: 8px;
-          opacity: 0.72;
+        .srt-heat-strong-positive {
+          background: #acdcbf;
+          color: #0f5c39;
+        }
+
+        .srt-heat-positive {
+          background: #d5eddf;
+          color: #175e40;
+        }
+
+        .srt-heat-negative {
+          background: #efd4d4;
+          color: #903e3e;
+        }
+
+        .srt-heat-strong-negative {
+          background: #e9b7b7;
+          color: #843030;
+        }
+
+        .srt-heat-neutral {
+          background: #e9edf1;
+          color: #596677;
+        }
+
+        .srt-heat-top {
+          display: flex;
+          justify-content: space-between;
+          gap: 7px;
+        }
+
+        .srt-heat-top strong {
+          font-size: 14px;
+        }
+
+        .srt-heat-top span {
           font-size: 9px;
+          font-weight: 700;
         }
 
-        .rbr-srt-heatmap-tile b {
-          font-size: 13px;
-        }
-
-        .rbr-srt-today-watch {
-          display: grid;
-          grid-template-columns: minmax(0, 1fr) 130px 210px;
-          gap: 24px;
-          align-items: center;
-          margin-bottom: 16px;
-          padding: 19px 21px;
-          border: 1px solid #dce5f0;
-          border-left: 4px solid var(--rbr-blue);
-          border-radius: 5px;
-          background: #ffffff;
-        }
-
-        .rbr-srt-watch-left h3 {
-          margin: 0 0 7px;
-          font-size: 17px;
-          letter-spacing: -0.02em;
-        }
-
-        .rbr-srt-watch-left p {
-          margin: 0;
-          color: var(--rbr-muted);
-          font-size: 11px;
-          line-height: 1.6;
-        }
-
-        .rbr-srt-watch-score {
-          padding-left: 18px;
-          border-left: 1px solid var(--rbr-border);
-        }
-
-        .rbr-srt-watch-score span,
-        .rbr-srt-watch-score strong,
-        .rbr-srt-watch-score b {
+        .srt-heat-status {
           display: block;
+          margin-top: 3px;
+          font-size: 9px;
+          opacity: .75;
         }
 
-        .rbr-srt-watch-score span {
+        .srt-heat-number {
+          display: block;
+          margin-top: 11px;
+          font-size: 15px;
+        }
+
+        .srt-heat-tile.xl .srt-heat-top strong {
+          font-size: 21px;
+        }
+
+        .srt-heat-tile.xl .srt-heat-number {
+          margin-top: 18px;
+          font-size: 23px;
+        }
+
+        /* MARKET GROUPS */
+
+        .srt-compact-heading {
+          min-height: 59px;
+        }
+
+        .srt-market-positive {
+          color: var(--green);
           font-size: 8px;
-          font-weight: 750;
-          letter-spacing: 0.07em;
-          color: #8490a1;
+          font-weight: 600;
         }
 
-        .rbr-srt-watch-score strong {
-          margin: 2px 0;
-          font-size: 27px;
-          font-weight: 650;
+        .srt-group-grid {
+          display: grid;
+          grid-template-columns: 1fr;
         }
 
-        .rbr-srt-watch-score b {
-          font-size: 11px;
+        .srt-group-column {
+          border-bottom: 1px solid var(--border);
         }
 
-        .rbr-srt-watch-action {
-          text-align: right;
+        .srt-group-column:last-child {
+          border-bottom: 0;
         }
 
-        .rbr-srt-watch-action button {
-          width: 100%;
-          padding: 9px 12px;
-          font-size: 10px;
+        .srt-group-title {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 8px 11px;
+          background: #f7f9fb;
+          border-bottom: 1px solid #e8ecf1;
         }
 
-        .rbr-srt-watch-action span {
-          display: block;
-          margin-top: 6px;
+        .srt-group-title > div {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+        }
+
+        .srt-group-title i {
+          width: 7px;
+          height: 7px;
+          border-radius: 50%;
+        }
+
+        .srt-group-title strong {
           font-size: 9px;
-          color: var(--rbr-muted);
+          letter-spacing: .05em;
+          text-transform: uppercase;
         }
 
-        .rbr-srt-subscription-bar {
-          position: sticky;
-          bottom: 12px;
-          z-index: 40;
+        .srt-group-title > span {
+          color: #8791a0;
+          font-size: 9px;
+        }
+
+        .srt-group-column.srt-leading .srt-group-title i {
+          background: var(--green);
+        }
+
+        .srt-group-column.srt-improving .srt-group-title i {
+          background: var(--blue);
+        }
+
+        .srt-group-column.srt-weakening .srt-group-title i {
+          background: #d4962e;
+        }
+
+        .srt-group-column.srt-lagging .srt-group-title i {
+          background: var(--red);
+        }
+
+        .srt-group-sector {
           display: flex;
           align-items: center;
           justify-content: space-between;
-          gap: 22px;
-          width: min(980px, calc(100% - 24px));
-          margin: 30px auto 0;
-          padding: 12px 14px 12px 18px;
-          border: 1px solid #d5dce6;
-          border-radius: 7px;
-          background: rgba(255,255,255,0.97);
-          box-shadow: 0 10px 35px rgba(30, 46, 67, 0.13);
-          backdrop-filter: blur(10px);
+          padding: 8px 11px;
+          border-bottom: 1px solid #edf0f4;
         }
 
-        .rbr-srt-subscription-copy strong,
-        .rbr-srt-subscription-copy span {
-          display: block;
+        .srt-group-sector:last-child {
+          border-bottom: 0;
         }
 
-        .rbr-srt-subscription-copy strong {
-          margin-bottom: 2px;
-          font-size: 12px;
+        .srt-group-sector > div {
+          display: flex;
+          align-items: baseline;
+          gap: 7px;
         }
 
-        .rbr-srt-subscription-copy span {
-          font-size: 9px;
-          color: var(--rbr-muted);
+        .srt-group-sector strong {
+          font-size: 11px;
         }
 
-        .rbr-srt-subscription-price {
-          margin-left: auto;
-          text-align: right;
+        .srt-group-sector span {
+          color: #8a95a3;
+          font-size: 8px;
         }
 
-        .rbr-srt-subscription-price strong {
-          font-size: 17px;
+        .srt-group-sector b {
+          font-size: 8px;
         }
 
-        .rbr-srt-subscription-price span {
-          font-size: 10px;
-          color: var(--rbr-muted);
+        /* TABLE */
+
+        .srt-table-scroll {
+          overflow-x: auto;
         }
 
-        .rbr-srt-subscription-button {
-          padding: 9px 14px;
-          font-size: 10px;
+        .srt-table {
+          width: 100%;
+          min-width: 900px;
+          border-collapse: collapse;
+        }
+
+        .srt-table th {
+          padding: 9px 11px;
+          border-bottom: 1px solid var(--border);
+          background: #f6f8fa;
+          color: #758192;
+          text-align: left;
+          font-size: 8px;
+          font-weight: 750;
+          letter-spacing: .05em;
+          text-transform: uppercase;
           white-space: nowrap;
         }
 
-        .rbr-srt-methodology {
-          display: grid;
-          grid-template-columns: 220px 1fr;
-          gap: 42px;
-          margin-top: 32px;
-          padding: 26px 4px;
-          border-top: 1px solid #dfe4eb;
+        .srt-table td {
+          padding: 10px 11px;
+          border-bottom: 1px solid #edf0f3;
+          color: #485669;
+          font-size: 10px;
+          white-space: nowrap;
+          vertical-align: middle;
         }
 
-        .rbr-srt-methodology h3 {
+        .srt-table tbody tr:last-child td {
+          border-bottom: 0;
+        }
+
+        .srt-table tbody tr:hover {
+          background: #fafbfd;
+        }
+
+        .srt-rank {
+          width: 35px;
+          color: #8994a3 !important;
+        }
+
+        .srt-sector-name {
+          color: #263445;
+          font-size: 11px;
+        }
+
+        .srt-status {
+          display: inline-flex;
+          align-items: center;
+          gap: 5px;
+          padding: 3px 6px;
+          border-radius: 3px;
+          font-size: 8px;
+          font-weight: 650;
+        }
+
+        .srt-status i {
+          width: 6px;
+          height: 6px;
+          border-radius: 50%;
+        }
+
+        .srt-status.srt-leading {
+          background: #e5f4ec;
+          color: #17674a;
+        }
+
+        .srt-status.srt-leading i {
+          background: var(--green);
+        }
+
+        .srt-status.srt-improving {
+          background: #e7f0fc;
+          color: #205b9d;
+        }
+
+        .srt-status.srt-improving i {
+          background: var(--blue);
+        }
+
+        .srt-status.srt-weakening {
+          background: #fff1d8;
+          color: #875a15;
+        }
+
+        .srt-status.srt-weakening i {
+          background: #d4962e;
+        }
+
+        .srt-status.srt-lagging {
+          background: #f8e3e3;
+          color: #994343;
+        }
+
+        .srt-status.srt-lagging i {
+          background: var(--red);
+        }
+
+        .srt-score {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+        }
+
+        .srt-score strong {
+          width: 20px;
+        }
+
+        .srt-score > span {
+          width: 55px;
+          height: 4px;
+          background: #e6ebef;
+          border-radius: 5px;
+          overflow: hidden;
+        }
+
+        .srt-score > span i {
+          display: block;
+          height: 100%;
+        }
+
+        .srt-score i.srt-leading {
+          background: var(--green);
+        }
+
+        .srt-score i.srt-improving {
+          background: var(--blue);
+        }
+
+        .srt-score i.srt-weakening {
+          background: #d4962e;
+        }
+
+        .srt-score i.srt-lagging {
+          background: var(--red);
+        }
+
+        .srt-sparkline {
+          display: block;
+          width: 68px;
+          height: 22px;
+        }
+
+        .srt-sparkline.srt-leading polyline {
+          stroke: var(--green);
+        }
+
+        .srt-sparkline.srt-improving polyline {
+          stroke: var(--blue);
+        }
+
+        .srt-sparkline.srt-weakening polyline {
+          stroke: #c68523;
+        }
+
+        .srt-sparkline.srt-lagging polyline {
+          stroke: var(--red);
+        }
+
+        .srt-teaser-row {
+          position: relative;
+          opacity: .44;
+          filter: blur(2.4px);
+          user-select: none;
+        }
+
+        .srt-table-footer {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          gap: 20px;
+          padding: 11px 14px;
+          background: #fafbfd;
+          border-top: 1px solid var(--border);
+        }
+
+        .srt-table-footer strong,
+        .srt-table-footer span {
+          display: block;
+        }
+
+        .srt-table-footer strong {
+          font-size: 10px;
+        }
+
+        .srt-table-footer span {
+          margin-top: 2px;
+          color: var(--muted);
+          font-size: 8px;
+        }
+
+        .srt-table-footer button,
+        .srt-watch button,
+        .srt-subscribe-bar button,
+        .srt-modal-primary {
+          border: 1px solid var(--blue);
+          border-radius: 3px;
+          background: var(--blue);
+          color: #fff;
+          cursor: pointer;
+          font-weight: 650;
+        }
+
+        .srt-table-footer button {
+          padding: 7px 11px;
+          font-size: 9px;
+        }
+
+        /* WATCH */
+
+        .srt-watch {
+          display: grid;
+          grid-template-columns: 1fr 120px 190px;
+          align-items: center;
+          gap: 20px;
+          padding: 14px 16px;
+          margin-bottom: 10px;
+          border: 1px solid var(--border);
+          border-left: 4px solid var(--blue);
+          border-radius: 4px;
+          background: #fff;
+        }
+
+        .srt-watch-copy > span {
+          font-size: 8px;
+          font-weight: 750;
+          letter-spacing: .07em;
+          color: #758192;
+        }
+
+        .srt-watch-copy h2 {
+          margin: 4px 0;
+          font-size: 15px;
+        }
+
+        .srt-watch-copy p {
           margin: 0;
+          color: var(--muted);
+          font-size: 9px;
+        }
+
+        .srt-watch-metric {
+          padding-left: 16px;
+          border-left: 1px solid var(--border);
+        }
+
+        .srt-watch-metric span,
+        .srt-watch-metric strong,
+        .srt-watch-metric b {
+          display: block;
+        }
+
+        .srt-watch-metric span {
+          color: #7b8695;
+          font-size: 7px;
+          font-weight: 750;
+        }
+
+        .srt-watch-metric strong {
+          font-size: 27px;
+          line-height: 1.05;
+        }
+
+        .srt-watch-metric b {
+          font-size: 9px;
+        }
+
+        .srt-watch button {
+          padding: 8px 10px;
+          font-size: 9px;
+        }
+
+        .srt-watch button span {
+          display: block;
+          margin-top: 2px;
+          opacity: .72;
+          font-size: 7px;
+        }
+
+        /* PREMIUM STICKY BAR */
+
+        .srt-subscribe-bar {
+          position: sticky;
+          z-index: 30;
+          bottom: 10px;
+          display: flex;
+          align-items: center;
+          gap: 20px;
+          width: min(920px, calc(100% - 20px));
+          margin: 24px auto 0;
+          padding: 10px 12px 10px 15px;
+          border: 1px solid #cfd7e1;
+          border-radius: 5px;
+          background: rgba(255, 255, 255, .97);
+          box-shadow: 0 8px 25px rgba(25, 40, 60, .13);
+          backdrop-filter: blur(8px);
+        }
+
+        .srt-subscribe-copy {
+          flex: 1;
+        }
+
+        .srt-subscribe-copy strong,
+        .srt-subscribe-copy span {
+          display: block;
+        }
+
+        .srt-subscribe-copy strong {
+          font-size: 10px;
+        }
+
+        .srt-subscribe-copy span {
+          margin-top: 2px;
+          color: var(--muted);
+          font-size: 8px;
+        }
+
+        .srt-subscribe-price strong {
           font-size: 16px;
         }
 
-        .rbr-srt-methodology p {
-          margin: 0 0 10px;
-          color: var(--rbr-muted);
-          font-size: 10px;
-          line-height: 1.7;
+        .srt-subscribe-price span {
+          color: var(--muted);
+          font-size: 8px;
         }
 
-        .rbr-srt-disclaimer {
-          padding-top: 10px;
-          border-top: 1px solid #e2e6ec;
-          font-size: 9px !important;
-          color: #8a94a3 !important;
+        .srt-subscribe-bar button {
+          padding: 7px 12px;
+          font-size: 9px;
         }
 
-        /* ============================
-           ROTATION MAP
-        ============================ */
+        /* RRG */
 
-        .rbr-srt-premium-panel {
+        .srt-rrg-wrapper {
           position: relative;
-          padding-bottom: 20px;
+          padding: 30px 30px 17px 48px;
         }
 
-        .rbr-srt-rrg {
+        .srt-rrg {
           position: relative;
           display: grid;
           grid-template-columns: 1fr 1fr;
-          height: 510px;
-          margin: 44px 34px 0;
-          border: 1px solid var(--rbr-border);
-          background: #ffffff;
+          height: 470px;
+          border: 1px solid #ced6df;
         }
 
-        .rbr-srt-rrg::before {
-          content: "";
-          position: absolute;
-          top: 50%;
-          left: 0;
-          right: 0;
-          height: 1px;
-          background: #cbd3dd;
-          z-index: 2;
-        }
-
-        .rbr-srt-rrg::after {
+        .srt-rrg::before {
           content: "";
           position: absolute;
           left: 50%;
           top: 0;
           bottom: 0;
           width: 1px;
-          background: #cbd3dd;
-          z-index: 2;
+          z-index: 4;
+          background: #bec8d3;
         }
 
-        .rbr-srt-rrg-quadrant {
+        .srt-rrg::after {
+          content: "";
+          position: absolute;
+          top: 50%;
+          left: 0;
+          right: 0;
+          height: 1px;
+          z-index: 4;
+          background: #bec8d3;
+        }
+
+        .srt-quadrant {
           position: relative;
-          min-width: 0;
           overflow: hidden;
         }
 
-        .rbr-srt-rrg-quadrant.improving {
-          background: #f7faff;
+        .srt-quadrant.improving {
+          background: #edf5ff;
         }
 
-        .rbr-srt-rrg-quadrant.leading {
-          background: #f7fcf9;
+        .srt-quadrant.leading {
+          background: #edf9f3;
         }
 
-        .rbr-srt-rrg-quadrant.lagging {
-          background: #fffafa;
+        .srt-quadrant.lagging {
+          background: #fff1f1;
         }
 
-        .rbr-srt-rrg-quadrant.weakening {
-          background: #fffaf2;
+        .srt-quadrant.weakening {
+          background: #fff6e5;
         }
 
-        .rbr-srt-rrg-title {
+        .srt-quadrant-title {
           position: absolute;
-          top: 16px;
-          left: 18px;
+          left: 13px;
+          top: 12px;
+          z-index: 5;
         }
 
-        .rbr-srt-rrg-title strong,
-        .rbr-srt-rrg-title span {
+        .srt-quadrant-title strong,
+        .srt-quadrant-title span {
           display: block;
         }
 
-        .rbr-srt-rrg-title strong {
-          font-size: 10px;
-          letter-spacing: 0.06em;
+        .srt-quadrant-title strong {
+          font-size: 9px;
+          letter-spacing: .06em;
         }
 
-        .rbr-srt-rrg-title span {
-          margin-top: 3px;
-          color: #8c96a5;
-          font-size: 8px;
+        .srt-quadrant-title span {
+          margin-top: 2px;
+          color: #7d8998;
+          font-size: 7px;
         }
 
-        .rbr-srt-rrg-point {
+        .srt-rrg-point {
           position: absolute;
-          z-index: 5;
+          z-index: 8;
           display: flex;
           align-items: center;
           gap: 5px;
           transform: translate(-50%, -50%);
           font-size: 9px;
           font-weight: 650;
-          white-space: nowrap;
         }
 
-        .rbr-srt-rrg-point i {
+        .srt-rrg-point i {
           width: 10px;
           height: 10px;
-          border: 2px solid white;
+          border: 2px solid #fff;
           border-radius: 50%;
-          box-shadow: 0 0 0 1px rgba(0,0,0,0.08);
+          box-shadow: 0 0 0 1px rgba(0,0,0,.1);
         }
 
-        .rbr-srt-rrg-point.leading i {
-          background: var(--rbr-green);
+        .srt-rrg-point.leading i {
+          background: var(--green);
         }
 
-        .rbr-srt-rrg-point.improving i {
-          background: var(--rbr-blue);
+        .srt-rrg-point.improving i {
+          background: var(--blue);
         }
 
-        .rbr-srt-rrg-point.weakening i {
-          background: #d7932d;
+        .srt-rrg-point.weakening i {
+          background: #d4962e;
         }
 
-        .rbr-srt-rrg-point.lagging i {
-          background: var(--rbr-red);
+        .srt-rrg-point.lagging i {
+          background: var(--red);
         }
 
-        .rbr-srt-rrg-x-label,
-        .rbr-srt-rrg-axis-label {
-          color: #8993a2;
+        .srt-y-label,
+        .srt-x-label {
+          color: #7e8997;
           font-size: 8px;
           font-weight: 700;
-          letter-spacing: 0.06em;
+          letter-spacing: .06em;
         }
 
-        .rbr-srt-rrg-x-label {
-          margin-top: 10px;
+        .srt-y-label {
+          position: absolute;
+          left: 11px;
+          top: 50%;
+          transform: rotate(-90deg);
+        }
+
+        .srt-x-label {
+          padding-top: 8px;
           text-align: center;
         }
 
-        .rbr-srt-rrg-y-label {
-          position: absolute;
-          top: 47%;
-          left: 7px;
-          transform: rotate(-90deg);
-          transform-origin: left top;
-        }
+        /* PERFORMANCE */
 
-        .rbr-srt-rotation-history {
-          margin: 35px 20px 0;
-          border: 1px solid var(--rbr-border);
-          border-radius: 4px;
-          overflow: hidden;
-        }
-
-        .rbr-srt-rotation-history h4 {
-          margin: 0;
-          padding: 13px 14px;
-          border-bottom: 1px solid var(--rbr-border);
-          font-size: 12px;
-        }
-
-        /* ============================
-           RANKING
-        ============================ */
-
-        .rbr-srt-full-ranking {
-          min-width: 980px;
-        }
-
-        .rbr-srt-rank {
-          color: #8490a0;
-          font-weight: 650;
-        }
-
-        .rbr-srt-sector-link {
-          border: 0;
-          padding: 0;
-          background: transparent;
-          color: #215f9f;
-          cursor: pointer;
-          font-size: 11px;
-          font-weight: 650;
-        }
-
-        .rbr-srt-sector-link:hover {
-          text-decoration: underline;
-        }
-
-        /* ============================
-           PERFORMANCE
-        ============================ */
-
-        .rbr-srt-performance-grid {
+        .srt-performance-grid {
           display: grid;
           grid-template-columns: repeat(3, 1fr);
           gap: 1px;
-          background: var(--rbr-border);
+          background: var(--border);
         }
 
-        .rbr-srt-performance-card {
+        .srt-performance-tile {
           border: 0;
-          padding: 17px;
-          background: #ffffff;
+          padding: 14px;
+          background: #fff;
           color: inherit;
           text-align: left;
           cursor: pointer;
         }
 
-        .rbr-srt-performance-card:hover {
-          background: #fbfcfd;
+        .srt-performance-tile:hover {
+          background: #fafbfd;
         }
 
-        .rbr-srt-performance-card-top {
+        .srt-performance-heading {
           display: flex;
-          align-items: flex-start;
           justify-content: space-between;
-          gap: 12px;
-          margin-bottom: 16px;
+          gap: 10px;
+          margin-bottom: 12px;
         }
 
-        .rbr-srt-performance-card-top > div > strong {
+        .srt-performance-heading > div > strong {
           display: block;
-          margin-bottom: 6px;
-          font-size: 13px;
+          margin-bottom: 5px;
+          font-size: 12px;
         }
 
-        .rbr-srt-performance-score {
+        .srt-performance-heading > b {
           font-size: 19px;
-          font-weight: 650;
         }
 
-        .rbr-srt-performance-card .rbr-srt-sparkline {
+        .srt-performance-tile .srt-sparkline {
           width: 100%;
-          height: 42px;
-          margin: 5px 0 15px;
+          height: 38px;
+          margin: 5px 0 11px;
         }
 
-        .rbr-srt-performance-periods {
+        .srt-performance-values {
           display: grid;
           grid-template-columns: repeat(3, 1fr);
-          gap: 8px;
-          padding-top: 12px;
-          border-top: 1px solid var(--rbr-border);
+          padding-top: 9px;
+          border-top: 1px solid var(--border);
         }
 
-        .rbr-srt-performance-periods div span,
-        .rbr-srt-performance-periods div b {
+        .srt-performance-values span,
+        .srt-performance-values strong {
           display: block;
         }
 
-        .rbr-srt-performance-periods div span {
-          margin-bottom: 3px;
-          color: #8a95a4;
-          font-size: 8px;
+        .srt-performance-values span {
+          color: #84909f;
+          font-size: 7px;
         }
 
-        .rbr-srt-performance-periods div b {
-          font-size: 10px;
+        .srt-performance-values strong {
+          margin-top: 2px;
+          font-size: 9px;
         }
 
-        /* ============================
-           DETAILS
-        ============================ */
+        /* DETAILS */
 
-        .rbr-srt-sector-picker {
+        .srt-sector-picker {
           display: flex;
           align-items: center;
           gap: 10px;
-          padding: 13px 19px;
-          border-bottom: 1px solid var(--rbr-border);
-          background: #fafbfd;
+          padding: 9px 14px;
+          border-bottom: 1px solid var(--border);
+          background: #f7f9fb;
         }
 
-        .rbr-srt-sector-picker span {
-          font-size: 10px;
-          color: var(--rbr-muted);
+        .srt-sector-picker span {
+          color: #778393;
+          font-size: 8px;
+          font-weight: 700;
         }
 
-        .rbr-srt-sector-picker select {
-          min-width: 210px;
-          padding: 7px 28px 7px 9px;
-          border: 1px solid #d8dee7;
-          border-radius: 4px;
-          background: white;
-          color: #334153;
-          font-size: 10px;
+        .srt-sector-picker select {
+          min-width: 200px;
+          border: 1px solid #d7dee6;
+          border-radius: 3px;
+          padding: 6px 7px;
+          background: #fff;
+          color: #354355;
+          font-size: 9px;
         }
 
-        .rbr-srt-sector-detail-header {
+        .srt-detail-header {
           display: flex;
           justify-content: space-between;
           align-items: flex-start;
-          gap: 30px;
-          padding: 23px 20px;
+          padding: 18px 15px;
         }
 
-        .rbr-srt-sector-detail-header h2 {
-          margin: 0 0 10px;
-          font-size: 27px;
-          letter-spacing: -0.03em;
+        .srt-label {
+          color: #7b8695;
+          font-size: 8px;
+          font-weight: 750;
+          letter-spacing: .07em;
         }
 
-        .rbr-srt-sector-detail-status {
+        .srt-detail-header h1 {
+          margin: 3px 0 8px;
+          font-size: 26px;
+        }
+
+        .srt-detail-status {
           display: flex;
           align-items: center;
-          gap: 14px;
+          gap: 12px;
         }
 
-        .rbr-srt-sector-detail-status > span:last-child {
-          font-size: 10px;
-          color: var(--rbr-muted);
+        .srt-detail-status > span {
+          color: var(--muted);
+          font-size: 9px;
         }
 
-        .rbr-srt-big-score {
-          min-width: 150px;
+        .srt-big-score {
           text-align: right;
         }
 
-        .rbr-srt-big-score span,
-        .rbr-srt-big-score strong,
-        .rbr-srt-big-score b {
+        .srt-big-score span,
+        .srt-big-score strong,
+        .srt-big-score b {
           display: block;
         }
 
-        .rbr-srt-big-score span {
-          font-size: 8px;
+        .srt-big-score span {
+          color: #7b8695;
+          font-size: 7px;
           font-weight: 750;
-          letter-spacing: 0.06em;
-          color: #8792a2;
         }
 
-        .rbr-srt-big-score strong {
-          margin: 2px 0;
-          font-size: 42px;
+        .srt-big-score strong {
+          font-size: 40px;
           line-height: 1;
-          font-weight: 620;
         }
 
-        .rbr-srt-big-score b {
-          font-size: 11px;
+        .srt-big-score b {
+          margin-top: 2px;
+          font-size: 10px;
         }
 
-        .rbr-srt-sector-stats {
+        .srt-detail-metrics {
           display: grid;
           grid-template-columns: repeat(5, 1fr);
-          border-top: 1px solid var(--rbr-border);
-          background: #fafbfd;
+          border-top: 1px solid var(--border);
+          background: #f9fafb;
         }
 
-        .rbr-srt-sector-stats > div {
-          padding: 14px 15px;
-          border-right: 1px solid var(--rbr-border);
+        .srt-detail-metrics div {
+          padding: 10px 12px;
+          border-right: 1px solid var(--border);
         }
 
-        .rbr-srt-sector-stats > div:last-child {
+        .srt-detail-metrics div:last-child {
           border-right: 0;
         }
 
-        .rbr-srt-sector-stats span,
-        .rbr-srt-sector-stats strong {
+        .srt-detail-metrics span,
+        .srt-detail-metrics strong {
           display: block;
         }
 
-        .rbr-srt-sector-stats span {
-          margin-bottom: 4px;
-          font-size: 8px;
-          color: #8590a0;
+        .srt-detail-metrics span {
+          color: #808c9b;
+          font-size: 7px;
         }
 
-        .rbr-srt-sector-stats strong {
-          font-size: 10px;
-          color: #344153;
+        .srt-detail-metrics strong {
+          margin-top: 3px;
+          font-size: 9px;
         }
 
-        .rbr-srt-detail-columns {
+        .srt-detail-grid {
           display: grid;
-          grid-template-columns: 0.8fr 1.2fr;
-          gap: 16px;
+          grid-template-columns: .8fr 1.2fr;
+          gap: 10px;
         }
 
-        .rbr-srt-detail-performance-list {
-          padding: 0 18px 10px;
+        .srt-detail-list,
+        .srt-driver-list {
+          padding: 0 13px 8px;
         }
 
-        .rbr-srt-detail-performance-list > div {
+        .srt-detail-list > div {
           display: flex;
           justify-content: space-between;
-          padding: 11px 0;
-          border-bottom: 1px solid #edf0f4;
-          font-size: 10px;
+          padding: 9px 0;
+          border-bottom: 1px solid #edf0f3;
+          font-size: 9px;
         }
 
-        .rbr-srt-detail-performance-list > div:last-child {
-          border-bottom: 0;
-        }
-
-        .rbr-srt-detail-performance-list span {
-          color: #667385;
-        }
-
-        .rbr-srt-stock-driver-list {
-          padding: 0 18px 10px;
-        }
-
-        .rbr-srt-stock-driver-list > div {
+        .srt-driver-list > div {
           display: grid;
           grid-template-columns: 25px 1fr auto;
-          gap: 8px;
           align-items: center;
-          padding: 11px 0;
-          border-bottom: 1px solid #edf0f4;
-          font-size: 10px;
+          padding: 9px 0;
+          border-bottom: 1px solid #edf0f3;
+          font-size: 9px;
         }
 
-        .rbr-srt-stock-driver-list > div:last-child {
+        .srt-detail-list > div:last-child,
+        .srt-driver-list > div:last-child {
           border-bottom: 0;
         }
 
-        .rbr-srt-stock-rank {
-          color: #8c96a5;
+        .srt-detail-list span,
+        .srt-driver-list > div > span {
+          color: #7c8796;
         }
 
-        /* ============================
-           MODALS
-        ============================ */
+        .srt-sector-link {
+          border: 0;
+          padding: 0;
+          background: transparent;
+          color: #1765ac;
+          font-size: 10px;
+          font-weight: 650;
+          cursor: pointer;
+        }
 
-        .rbr-srt-modal-backdrop {
+        /* METHODOLOGY */
+
+        .srt-methodology {
+          display: grid;
+          grid-template-columns: 220px 1fr;
+          gap: 35px;
+          padding: 22px 3px 10px;
+          margin-top: 22px;
+          border-top: 1px solid #d9dfe6;
+        }
+
+        .srt-methodology h3 {
+          margin: 0;
+          font-size: 14px;
+        }
+
+        .srt-methodology p {
+          margin: 0 0 8px;
+          color: var(--muted);
+          font-size: 9px;
+          line-height: 1.6;
+        }
+
+        .srt-methodology .srt-disclaimer {
+          padding-top: 8px;
+          border-top: 1px solid #dfe4ea;
+          color: #8791a0;
+          font-size: 8px;
+        }
+
+        /* MODAL */
+
+        .srt-modal-backdrop {
           position: fixed;
           inset: 0;
           z-index: 9999;
           display: flex;
-          align-items: center;
           justify-content: center;
+          align-items: center;
           padding: 20px;
-          background: rgba(20, 31, 45, 0.58);
+          background: rgba(17, 29, 45, .58);
         }
 
-        .rbr-srt-modal {
-          width: min(420px, 100%);
-          padding: 25px;
-          border-radius: 7px;
-          background: #ffffff;
-          box-shadow: 0 24px 70px rgba(15, 28, 44, 0.25);
-        }
-
-        .rbr-srt-modal-icon {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          width: 38px;
-          height: 38px;
+        .srt-modal {
+          width: min(410px, 100%);
+          padding: 23px;
           border-radius: 6px;
-          background: #edf4ff;
-          color: var(--rbr-blue);
-          font-size: 16px;
-          font-weight: 750;
+          background: #fff;
+          box-shadow: 0 20px 70px rgba(0,0,0,.24);
         }
 
-        .rbr-srt-modal h3 {
-          margin: 16px 0 7px;
+        .srt-modal h3 {
+          margin: 0 0 7px;
           font-size: 20px;
-          letter-spacing: -0.025em;
         }
 
-        .rbr-srt-modal > p {
+        .srt-modal p {
           margin: 0;
-          color: var(--rbr-muted);
-          font-size: 11px;
+          color: var(--muted);
+          font-size: 10px;
           line-height: 1.6;
         }
 
-        .rbr-srt-modal-price {
-          margin-top: 17px;
-          padding: 14px;
-          border: 1px solid var(--rbr-border);
-          border-radius: 5px;
+        .srt-modal-price {
+          margin-top: 16px;
+          padding: 12px;
+          border: 1px solid var(--border);
+          border-radius: 4px;
           background: #f8fafc;
         }
 
-        .rbr-srt-modal-price strong {
-          font-size: 24px;
+        .srt-modal-price strong {
+          font-size: 23px;
         }
 
-        .rbr-srt-modal-price span {
-          font-size: 11px;
-          color: var(--rbr-muted);
+        .srt-modal-price span {
+          color: var(--muted);
+          font-size: 10px;
         }
 
-        .rbr-srt-modal-features {
-          margin: 16px 0 0;
+        .srt-modal ul {
+          margin: 15px 0 0;
           padding: 0;
           list-style: none;
         }
 
-        .rbr-srt-modal-features li {
-          position: relative;
-          padding: 5px 0 5px 18px;
-          color: #586678;
-          font-size: 10px;
+        .srt-modal li {
+          padding: 4px 0;
+          color: #586577;
+          font-size: 9px;
         }
 
-        .rbr-srt-modal-features li::before {
+        .srt-modal li::before {
           content: "✓";
-          position: absolute;
-          left: 0;
-          color: var(--rbr-green);
+          margin-right: 7px;
+          color: var(--green);
           font-weight: 700;
         }
 
-        .rbr-srt-modal-actions {
+        .srt-modal-actions {
           display: flex;
           gap: 8px;
-          margin-top: 21px;
+          margin-top: 18px;
         }
 
-        .rbr-srt-modal-secondary,
-        .rbr-srt-modal-primary {
+        .srt-modal-actions button {
           flex: 1;
-          padding: 9px 11px;
-          border-radius: 4px;
+          padding: 8px 9px;
+          border-radius: 3px;
           cursor: pointer;
-          font-size: 10px;
+          font-size: 9px;
           font-weight: 650;
         }
 
-        .rbr-srt-modal-secondary {
-          border: 1px solid var(--rbr-border);
-          background: #ffffff;
-          color: #445163;
+        .srt-modal-secondary {
+          border: 1px solid var(--border);
+          background: #fff;
+          color: #465365;
         }
 
-        .rbr-srt-modal-primary {
-          border: 1px solid var(--rbr-blue);
+        .srt-modal-primary {
+          border: 1px solid var(--blue);
         }
 
-        .rbr-srt-modal-note {
-          margin-top: 10px !important;
-          color: #8d6c2e !important;
-          font-size: 9px !important;
+        .srt-modal-note {
+          margin-top: 9px !important;
+          color: #8c6d30 !important;
+          font-size: 8px !important;
         }
 
-        @media (max-width: 980px) {
-          .rbr-srt-market-grid {
-            grid-template-columns: repeat(2, 1fr);
+        /* RESPONSIVE */
+
+        @media (max-width: 1050px) {
+          .srt-overview-grid {
+            grid-template-columns: 1fr;
           }
 
-          .rbr-srt-market-group:nth-child(2) {
-            border-right: 0;
-          }
-
-          .rbr-srt-market-group:nth-child(-n + 2) {
-            border-bottom: 1px solid var(--rbr-border);
-          }
-
-          .rbr-srt-insight-strip {
-            grid-template-columns: repeat(2, 1fr);
-          }
-
-          .rbr-srt-heatmap {
+          .srt-group-grid {
             grid-template-columns: repeat(4, 1fr);
           }
 
-          .rbr-srt-today-watch {
-            grid-template-columns: 1fr 120px;
-          }
-
-          .rbr-srt-watch-action {
-            grid-column: 1 / -1;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            text-align: left;
-          }
-
-          .rbr-srt-watch-action button {
-            width: auto;
-          }
-
-          .rbr-srt-performance-grid {
-            grid-template-columns: repeat(2, 1fr);
-          }
-
-          .rbr-srt-sector-stats {
-            grid-template-columns: repeat(3, 1fr);
-          }
-
-          .rbr-srt-sector-stats > div {
-            border-bottom: 1px solid var(--rbr-border);
-          }
-
-          .rbr-srt-sector-stats > div:nth-child(3n) {
-            border-right: 0;
-          }
-        }
-
-        @media (max-width: 720px) {
-          .rbr-srt-container {
-            width: min(100% - 20px, 1220px);
-          }
-
-          .rbr-srt-header-inner {
-            padding-top: 18px;
-          }
-
-          .rbr-srt-title-row {
-            flex-direction: column;
-            gap: 13px;
-          }
-
-          .rbr-srt-update-box {
-            text-align: left;
-          }
-
-          .rbr-srt-section-title-row,
-          .rbr-srt-panel-header {
-            flex-direction: column;
-          }
-
-          .rbr-srt-market-grid {
-            grid-template-columns: 1fr;
-          }
-
-          .rbr-srt-market-group {
-            border-right: 0;
-            border-bottom: 1px solid var(--rbr-border);
-          }
-
-          .rbr-srt-market-group:last-child {
+          .srt-group-column {
+            border-right: 1px solid var(--border);
             border-bottom: 0;
           }
 
-          .rbr-srt-insight-strip {
-            grid-template-columns: 1fr 1fr;
-          }
-
-          .rbr-srt-heatmap {
-            grid-template-columns: repeat(2, 1fr);
-          }
-
-          .rbr-srt-heatmap-tile.large {
-            grid-column: span 1;
-          }
-
-          .rbr-srt-today-watch {
-            grid-template-columns: 1fr;
-          }
-
-          .rbr-srt-watch-score {
-            padding-left: 0;
-            padding-top: 12px;
-            border-left: 0;
-            border-top: 1px solid var(--rbr-border);
-          }
-
-          .rbr-srt-watch-action {
-            display: block;
-          }
-
-          .rbr-srt-watch-action button {
-            width: 100%;
-          }
-
-          .rbr-srt-subscription-bar {
-            display: grid;
-            grid-template-columns: 1fr auto;
-            gap: 8px 12px;
-          }
-
-          .rbr-srt-subscription-price {
-            grid-row: 1;
-            grid-column: 2;
-          }
-
-          .rbr-srt-subscription-button {
-            grid-column: 1 / -1;
-          }
-
-          .rbr-srt-methodology {
-            grid-template-columns: 1fr;
-            gap: 14px;
-          }
-
-          .rbr-srt-rrg {
-            height: 410px;
-            margin-left: 20px;
-            margin-right: 20px;
-          }
-
-          .rbr-srt-rrg-title span {
-            display: none;
-          }
-
-          .rbr-srt-performance-grid {
-            grid-template-columns: 1fr;
-          }
-
-          .rbr-srt-sector-detail-header {
-            flex-direction: column;
-          }
-
-          .rbr-srt-big-score {
-            text-align: left;
-          }
-
-          .rbr-srt-sector-stats {
-            grid-template-columns: repeat(2, 1fr);
-          }
-
-          .rbr-srt-sector-stats > div:nth-child(3n) {
-            border-right: 1px solid var(--rbr-border);
-          }
-
-          .rbr-srt-sector-stats > div:nth-child(2n) {
+          .srt-group-column:last-child {
             border-right: 0;
           }
 
-          .rbr-srt-detail-columns {
-            grid-template-columns: 1fr;
+          .srt-performance-grid {
+            grid-template-columns: repeat(2, 1fr);
           }
         }
 
-        @media (max-width: 480px) {
-          .rbr-srt-title-row h1 {
+        @media (max-width: 820px) {
+          .srt-summary-strip {
+            grid-template-columns: repeat(2, 1fr);
+          }
+
+          .srt-summary-item:nth-child(2) {
+            border-right: 0;
+          }
+
+          .srt-summary-item:nth-child(-n + 2) {
+            border-bottom: 1px solid var(--border);
+          }
+
+          .srt-group-grid {
+            grid-template-columns: repeat(2, 1fr);
+          }
+
+          .srt-group-column:nth-child(2) {
+            border-right: 0;
+          }
+
+          .srt-group-column:nth-child(-n + 2) {
+            border-bottom: 1px solid var(--border);
+          }
+
+          .srt-heatmap {
+            grid-template-columns: repeat(4, 1fr);
+          }
+
+          .srt-watch {
+            grid-template-columns: 1fr 100px;
+          }
+
+          .srt-watch button {
+            grid-column: 1 / -1;
+          }
+
+          .srt-detail-metrics {
+            grid-template-columns: repeat(3, 1fr);
+          }
+        }
+
+        @media (max-width: 650px) {
+          .srt-container {
+            width: min(100% - 18px, 1240px);
+          }
+
+          .srt-title-row {
+            flex-direction: column;
+            gap: 11px;
+          }
+
+          .srt-update {
+            text-align: left;
+          }
+
+          .srt-title-row h1 {
             font-size: 27px;
           }
 
-          .rbr-srt-insight-strip {
-            grid-template-columns: 1fr;
-          }
-
-          .rbr-srt-market-overview {
-            padding: 14px;
-          }
-
-          .rbr-srt-panel-header {
-            padding: 15px;
-          }
-
-          .rbr-srt-heatmap {
-            grid-auto-rows: 82px;
-          }
-
-          .rbr-srt-sector-stats {
-            grid-template-columns: 1fr;
-          }
-
-          .rbr-srt-sector-stats > div {
-            border-right: 0 !important;
-          }
-
-          .rbr-srt-sector-picker {
+          .srt-card-header {
+            flex-direction: column;
             align-items: flex-start;
+          }
+
+          .srt-selector {
+            max-width: 100%;
+            overflow-x: auto;
+          }
+
+          .srt-heatmap {
+            grid-template-columns: repeat(2, 1fr);
+            grid-auto-rows: 88px;
+          }
+
+          .srt-heat-tile.xl,
+          .srt-heat-tile.lg,
+          .srt-heat-tile.md,
+          .srt-heat-tile.sm {
+            grid-column: span 1;
+            grid-row: span 1;
+          }
+
+          .srt-heat-tile.xl .srt-heat-top strong {
+            font-size: 14px;
+          }
+
+          .srt-heat-tile.xl .srt-heat-number {
+            margin-top: 11px;
+            font-size: 15px;
+          }
+
+          .srt-group-grid {
+            grid-template-columns: 1fr;
+          }
+
+          .srt-group-column {
+            border-right: 0;
+            border-bottom: 1px solid var(--border);
+          }
+
+          .srt-watch {
+            grid-template-columns: 1fr;
+          }
+
+          .srt-watch-metric {
+            padding: 9px 0 0;
+            border-left: 0;
+            border-top: 1px solid var(--border);
+          }
+
+          .srt-subscribe-bar {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 8px;
+          }
+
+          .srt-subscribe-bar button {
+            grid-column: 1 / -1;
+          }
+
+          .srt-performance-grid {
+            grid-template-columns: 1fr;
+          }
+
+          .srt-detail-header {
             flex-direction: column;
           }
 
-          .rbr-srt-sector-picker select {
-            width: 100%;
+          .srt-big-score {
+            text-align: left;
+          }
+
+          .srt-detail-metrics {
+            grid-template-columns: repeat(2, 1fr);
+          }
+
+          .srt-detail-grid {
+            grid-template-columns: 1fr;
+          }
+
+          .srt-methodology {
+            grid-template-columns: 1fr;
+            gap: 10px;
+          }
+
+          .srt-rrg {
+            height: 390px;
+          }
+        }
+
+        @media (max-width: 430px) {
+          .srt-summary-strip {
+            grid-template-columns: 1fr;
+          }
+
+          .srt-summary-item {
+            border-right: 0;
+            border-bottom: 1px solid var(--border);
+          }
+
+          .srt-summary-item:last-child {
+            border-bottom: 0;
+          }
+
+          .srt-detail-metrics {
+            grid-template-columns: 1fr;
           }
         }
       `}</style>
 
-      <main className="rbr-srt-page">
-        <header className="rbr-srt-page-header">
-          <div className="rbr-srt-container rbr-srt-header-inner">
-            <div className="rbr-srt-breadcrumb">
-              Home / Markets / <b>India Sector Rotation Tracker</b>
+      <main className="srt-page">
+        <header className="srt-header">
+          <div className="srt-container srt-header-inner">
+            <div className="srt-breadcrumb">
+              Home / Markets /{" "}
+              <strong>India Sector Rotation Tracker</strong>
             </div>
 
-            <div className="rbr-srt-title-row">
+            <div className="srt-title-row">
               <div>
                 <h1>India Sector Rotation Tracker</h1>
 
@@ -3026,36 +3003,31 @@ function IndiaSectorRotationTracker() {
                 </p>
               </div>
 
-              <div className="rbr-srt-update-box">
-                <span className="rbr-srt-live">
-                  Daily market intelligence
-                </span>
+              <div className="srt-update">
+                <span>● DAILY MARKET INTELLIGENCE</span>
 
-                <strong>Updates every day at 10:00 AM IST</strong>
+                <strong>
+                  Updates every day at 10:00 AM IST
+                </strong>
 
                 <span>
-                  Rotation scores, performance and sector positioning
+                  Sector rotation, performance and momentum
                 </span>
               </div>
             </div>
 
-            <nav
-              className="rbr-srt-main-tabs"
-              aria-label="Sector rotation tracker sections"
-            >
+            <nav className="srt-tabs">
               {TABS.map((tab) => (
                 <button
-                  key={tab.id}
                   type="button"
-                  className={`rbr-srt-main-tab ${
-                    activeTab === tab.id ? "active" : ""
-                  }`}
-                  onClick={() => handleTabClick(tab)}
+                  key={tab.id}
+                  className={activeTab === tab.id ? "active" : ""}
+                  onClick={() => handleTab(tab)}
                 >
                   {tab.label}
 
                   {tab.premium && !hasSubscription && (
-                    <span className="rbr-srt-tab-premium">◆</span>
+                    <small>◆</small>
                   )}
                 </button>
               ))}
@@ -3063,15 +3035,15 @@ function IndiaSectorRotationTracker() {
           </div>
         </header>
 
-        <div className="rbr-srt-container rbr-srt-body">
+        <div className="srt-container srt-body">
           {CONFIG.showSampleDataNotice && (
-            <div className="rbr-srt-sample-notice">
+            <div className="srt-preview-notice">
               <strong>Preview:</strong>
 
               <span>
-                The values currently displayed are sample data used while we
-                build the tracker. Live market data will replace these values
-                before the paid service is activated.
+                Values shown below are sample data while the tracker is
+                being built. Live market data will replace them before
+                paid access is activated.
               </span>
             </div>
           )}
@@ -3095,58 +3067,55 @@ function IndiaSectorRotationTracker() {
             renderDetails()}
 
           {!hasSubscription && (
-            <div className="rbr-srt-subscription-bar">
-              <div className="rbr-srt-subscription-copy">
-                <strong>India Sector Rotation Tracker</strong>
+            <div className="srt-subscribe-bar">
+              <div className="srt-subscribe-copy">
+                <strong>
+                  Unlock the complete India Sector Rotation Tracker
+                </strong>
 
                 <span>
-                  Complete rankings, rotation map, history and sector
-                  intelligence
+                  Rotation map · complete rankings · history · sector
+                  details
                 </span>
               </div>
 
-              <div className="rbr-srt-subscription-price">
+              <div className="srt-subscribe-price">
                 <strong>₹{CONFIG.monthlyPrice}</strong>
                 <span> / month</span>
               </div>
 
-              <button
-                type="button"
-                className="rbr-srt-subscription-button"
-                onClick={handlePremiumAction}
-              >
+              <button type="button" onClick={requestPremium}>
                 Unlock Full Tracker
               </button>
             </div>
           )}
 
-          <section className="rbr-srt-methodology">
+          <section className="srt-methodology">
             <div>
-              <span className="rbr-srt-kicker">ABOUT THE TRACKER</span>
               <h3>Understanding sector rotation</h3>
             </div>
 
             <div>
               <p>
-                <strong>Leading</strong> sectors display comparatively strong
-                relative strength and momentum. <strong>Improving</strong>{" "}
-                sectors are gaining momentum and may be moving toward
-                leadership.
+                <strong>Leading</strong> sectors show comparatively
+                strong relative strength and momentum.{" "}
+                <strong>Improving</strong> sectors are gaining momentum
+                and may be moving toward leadership.
               </p>
 
               <p>
-                <strong>Weakening</strong> sectors may still have relative
-                strength but are losing momentum. <strong>Lagging</strong>{" "}
-                sectors currently show comparatively weaker relative strength
-                and momentum.
+                <strong>Weakening</strong> sectors may still have
+                relative strength but are losing momentum.{" "}
+                <strong>Lagging</strong> sectors currently show
+                comparatively weaker relative strength and momentum.
               </p>
 
-              <p className="rbr-srt-disclaimer">
-                The India Sector Rotation Tracker is provided for informational
-                and research purposes only. It does not constitute investment
-                advice, a securities recommendation or a solicitation to buy
-                or sell any security. Market conditions may change rapidly,
-                and past performance does not guarantee future results.
+              <p className="srt-disclaimer">
+                This tracker is provided for informational and research
+                purposes only. It does not constitute investment advice,
+                a recommendation or a solicitation to buy or sell any
+                security. Market conditions may change rapidly and past
+                performance does not guarantee future results.
               </p>
             </div>
           </section>
@@ -3155,26 +3124,24 @@ function IndiaSectorRotationTracker() {
 
       {modal === "login" && (
         <div
-          className="rbr-srt-modal-backdrop"
+          className="srt-modal-backdrop"
           onClick={() => setModal(null)}
         >
           <div
-            className="rbr-srt-modal"
+            className="srt-modal"
             onClick={(event) => event.stopPropagation()}
           >
-            <div className="rbr-srt-modal-icon">→</div>
-
             <h3>Sign in to continue</h3>
 
             <p>
-              Sign in to your Rajan Business Reports account to access or
-              subscribe to the complete India Sector Rotation Tracker.
+              Sign in to your Rajan Business Reports account to access
+              the complete India Sector Rotation Tracker.
             </p>
 
-            <div className="rbr-srt-modal-actions">
+            <div className="srt-modal-actions">
               <button
                 type="button"
-                className="rbr-srt-modal-secondary"
+                className="srt-modal-secondary"
                 onClick={() => setModal(null)}
               >
                 Not now
@@ -3182,69 +3149,59 @@ function IndiaSectorRotationTracker() {
 
               <button
                 type="button"
-                className="rbr-srt-modal-primary"
+                className="srt-modal-primary"
                 onClick={() => {
                   /*
-                    TEMPORARY.
-
-                    Later we will connect this directly to your existing
-                    RBR login flow.
-
-                    For now, taking the visitor to the main RBR page
-                    gives them access to the existing login interface.
+                    Later:
+                    Replace this with your existing RBR login modal /
+                    login action.
                   */
+
                   window.location.href = "/";
                 }}
               >
                 Sign in
               </button>
             </div>
-
-            <p className="rbr-srt-modal-note">
-              Existing RBR login integration will be connected directly in a
-              later step.
-            </p>
           </div>
         </div>
       )}
 
       {modal === "subscribe" && (
         <div
-          className="rbr-srt-modal-backdrop"
+          className="srt-modal-backdrop"
           onClick={() => setModal(null)}
         >
           <div
-            className="rbr-srt-modal"
+            className="srt-modal"
             onClick={(event) => event.stopPropagation()}
           >
-            <div className="rbr-srt-modal-icon">◆</div>
-
             <h3>Unlock the full tracker</h3>
 
             <p>
-              Get complete daily sector rotation intelligence across Indian
-              equities.
+              Access complete daily sector rotation intelligence across
+              Indian equities.
             </p>
 
-            <div className="rbr-srt-modal-price">
+            <div className="srt-modal-price">
               <strong>₹{CONFIG.monthlyPrice}</strong>
               <span> / month</span>
             </div>
 
-            <ul className="rbr-srt-modal-features">
+            <ul>
               <li>Complete sector rotation map</li>
-              <li>Full sector ranking and rotation scores</li>
-              <li>1D, 5D, 1M, 3M, 6M and 1Y comparisons</li>
-              <li>Sector-level deep dives</li>
+              <li>Full sector leaderboard</li>
+              <li>1D, 5D, 1M, 3M, 6M and 1Y performance</li>
+              <li>Sector deep dives</li>
               <li>Stocks driving sector movement</li>
-              <li>Rotation history</li>
+              <li>Historical rotation tracking</li>
               <li>Daily update at 10:00 AM IST</li>
             </ul>
 
-            <div className="rbr-srt-modal-actions">
+            <div className="srt-modal-actions">
               <button
                 type="button"
-                className="rbr-srt-modal-secondary"
+                className="srt-modal-secondary"
                 onClick={() => setModal(null)}
               >
                 Cancel
@@ -3252,10 +3209,10 @@ function IndiaSectorRotationTracker() {
 
               <button
                 type="button"
-                className="rbr-srt-modal-primary"
+                className="srt-modal-primary"
                 onClick={() => {
                   /*
-                    RAZORPAY SUBSCRIPTION FLOW WILL BE CONNECTED HERE.
+                    Razorpay subscription will be connected here.
                   */
                 }}
               >
@@ -3263,10 +3220,8 @@ function IndiaSectorRotationTracker() {
               </button>
             </div>
 
-            <p className="rbr-srt-modal-note">
-              Subscription checkout is not enabled yet. We will connect this
-              button after the page design and live market-data feed are
-              finalized.
+            <p className="srt-modal-note">
+              Subscription checkout is not active yet.
             </p>
           </div>
         </div>
