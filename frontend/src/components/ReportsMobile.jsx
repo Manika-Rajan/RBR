@@ -72,6 +72,7 @@ const PREBOOK_API_BASE =
 
 // ⭐ Single Pre-booking API URL (same path for create + confirm)
 const PREBOOK_API_URL = `${PREBOOK_API_BASE}/prebook/create-order`;
+const PREBOOK_CONFIRM_URL = `${PREBOOK_API_BASE}/prebook/confirm`;
 
 // ⭐ Instant Report APIs (customer flow)
 // ✅ Env helper: supports both Vite (import.meta.env) and CRA/Webpack (process.env)
@@ -349,8 +350,6 @@ const ReportsMobile = () => {
   // ✅ Instant Report UI State (customer flow)
   // ======================
   const [instantQuestionsOpen, setInstantQuestionsOpen] = useState(false);
-  const [showInstantPaymentSuccess, setShowInstantPaymentSuccess] =
-    useState(false);
   const [instantTopic, setInstantTopic] = useState("");
   const [instantQuestions, setInstantQuestions] = useState(
     INSTANT_DEFAULT_QUESTIONS
@@ -540,27 +539,73 @@ const ReportsMobile = () => {
         },
 
         handler: async (response) => {
-          // Payment success → show a quick success popup (1s) so the conversion tag has time to fire,
-          // then ask 5 questions for the Instant report.
+          // ✅ PRE-BOOK payment success:
+          // confirm the paid pre-book immediately, then ask the same 5 research questions.
+          // Do NOT divert this payment into the Instant report flow.
           const payId = response?.razorpay_payment_id;
           const sig = response?.razorpay_signature;
 
-          setShowInstantPaymentSuccess(true);
+          if (!payId || !sig) {
+            setModalTitle("Payment confirmation error");
+            setModalMsgNode(
+              <span>
+                ⚠️ Payment was completed, but the payment confirmation details
+                were incomplete. Please contact us with your payment reference.
+              </span>
+            );
+            setOpenModal(true);
+            return;
+          }
 
-          // ✅ Google Ads conversion: Instant purchase
-          fireGoogleAdsInstantConversion({
-            paymentId: payId,
-            value: REGION.instantPrice,
-          });
+          setPrebookLoading(true);
 
-          // After 1s, proceed to the questions modal
-          setTimeout(() => {
-            setShowInstantPaymentSuccess(false);
+          try {
+            const { res, data } = await fetchJson(PREBOOK_CONFIRM_URL, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                userPhone: (userPhone || "").replace(/\D/g, ""),
+                prebookId,
+                razorpayOrderId,
+                razorpayPaymentId: payId,
+                razorpaySignature: sig,
+              }),
+            });
 
+            if (!res.ok || data?.ok === false) {
+              throw new Error(
+                buildErrorMessage(
+                  res,
+                  data,
+                  "Payment was received, but the pre-booking could not be confirmed."
+                )
+              );
+            }
+
+            // ✅ Google Ads conversion: PRE-BOOK purchase
+            // Skip the protected ₹1 test payment so test purchases do not
+            // distort live Google Ads conversion data.
+            const paidValue = Number(amount || 0) / 100 || REGION.prebookPrice;
+            if (paidValue >= Number(REGION.prebookPrice || 0)) {
+              fireGoogleAdsPrebookConversion({
+                paymentId: payId,
+                value: paidValue,
+              });
+            } else {
+              console.log("[Ads] Prebook test payment detected; conversion skipped.", {
+                paymentId: payId,
+                paidValue,
+              });
+            }
+
+            // Reuse the existing 5-question UI, but mark this context as PRE-BOOK.
             setInstantError("");
             setInstantTopic(trimmed);
             setInstantQuestions(INSTANT_DEFAULT_QUESTIONS);
             setInstantPayCtx({
+              flowType: "prebook",
+              prebookId,
+              paidAmount: amount,
               userPhone: (userPhone || "").replace(/\D/g, ""),
               userName: (userName || "").trim() || "RBR User",
               query: trimmed,
@@ -569,7 +614,20 @@ const ReportsMobile = () => {
               razorpaySignature: sig,
             });
             setInstantQuestionsOpen(true);
-          }, 1000);
+          } catch (e) {
+            console.error("Pre-book confirm failed:", e);
+            setModalTitle("Pre-book payment received");
+            setModalMsgNode(
+              <span>
+                ⚠️ Your payment was received, but we could not complete the
+                pre-booking confirmation automatically. Please contact us with
+                your payment reference so we can verify it.
+              </span>
+            );
+            setOpenModal(true);
+          } finally {
+            setPrebookLoading(false);
+          }
         },
         modal: {
           ondismiss: () => {
@@ -1032,6 +1090,7 @@ const ReportsMobile = () => {
           setInstantTopic(trimmed);
           setInstantQuestions(INSTANT_DEFAULT_QUESTIONS);
           setInstantPayCtx({
+            flowType: "instant",
             userPhone: phoneDigits,
             userName: nm,
             query: trimmed,
@@ -1617,6 +1676,58 @@ const ReportsMobile = () => {
     }
   }
 
+  async function savePrebookQuestionsNow(ctx, questions) {
+    setInstantError("");
+    setInstantBusy(true);
+
+    try {
+      const { res, data } = await fetchJson(PREBOOK_CONFIRM_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userPhone: ctx.userPhone,
+          prebookId: ctx.prebookId,
+          razorpayOrderId: ctx.razorpayOrderId,
+          razorpayPaymentId: ctx.razorpayPaymentId,
+          razorpaySignature: ctx.razorpaySignature,
+          questions,
+          saveQuestions: true,
+        }),
+      });
+
+      if (!res.ok || data?.ok === false || data?.questionsSaved !== true) {
+        throw new Error(
+          buildErrorMessage(
+            res,
+            data,
+            "Could not save your pre-book research questions"
+          )
+        );
+      }
+
+      setInstantQuestionsOpen(false);
+      setInstantPayCtx(null);
+
+      setModalTitle("Pre-book confirmed ✅");
+      setModalMsgNode(
+        <span>
+          Your pre-booking is confirmed and your 5 research questions have been
+          saved. We’ll use them while preparing your detailed report and keep
+          you updated on WhatsApp.
+        </span>
+      );
+      setOpenModal(true);
+    } catch (e) {
+      console.error("savePrebookQuestionsNow error:", e);
+      setInstantError(
+        e?.message ||
+          "Could not save your research questions. Please try again."
+      );
+    } finally {
+      setInstantBusy(false);
+    }
+  }
+
   async function generateInstantNow() {
     if (instantBusy) return;
 
@@ -1636,6 +1747,12 @@ const ReportsMobile = () => {
 
     if (qs.length !== 5 || qs.some((x) => !x)) {
       setInstantError("Please fill all 5 questions.");
+      return;
+    }
+
+    // PRE-BOOK uses the same question UI, but must stay in the Pre-book flow.
+    if (ctx?.flowType === "prebook") {
+      await savePrebookQuestionsNow(ctx, qs);
       return;
     }
 
@@ -2294,7 +2411,7 @@ const runSampleSearch = (query) => {
         </div>
       )}
 
-      {/* ✅ Instant Questions Modal (shown AFTER payment success) */}
+      {/* ✅ Shared 5-question modal (Instant or Pre-book, shown AFTER payment success) */}
       {instantQuestionsOpen && (
         <div
           role="dialog"
@@ -2311,14 +2428,17 @@ const runSampleSearch = (query) => {
               <div className="flex items-start justify-between">
                 <div className="min-w-0">
                   <div className="text-white/90 text-xs font-semibold tracking-wide">
-                    Instant Report — {REGION.currencySymbol}{REGION.instantPrice} Paid ✅
+                    {instantPayCtx?.flowType === "prebook"
+                      ? "Pre-book payment confirmed ✅"
+                      : `Instant Report — ${REGION.currencySymbol}${REGION.instantPrice} Paid ✅`}
                   </div>
                   <h2 className="text-white text-lg font-extrabold leading-tight mt-1">
                     {instantTopic}
                   </h2>
                   <div className="mt-2 text-white/90 text-xs leading-snug">
-                    Tell us the 5 things you want to know. We’ll generate your
-                    report accordingly.
+                    {instantPayCtx?.flowType === "prebook"
+                      ? "Tell us the 5 things you want to know. We’ll use these research questions while preparing your detailed pre-book report."
+                      : "Tell us the 5 things you want to know. We’ll generate your report accordingly."}
                   </div>
                 </div>
 
@@ -2362,12 +2482,27 @@ const runSampleSearch = (query) => {
                 disabled={instantBusy}
                 className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white font-extrabold py-3 rounded-xl active:scale-[0.98]"
               >
-                {instantBusy ? "Generating…" : "Generate report"}
+                {instantPayCtx?.flowType === "prebook"
+                  ? instantBusy
+                    ? "Saving…"
+                    : "Save research questions"
+                  : instantBusy
+                    ? "Generating…"
+                    : "Generate report"}
               </button>
 
               <div className="text-[11px] text-gray-500 text-center mt-2">
-                After generation, the report will appear in{" "}
-                <strong>My Profile</strong>.
+                {instantPayCtx?.flowType === "prebook" ? (
+                  <>
+                    Your detailed report will be prepared under your pre-booking
+                    and will appear in <strong>My Profile</strong> when ready.
+                  </>
+                ) : (
+                  <>
+                    After generation, the report will appear in{" "}
+                    <strong>My Profile</strong>.
+                  </>
+                )}
               </div>
             </div>
           </div>
