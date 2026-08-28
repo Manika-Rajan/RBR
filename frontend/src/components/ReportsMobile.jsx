@@ -1294,10 +1294,21 @@ const ReportsMobile = () => {
     pendingInstantRef.current = null;
 
     if (pendingPrebook) {
+      // After OTP verification, use the canonical verified phone identity
+      // (+91xxxxxxxxxx -> 91xxxxxxxxxx) for Pre-book. This keeps the
+      // purchase tied to the existing UserProfiles identity and also lets
+      // the protected test-price check recognise the configured test user.
+      const verifiedPhoneDigits = String(
+        verifiedUser?.phone ||
+          verifiedUser?.userId ||
+          pendingPrebook.phoneDigits ||
+          ""
+      ).replace(/\D/g, "");
+
       await startPrebookFlow(
         pendingPrebook.query,
         verifiedUser?.name || pendingPrebook.userName,
-        pendingPrebook.phoneDigits
+        verifiedPhoneDigits || pendingPrebook.phoneDigits
       );
       return;
     }
