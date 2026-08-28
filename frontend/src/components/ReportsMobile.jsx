@@ -339,6 +339,7 @@ const ReportsMobile = () => {
   const [otpSending, setOtpSending] = useState(false);
   const [otpVerifying, setOtpVerifying] = useState(false);
   const pendingInstantRef = useRef(null);
+  const pendingPrebookRef = useRef(null);
   const pendingChooserSnapshotRef = useRef(null);
 
   // ✅ Inline OTP step (instead of a second big popup)
@@ -1182,6 +1183,7 @@ const ReportsMobile = () => {
     }
 
     // Otherwise: OTP before payment (Option A)
+    pendingPrebookRef.current = null;
     pendingInstantRef.current = { query: trimmed, userName: nm, phoneDigits };
     pendingChooserSnapshotRef.current = {
       prebookQuery: trimmed,
@@ -1230,17 +1232,30 @@ const ReportsMobile = () => {
     setInstantOtpStep(false);
     setPrebookPromptOpen(false);
 
-    const pending = pendingInstantRef.current;
+    const pendingPrebook = pendingPrebookRef.current;
+    const pendingInstant = pendingInstantRef.current;
+    pendingPrebookRef.current = null;
     pendingInstantRef.current = null;
-    if (pending) {
-      await startInstantPayment(pending);
-    } else {
-      setModalTitle("Something went wrong");
-      setModalMsgNode(
-        <span>⚠️ We couldn’t continue the Instant flow. Please try again.</span>
+
+    if (pendingPrebook) {
+      await startPrebookFlow(
+        pendingPrebook.query,
+        pendingPrebook.userName,
+        pendingPrebook.phoneDigits
       );
-      setOpenModal(true);
+      return;
     }
+
+    if (pendingInstant) {
+      await startInstantPayment(pendingInstant);
+      return;
+    }
+
+    setModalTitle("Something went wrong");
+    setModalMsgNode(
+      <span>⚠️ We couldn’t continue the payment flow. Please try again.</span>
+    );
+    setOpenModal(true);
   };
 
   const goToReportBySlug = async (reportOrSlug) => {
@@ -1854,36 +1869,62 @@ const ReportsMobile = () => {
     e.preventDefault();
     setInstantChooserError("");
 
-    if (prebookHasKnownUser) {
-      const phoneDigits = (prebookPhone || "").replace(/\D/g, "");
-      if (phoneDigits.length < 10) {
-        setPrebookError(
-          "Your saved phone number seems invalid. Please update your profile or contact us."
-        );
-        return;
-      }
-      setPrebookError("");
-      setPrebookPromptOpen(false);
-
-      await startPrebookFlow(prebookQuery, prebookName || "RBR User", phoneDigits);
-      return;
-    }
-
     const phoneDigits = (prebookPhone || "").replace(/\D/g, "");
-    const nm = (prebookName || "").trim();
-    if (!nm) {
-      setPrebookError("Please enter your name.");
+    let nm = (prebookName || "").trim();
+
+    if (!nm) nm = "RBR User";
+
+    if (phoneDigits.length < 10) {
+      setPrebookError(
+        prebookHasKnownUser
+          ? "Your saved phone number seems invalid. Please update your profile or contact us."
+          : "Please enter a valid phone number (at least 10 digits)."
+      );
       return;
     }
-    if (phoneDigits.length < 10) {
-      setPrebookError("Please enter a valid phone number (at least 10 digits).");
+
+    if (!prebookHasKnownUser && !(prebookName || "").trim()) {
+      setPrebookError("Please enter your name.");
       return;
     }
 
     setPrebookError("");
-    setPrebookPromptOpen(false);
+    setInstantChooserError("");
 
-    await startPrebookFlow(prebookQuery, nm || "RBR User", phoneDigits);
+    // Logged-in users can proceed directly to Razorpay.
+    const alreadyLoggedIn = !!state?.userInfo?.isLogin;
+    if (alreadyLoggedIn) {
+      pendingPrebookRef.current = null;
+      setPrebookPromptOpen(false);
+      await startPrebookFlow(prebookQuery, nm, phoneDigits);
+      return;
+    }
+
+    // Logged-out users must verify the phone number before Razorpay opens.
+    pendingInstantRef.current = null;
+    pendingPrebookRef.current = {
+      query: prebookQuery,
+      userName: nm,
+      phoneDigits,
+    };
+    pendingChooserSnapshotRef.current = {
+      prebookQuery,
+      prebookName: nm,
+      prebookPhone: phoneDigits,
+      prebookHasKnownUser,
+    };
+
+    // Reuse the existing inline OTP UI and the same Login.jsx OTP APIs.
+    setOtpPhone(phoneDigits.slice(-10));
+    setOtpValue("");
+    setOtpError("");
+    setOtpSent(false);
+    setInstantOtpStep(true);
+
+    // Send OTP as soon as the verification step opens.
+    setTimeout(() => {
+      sendOtpForInstant(phoneDigits);
+    }, 0);
   };
 
 
