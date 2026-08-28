@@ -895,24 +895,80 @@ const ReportsMobile = () => {
       }
 
       const token = body?.token || parsed?.token || "";
-      const baseUser = {
+
+      // Match the normal Login.jsx flow: after OTP verification, restore the
+      // existing UserProfiles identity before continuing to payment.
+      let userProfile = {};
+
+      try {
+        const profileRes = await fetch(
+          "https://eg3s8q87p7.execute-api.ap-south-1.amazonaws.com/default/manage-user-profile",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({
+              action: "get",
+              phone_number: phoneE164,
+            }),
+          }
+        );
+
+        // Existing users should resolve here. For a genuinely new phone number,
+        // keep an empty profile and let the purchase/profile flow create its
+        // first record later instead of inventing a second identity.
+        if (profileRes.ok) {
+          const profileData = await profileRes.json().catch(() => ({}));
+          userProfile = profileData;
+
+          if (typeof profileData?.body === "string") {
+            try {
+              userProfile = JSON.parse(profileData.body);
+            } catch {
+              userProfile = {};
+            }
+          }
+        } else if (profileRes.status !== 404) {
+          throw new Error("Could not load your existing profile after OTP verification.");
+        }
+      } catch (profileErr) {
+        console.error("Profile fetch after OTP failed:", profileErr);
+        setOtpError(
+          "OTP was verified, but we could not load your profile. Please try again."
+        );
+        return false;
+      }
+
+      const enrichedUser = {
         isLogin: true,
         userId: phoneE164,
         phone: phoneE164,
         token,
+        name:
+          userProfile?.name ||
+          state?.userInfo?.name ||
+          (prebookName || "").trim() ||
+          "RBR User",
+        email: userProfile?.email || state?.userInfo?.email || "",
+        photo_url:
+          userProfile?.photo_url ||
+          state?.userInfo?.photo_url ||
+          null,
+        role: userProfile?.role || state?.userInfo?.role || "user",
       };
 
-      // Persist like Login.jsx
       try {
         localStorage.setItem("authToken", token);
-        localStorage.setItem("userInfo", JSON.stringify(baseUser));
+        localStorage.setItem("userInfo", JSON.stringify(enrichedUser));
       } catch {}
 
       try {
-        dispatch?.({ type: "USER_LOGIN", payload: baseUser });
+        dispatch?.({ type: "USER_LOGIN", payload: enrichedUser });
       } catch {}
 
-      return true;
+      return enrichedUser;
     } catch (e) {
       setOtpError(e?.message || "Invalid OTP. Please try again.");
       return false;
@@ -1226,8 +1282,8 @@ const ReportsMobile = () => {
   };
 
   const verifyOtpAndProceedInstant = async () => {
-    const ok = await verifyOtpForInstant();
-    if (!ok) return;
+    const verifiedUser = await verifyOtpForInstant();
+    if (!verifiedUser) return;
 
     setInstantOtpStep(false);
     setPrebookPromptOpen(false);
@@ -1240,14 +1296,17 @@ const ReportsMobile = () => {
     if (pendingPrebook) {
       await startPrebookFlow(
         pendingPrebook.query,
-        pendingPrebook.userName,
+        verifiedUser?.name || pendingPrebook.userName,
         pendingPrebook.phoneDigits
       );
       return;
     }
 
     if (pendingInstant) {
-      await startInstantPayment(pendingInstant);
+      await startInstantPayment({
+        ...pendingInstant,
+        userName: verifiedUser?.name || pendingInstant.userName,
+      });
       return;
     }
 
