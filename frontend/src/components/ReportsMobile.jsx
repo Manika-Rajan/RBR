@@ -711,7 +711,7 @@ const ReportsMobile = () => {
         amount,
         currency,
         name: "Rajan Business Reports",
-        description: `Pre-book ${REGION.currencySymbol}${REGION.prebookPrice} (Adjusted): ${trimmed} | Access in My Profile`,
+        description: `Custom Report ${REGION.currencySymbol}${REGION.prebookPrice}: ${trimmed} | Access in My Profile`,
         order_id: razorpayOrderId,
         prefill: { name: userName || "RBR User", contact: userPhone },
         notes: {
@@ -1458,7 +1458,7 @@ const ReportsMobile = () => {
             setModalMsgNode(
               <span>
                 Your payment was cancelled. You can try again, or choose{" "}
-                <strong>Pre-book</strong> instead.
+                <strong>Custom Report</strong> instead.
               </span>
             );
             setOpenModal(true);
@@ -2125,10 +2125,10 @@ const ReportsMobile = () => {
       setInstantQuestionsOpen(false);
       setInstantPayCtx(null);
 
-      setModalTitle("Pre-book confirmed ✅");
+      setModalTitle("Custom report order confirmed ✅");
       setModalMsgNode(
         <span>
-          Your pre-booking is confirmed and your 5 research questions have been
+          Your custom report order is confirmed and your 5 research questions have been
           saved. We’ll use them while preparing your detailed report and keep
           you updated on WhatsApp.
         </span>
@@ -2665,7 +2665,7 @@ const runSampleSearch = (query) => {
               <LoaderRing />
             </div>
             <div className="text-gray-800 text-sm">
-              Processing your payment and confirming your pre-booking…
+              Processing your payment and confirming your custom report order…
             </div>
           </div>
         </div>
@@ -2745,7 +2745,7 @@ const runSampleSearch = (query) => {
 
             <div className="mb-4 rounded-xl border border-amber-200 bg-white/70 p-3">
               <div className="text-xs font-semibold text-amber-900 mb-1">
-                After successful pre-booking
+                After successful custom report order
               </div>
               <ul className="text-[11px] text-amber-900/80 space-y-1 ml-4 list-disc">
                 <li>OTP login to your account</li>
@@ -2753,9 +2753,9 @@ const runSampleSearch = (query) => {
                   Report is unlocked in <strong>My Profile</strong> when ready
                 </li>
                 <li>
-                  Delivery within <strong>72 hours</strong>
+                  Delivery within <strong>48 hours</strong>
                 </li>
-                <li>{REGION.currencySymbol}{REGION.prebookPrice} is adjusted in final price</li>
+                <li>Your custom report is prepared specifically for your requirement.</li>
               </ul>
             </div>
 
@@ -2980,7 +2980,7 @@ const runSampleSearch = (query) => {
                 <div className="min-w-0">
                   <div className="text-white/90 text-xs font-semibold tracking-wide">
                     {instantPayCtx?.flowType === "prebook"
-                      ? "Pre-book payment confirmed ✅"
+                      ? "Custom report payment confirmed ✅"
                       : `Instant Report — ${REGION.currencySymbol}${REGION.instantPrice} Paid ✅`}
                   </div>
                   <h2 className="text-white text-lg font-extrabold leading-tight mt-1">
@@ -2988,7 +2988,7 @@ const runSampleSearch = (query) => {
                   </h2>
                   <div className="mt-2 text-white/90 text-xs leading-snug">
                     {instantPayCtx?.flowType === "prebook"
-                      ? "Tell us the 5 things you want to know. We’ll use these research questions while preparing your detailed pre-book report."
+                      ? "Tell us the 5 things you want to know. We’ll use these research questions while preparing your custom business intelligence report."
                       : "Tell us the 5 things you want to know. We’ll generate your report accordingly."}
                   </div>
                 </div>
@@ -3045,7 +3045,7 @@ const runSampleSearch = (query) => {
               <div className="text-[11px] text-gray-500 text-center mt-2">
                 {instantPayCtx?.flowType === "prebook" ? (
                   <>
-                    Your detailed report will be prepared under your pre-booking
+                    Your custom report will be prepared for your requirement
                     and will appear in <strong>My Profile</strong> when ready.
                   </>
                 ) : (
@@ -3081,12 +3081,14 @@ const runSampleSearch = (query) => {
                   <div className="min-w-0">
                     <div className="text-white/90 text-xs font-semibold tracking-wide"></div>
                     <h2 className="text-white text-lg font-extrabold leading-tight mt-1">
-                      Report not found for
+                      We can prepare a report for
                       <span className="block truncate mt-0.5">
                         “{prebookQuery}”
                       </span>
                     </h2>
-                    <div className="mt-2 text-white/90 text-xs leading-snug"></div>
+                    <div className="mt-2 text-white/90 text-xs leading-snug">
+                      Choose a custom deep-dive or a quick automated overview.
+                    </div>
                   </div>
 
                   <button
@@ -3129,9 +3131,8 @@ const runSampleSearch = (query) => {
             >
               {!instantOtpStep && (
                 <p className="text-gray-700 text-sm leading-snug mb-3">
-                  But our database can generate a report for{" "}
-                  <strong>“{prebookQuery}”</strong>{" "}
-                  — please choose an option below.
+                  For <strong>“{prebookQuery}”</strong>, our custom report is the
+                  detailed option built around your exact requirement.
                 </p>
               )}
 
@@ -3263,51 +3264,158 @@ const runSampleSearch = (query) => {
                   </div>
                 </div>
               ) : (
-                <div className="grid grid-cols-2 gap-3">
-                  {/* INSTANT */}
-                  <div className="relative rounded-2xl border border-blue-200 bg-gradient-to-b from-blue-50 to-white p-3 flex flex-col">
-                    <div className="absolute -top-2 right-2">
-                      <span className="inline-flex items-center gap-1 rounded-full bg-blue-600 text-white text-[10px] font-extrabold px-2 py-1 shadow">
-                        ⭐ Recommended
-                      </span>
-                    </div>
-
-                    <div className="text-[11px] font-semibold text-blue-700">
-                      FASTEST
-                    </div>
-                    <div className="text-sm font-extrabold text-gray-900 leading-tight mt-1">
-                      Instant 10-Page
-                    </div>
-                    <div className="text-xl font-extrabold text-blue-700 mt-1">
-                      {REGION.currencySymbol}{REGION.instantPrice}
-                    </div>
-
-                    <div className="text-[11px] text-gray-700 mt-2 leading-snug">
-                      Quick evaluation: overview, trends, key players.
-                    </div>
-
-                    {/* FORCE confirmation for NEW users: show name/phone fields here too */}
-                    {!prebookHasKnownUser && (
-                      <div className="mt-2 space-y-2">
+                <div className="space-y-3">
+                  {/* Shared identity details for either purchase option */}
+                  {!prebookHasKnownUser && (
+                    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
+                      <div className="text-xs font-extrabold text-slate-800">
+                        Your details
+                      </div>
+                      <div className="text-[11px] text-slate-500 mt-0.5 mb-2">
+                        Used for OTP verification and report delivery updates.
+                      </div>
+                      <div className="grid grid-cols-1 gap-2">
                         <input
                           type="text"
                           value={prebookName}
                           onChange={(e) => setPrebookName(e.target.value)}
                           placeholder="Your name"
-                          className="w-full border border-gray-300 rounded-lg px-2.5 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          className="w-full border border-slate-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
                         />
                         <input
                           type="tel"
                           value={prebookPhone}
                           onChange={(e) => setPrebookPhone(e.target.value)}
-                          placeholder="WhatsApp number"
-                          className="w-full border border-gray-300 rounded-lg px-2.5 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          placeholder="WhatsApp / mobile number"
+                          className="w-full border border-slate-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
                         />
                       </div>
-                    )}
+                    </div>
+                  )}
+
+                  {/* PRIMARY PRODUCT — CUSTOM / PREBOOK */}
+                  <form
+                    onSubmit={handlePrebookSubmit}
+                    className="relative overflow-hidden rounded-3xl border-2 border-blue-200 bg-gradient-to-br from-[#071b3d] via-[#0b3f82] to-[#0b67c2] shadow-xl"
+                  >
+                    <div className="absolute -top-14 -right-14 h-36 w-36 rounded-full bg-white/10 blur-2xl" />
+                    <div className="absolute -bottom-16 -left-16 h-40 w-40 rounded-full bg-cyan-300/10 blur-2xl" />
+
+                    <div className="relative p-4 sm:p-5">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <div className="inline-flex items-center rounded-full border border-cyan-200/30 bg-cyan-100/15 px-2.5 py-1 text-[10px] font-extrabold tracking-wide text-cyan-50">
+                            BEST FOR BUSINESS DECISIONS
+                          </div>
+                          <div className="mt-3 text-[11px] font-bold tracking-[0.12em] text-blue-100">
+                            CUSTOM BUSINESS INTELLIGENCE REPORT
+                          </div>
+                          <div className="mt-1 text-xl font-extrabold leading-tight text-white">
+                            Built specifically for your requirement
+                          </div>
+                        </div>
+
+                        <div className="shrink-0 rounded-2xl border border-white/15 bg-white/10 px-3 py-2 text-right">
+                          <div className="text-[10px] font-semibold text-blue-100">
+                            Custom report
+                          </div>
+                          <div className="text-2xl font-black text-white leading-none mt-1">
+                            {REGION.currencySymbol}{REGION.prebookPrice}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="mt-4 rounded-2xl border border-white/15 bg-white/10 p-3">
+                        <div className="grid grid-cols-1 gap-2 text-[12px] text-white/95">
+                          <div className="flex items-start gap-2">
+                            <span className="mt-[1px] text-cyan-200">✓</span>
+                            <span>Prepared around your exact market, industry or business topic.</span>
+                          </div>
+                          <div className="flex items-start gap-2">
+                            <span className="mt-[1px] text-cyan-200">✓</span>
+                            <span>Include <strong>5 research questions</strong> you specifically want answered.</span>
+                          </div>
+                          <div className="flex items-start gap-2">
+                            <span className="mt-[1px] text-cyan-200">✓</span>
+                            <span>Credible data sources and source references used where applicable.</span>
+                          </div>
+                          <div className="flex items-start gap-2">
+                            <span className="mt-[1px] text-cyan-200">✓</span>
+                            <span>Market, competitor, opportunity and outlook analysis based on the requirement.</span>
+                          </div>
+                          <div className="flex items-start gap-2">
+                            <span className="mt-[1px] text-cyan-200">✓</span>
+                            <span>Delivered within <strong>48 hours</strong> and saved in <strong>My Profile</strong>.</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={openCustomPrebookSample}
+                        className="mt-3 w-full rounded-xl border border-white/25 bg-white/10 hover:bg-white/15 text-white font-extrabold py-2.5 text-sm active:scale-[0.99] transition"
+                      >
+                        View Sample Custom Report
+                      </button>
+                      <div className="mt-1 text-center text-[10px] text-blue-100/90">
+                        See the report quality before you order
+                      </div>
+
+                      <details className="mt-3 rounded-xl border border-white/15 bg-black/10 px-3 py-2.5 text-white">
+                        <summary className="cursor-pointer select-none text-xs font-bold text-white/95">
+                          What happens after I order?
+                        </summary>
+                        <div className="mt-2 text-[11px] leading-relaxed text-blue-50/95">
+                          <ul className="ml-4 list-disc space-y-1.5">
+                            <li>Verify your mobile number with OTP if you are not already logged in.</li>
+                            <li>Complete secure payment through Razorpay.</li>
+                            <li>Tell us the 5 questions you want the report to answer.</li>
+                            <li>Your custom report is prepared and delivered within 48 hours.</li>
+                            <li>The completed report remains available in <strong>My Profile</strong>.</li>
+                          </ul>
+                        </div>
+                      </details>
+
+                      {prebookError && (
+                        <div className="mt-3 rounded-xl border border-red-200/30 bg-red-950/20 px-3 py-2 text-xs font-semibold text-red-50">
+                          {prebookError}
+                        </div>
+                      )}
+
+                      <button
+                        type="submit"
+                        className="mt-4 w-full rounded-xl bg-white hover:bg-blue-50 text-blue-800 font-black py-3.5 text-base shadow-lg active:scale-[0.99] transition"
+                      >
+                        Order Custom Report — {REGION.currencySymbol}{REGION.prebookPrice}
+                      </button>
+
+                      <div className="mt-2 text-center text-[10px] text-blue-100/90">
+                        🔒 Secure Razorpay payment • OTP verified • Access in <strong>My Profile</strong>
+                      </div>
+                    </div>
+                  </form>
+
+                  {/* SECONDARY PRODUCT — INSTANT */}
+                  <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3.5">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="text-[10px] font-bold tracking-wide text-slate-500">
+                          NEED SOMETHING QUICK?
+                        </div>
+                        <div className="mt-1 text-sm font-extrabold text-slate-900">
+                          Instant 10-Page Report
+                        </div>
+                        <div className="mt-1 text-[11px] leading-snug text-slate-600">
+                          Automated quick evaluation with overview, trends and key players.
+                        </div>
+                      </div>
+                      <div className="shrink-0 text-lg font-black text-slate-800">
+                        {REGION.currencySymbol}{REGION.instantPrice}
+                      </div>
+                    </div>
 
                     {instantChooserError && (
-                      <p className="text-xs text-red-600 mt-2">
+                      <p className="mt-2 text-xs font-semibold text-red-600">
                         {instantChooserError}
                       </p>
                     )}
@@ -3315,101 +3423,14 @@ const runSampleSearch = (query) => {
                     <button
                       type="button"
                       onClick={() => triggerInstant(prebookQuery)}
-                      className="mt-3 w-full bg-blue-600 hover:bg-blue-700 text-white font-extrabold py-2.5 rounded-xl active:scale-[0.98] shadow"
+                      className="mt-3 w-full rounded-xl border border-slate-300 bg-white hover:bg-slate-100 text-slate-800 font-extrabold py-2.5 active:scale-[0.99] transition"
                     >
-                      Generate
+                      Generate Instant Report — {REGION.currencySymbol}{REGION.instantPrice}
                     </button>
 
-                    <div className="text-[10px] text-gray-500 text-center mt-1">
-                      Secure checkout • View in <strong>My Profile</strong>
+                    <div className="mt-1.5 text-center text-[10px] text-slate-500">
+                      Automated overview • Not a custom deep-dive
                     </div>
-
-                    <div className="mt-2 text-[10px] text-gray-500 text-center">
-                      Auto-generated (not a custom deep-dive)
-                    </div>
-                  </div>
-
-                  {/* PREBOOK */}
-                  <div className="rounded-2xl border border-gray-200 bg-white p-3 flex flex-col">
-                    <div className="text-[11px] font-semibold text-gray-700">
-                      DETAILED
-                    </div>
-                    <div className="text-sm font-extrabold text-gray-900 leading-tight mt-1">
-                      Full Report
-                    </div>
-                    <div className="text-xl font-extrabold text-gray-900 mt-1">
-                      {REGION.currencySymbol}{REGION.prebookPrice}
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={openCustomPrebookSample}
-                      className="mt-2 w-full border border-blue-200 bg-blue-50 hover:bg-blue-100 text-blue-800 font-extrabold py-2 rounded-xl text-xs active:scale-[0.98]"
-                    >
-                      View Sample Custom Report
-                    </button>
-
-                    <div className="text-[11px] text-gray-700 mt-2 leading-snug">
-                      Delivered within 72 hours. {REGION.currencySymbol}{REGION.prebookPrice} adjusted in final price.
-                    </div>
-
-                    <details className="mt-2 rounded-xl border border-gray-200 bg-gray-50/60 px-3 py-2">
-                      <summary className="cursor-pointer select-none text-xs font-semibold text-gray-800">
-                        What happens after
-                      </summary>
-                      <div className="mt-2 text-[11px] text-gray-700 leading-relaxed">
-                        <ul className="ml-4 list-disc space-y-1">
-                          <li>OTP login to your account.</li>
-                          <li>
-                            Report unlocks in <strong>My Profile</strong>.
-                          </li>
-                          <li>
-                            Delivery: <strong>within 72 hours</strong>.
-                          </li>
-                        </ul>
-                      </div>
-                    </details>
-
-                    {/* Form is ONLY required for new users; kept as-is for pre-book */}
-                    <form
-                      onSubmit={handlePrebookSubmit}
-                      className="space-y-2 mt-2"
-                    >
-                      {!prebookHasKnownUser && (
-                        <>
-                          <input
-                            type="text"
-                            value={prebookName}
-                            onChange={(e) => setPrebookName(e.target.value)}
-                            placeholder="Your name"
-                            className="w-full border border-gray-300 rounded-lg px-2.5 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          />
-                          <input
-                            type="tel"
-                            value={prebookPhone}
-                            onChange={(e) => setPrebookPhone(e.target.value)}
-                            placeholder="WhatsApp number"
-                            className="w-full border border-gray-300 rounded-lg px-2.5 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          />
-                        </>
-                      )}
-
-                      {prebookError && (
-                        <p className="text-xs text-red-600">{prebookError}</p>
-                      )}
-
-                      <button
-                        type="submit"
-                        className="mt-1 w-full bg-gray-900 hover:bg-black text-white font-extrabold py-2.5 rounded-xl active:scale-[0.98]"
-                      >
-                        Order Custom Report
-                      </button>
-
-                      <div className="text-[10px] text-gray-500 text-center -mt-1">
-                        Razorpay • OTP login • Access in{" "}
-                        <strong>My Profile</strong>
-                      </div>
-                    </form>
                   </div>
                 </div>
               )}
