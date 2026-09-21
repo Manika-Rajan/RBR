@@ -3313,7 +3313,7 @@ const runSampleSearch = (query) => {
               </div>
             ) : chooserStep === "details" ? (
               /* STEP 2 — only now ask for name/mobile */
-              <div className="px-4 py-4">
+              <div className="bg-[#F7FCFF] px-4 py-4">
                 <div className="flex items-center justify-between gap-3">
                   <button
                     type="button"
@@ -3347,7 +3347,7 @@ const runSampleSearch = (query) => {
                       : `Instant 10-Page Report — ${REGION.currencySymbol}${REGION.instantPrice}`}
                   </h2>
                   <p className="mt-1 text-xs leading-relaxed text-slate-500">
-                    Enter your name and mobile number. We’ll verify it by OTP before secure payment.
+                    Just your name and mobile number, then OTP and secure payment.
                   </p>
                 </div>
 
@@ -3384,7 +3384,12 @@ const runSampleSearch = (query) => {
 
                   <button
                     type="submit"
-                    className="w-full rounded-xl bg-blue-600 py-3 text-sm font-black text-white shadow hover:bg-blue-700 active:scale-[0.99]"
+                    className={
+                      "w-full rounded-xl py-3 text-sm font-black text-white shadow active:scale-[0.99] " +
+                      (chooserIntent === "prebook"
+                        ? "bg-[#15805C] hover:bg-[#116B4D]"
+                        : "bg-[#2E83B8] hover:bg-[#2475A6]")
+                    }
                   >
                     Continue to OTP
                   </button>
@@ -3395,105 +3400,122 @@ const runSampleSearch = (query) => {
                 </form>
               </div>
             ) : (
-              /* STEP 1 — ONE GLANCE. No form, no accordion, no scrolling required on normal phones. */
-              <div className="px-4 py-4">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0 flex-1">
-                    <div className="inline-flex rounded-full bg-amber-100 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-amber-800">
-                      Ready-made report not found
-                    </div>
-                    <div
-                      className="mt-2 text-base font-black leading-snug text-slate-950"
-                      style={{
-                        display: "-webkit-box",
-                        WebkitLineClamp: 2,
-                        WebkitBoxOrient: "vertical",
-                        overflow: "hidden",
-                      }}
-                    >
-                      “{prebookQuery}”
-                    </div>
-                    <div className="mt-1 text-sm font-bold text-blue-700">
-                      We can create it for you.
-                    </div>
-                  </div>
-
+              /* STEP 1 — calm, one-glance solution screen */
+              <div className="bg-[#F7FCFF] px-3.5 py-3.5">
+                {/* Context first: make the search outcome impossible to miss */}
+                <div className="relative rounded-2xl border border-[#CFEAF7] bg-[#EAF7FD] px-3.5 py-3 text-center">
                   <button
                     type="button"
                     onClick={() => setPrebookPromptOpen(false)}
-                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-600"
+                    className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-white/80 text-slate-500 shadow-sm"
                     aria-label="Close"
                   >
                     ✕
                   </button>
+
+                  <div className="text-[17px] font-extrabold leading-snug text-[#22313F] pr-6 pl-6">
+                    We don’t have this exact report in our database yet.
+                  </div>
+
+                  <div
+                    className="mx-auto mt-2 max-w-[92%] rounded-xl bg-white/85 px-3 py-2 text-[13px] font-bold leading-snug text-[#2F5D73] shadow-sm"
+                    style={{
+                      display: "-webkit-box",
+                      WebkitLineClamp: 2,
+                      WebkitBoxOrient: "vertical",
+                      overflow: "hidden",
+                    }}
+                  >
+                    “{prebookQuery}”
+                  </div>
+
+                  <div className="mt-2 text-[13px] font-bold leading-snug text-[#18704F]">
+                    You can still get the information you need.
+                  </div>
                 </div>
 
-                {/* Primary product */}
-                <div className="mt-3 rounded-2xl border-2 border-blue-200 bg-gradient-to-b from-blue-50 to-white p-3.5 shadow-[0_10px_26px_rgba(37,99,235,0.10)]">
-                  <div className="flex items-start justify-between gap-3">
+                {/* Instant: quick help for the immediate requirement */}
+                <div className="mt-3 rounded-2xl border border-[#CFE7F8] bg-[#F0F9FF] p-3">
+                  <div className="flex items-center justify-between gap-3">
                     <div className="min-w-0">
-                      <div className="text-[10px] font-black uppercase tracking-[0.12em] text-blue-700">
-                        Custom Business Report
+                      <div className="text-[9px] font-black uppercase tracking-[0.14em] text-[#347CA5]">
+                        Need it right now?
                       </div>
-                      <div className="mt-0.5 text-sm font-black text-slate-950">
-                        Built for your exact requirement
+                      <div className="mt-0.5 text-[15px] font-extrabold text-[#22313F]">
+                        Instant 10-Page Report
+                      </div>
+                      <div className="mt-0.5 text-[10px] leading-snug text-[#58717F]">
+                        Immediate automated overview to help with your current requirement.
                       </div>
                     </div>
-                    <div className="shrink-0 text-xl font-black text-blue-700">
+
+                    <div className="shrink-0 text-[20px] font-black text-[#2878A8]">
+                      {REGION.currencySymbol}{REGION.instantPrice}
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={beginInstantOrderFromOffer}
+                    className="mt-2.5 w-full rounded-xl bg-[#2E83B8] py-2.5 text-[13px] font-black text-white shadow-sm hover:bg-[#2475A6] active:scale-[0.99]"
+                  >
+                    Generate Instant Report
+                  </button>
+                </div>
+
+                {/* Custom: the detailed/premium solution */}
+                <div className="mt-3 rounded-2xl border-2 border-[#BDE8D2] bg-[#EFFAF4] p-3.5 shadow-[0_8px_24px_rgba(21,128,92,0.08)]">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="text-[9px] font-black uppercase tracking-[0.14em] text-[#15805C]">
+                        Need the full answer?
+                      </div>
+                      <div className="mt-0.5 text-[16px] font-black text-[#21382F]">
+                        Custom Business Report
+                      </div>
+                      <div className="mt-0.5 text-[10px] leading-snug text-[#557066]">
+                        Detailed research prepared for your exact requirement.
+                      </div>
+                    </div>
+
+                    <div className="shrink-0 text-[21px] font-black text-[#157A58]">
                       {REGION.currencySymbol}{REGION.prebookPrice}
                     </div>
                   </div>
 
-                  <div className="mt-2 grid grid-cols-3 gap-1.5 text-center">
-                    <div className="rounded-lg bg-white px-1.5 py-2 text-[10px] font-bold leading-tight text-slate-700 shadow-sm">
-                      ✓ Your exact topic
+                  <div className="mt-2.5 grid grid-cols-3 gap-1.5 text-center">
+                    <div className="rounded-lg bg-white/90 px-1.5 py-2 text-[9px] font-bold leading-tight text-[#365A4C]">
+                      Your exact requirement
                     </div>
-                    <div className="rounded-lg bg-white px-1.5 py-2 text-[10px] font-bold leading-tight text-slate-700 shadow-sm">
-                      ✓ Ask 5 questions
+                    <div className="rounded-lg bg-white/90 px-1.5 py-2 text-[9px] font-bold leading-tight text-[#365A4C]">
+                      Ask 5 questions
                     </div>
-                    <div className="rounded-lg bg-white px-1.5 py-2 text-[10px] font-bold leading-tight text-slate-700 shadow-sm">
-                      ✓ Sources • 48h
-                    </div>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={openCustomPrebookSample}
-                    className="mt-3 w-full rounded-xl border border-blue-200 bg-white py-2.5 text-sm font-extrabold text-blue-700 hover:bg-blue-50 active:scale-[0.99]"
-                  >
-                    View Sample Report
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={beginCustomOrderFromOffer}
-                    className="mt-2 w-full rounded-xl bg-blue-600 py-3 text-sm font-black text-white shadow-md hover:bg-blue-700 active:scale-[0.99]"
-                  >
-                    Order Custom Report — {REGION.currencySymbol}{REGION.prebookPrice}
-                  </button>
-
-                  <div className="mt-1.5 text-center text-[10px] font-medium text-slate-500">
-                    Secure payment • Saved in My Profile
-                  </div>
-                </div>
-
-                {/* Secondary product kept intentionally compact */}
-                <div className="mt-3 flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5">
-                  <div className="min-w-0 flex-1">
-                    <div className="text-[11px] font-black text-slate-800">
-                      Need something quick?
-                    </div>
-                    <div className="mt-0.5 text-[10px] leading-snug text-slate-500">
-                      Instant 10-page automated overview
+                    <div className="rounded-lg bg-white/90 px-1.5 py-2 text-[9px] font-bold leading-tight text-[#365A4C]">
+                      Sources • 48 hours
                     </div>
                   </div>
-                  <button
-                    type="button"
-                    onClick={beginInstantOrderFromOffer}
-                    className="shrink-0 rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-black text-slate-700 active:scale-[0.99]"
-                  >
-                    {REGION.currencySymbol}{REGION.instantPrice} Instant
-                  </button>
+
+                  <div className="mt-2.5 grid grid-cols-[0.88fr_1.12fr] gap-2">
+                    <button
+                      type="button"
+                      onClick={openCustomPrebookSample}
+                      className="rounded-xl border border-[#99D8B9] bg-white py-2.5 px-2 text-[11px] font-extrabold text-[#157A58] hover:bg-[#F7FFFA] active:scale-[0.99]"
+                    >
+                      View Sample
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={beginCustomOrderFromOffer}
+                      className="rounded-xl bg-[#15805C] py-2.5 px-2 text-[11px] font-black text-white shadow-sm hover:bg-[#116B4D] active:scale-[0.99]"
+                    >
+                      Order Custom — {REGION.currencySymbol}{REGION.prebookPrice}
+                    </button>
+                  </div>
+
+                  <div className="mt-1.5 text-center text-[9px] font-medium text-[#698078]">
+                    Secure Razorpay payment • Report saved in My Profile
+                  </div>
                 </div>
               </div>
             )}
