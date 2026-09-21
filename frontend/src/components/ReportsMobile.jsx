@@ -134,6 +134,171 @@ const INSTANT_CONV_SEND_TO = "AW-824378442/6TR6CLvQ1-kbEMqIjIkD";
 // ✅ Search input max length
 const MAX_QUERY_CHARS = 50;
 
+// ✅ RBR funnel tracking
+// - GA4 receives only low-risk funnel metadata (no name / phone / raw search query).
+// - Optional RBR backend receives the exact funnel event + current report query,
+//   but still never receives name / phone / email from this tracker.
+const RBR_FUNNEL_TRACK_URL =
+  getEnv("VITE_RBR_FUNNEL_TRACK_URL") ||
+  getEnv("REACT_APP_RBR_FUNNEL_TRACK_URL") ||
+  "";
+
+// Upload one representative NEW pre-book output PDF to S3 and set its key here
+// through Amplify env vars. The existing presign Lambda is reused.
+const PREBOOK_SAMPLE_FILE_KEY =
+  getEnv("VITE_PREBOOK_SAMPLE_FILE_KEY") ||
+  getEnv("REACT_APP_PREBOOK_SAMPLE_FILE_KEY") ||
+  "";
+
+const FUNNEL_ATTR_KEYS = [
+  "gclid",
+  "gbraid",
+  "wbraid",
+  "utm_source",
+  "utm_medium",
+  "utm_campaign",
+  "utm_term",
+  "utm_content",
+  "campaignid",
+  "adgroupid",
+  "keyword",
+  "matchtype",
+  "device",
+  "network",
+  "creative",
+];
+
+function getRbrFunnelSessionId() {
+  if (typeof window === "undefined") return "";
+  try {
+    const key = "rbr_funnel_session_id";
+    let id = sessionStorage.getItem(key);
+    if (!id) {
+      id =
+        typeof crypto !== "undefined" && crypto.randomUUID
+          ? crypto.randomUUID()
+          : `rbr-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+      sessionStorage.setItem(key, id);
+    }
+    return id;
+  } catch {
+    return "";
+  }
+}
+
+function getRbrAttribution() {
+  if (typeof window === "undefined") return {};
+
+  const storageKey = "rbr_funnel_attribution";
+
+  try {
+    const existing = JSON.parse(sessionStorage.getItem(storageKey) || "{}");
+    const params = new URLSearchParams(window.location.search || "");
+    const incoming = {};
+
+    FUNNEL_ATTR_KEYS.forEach((key) => {
+      const value = params.get(key);
+      if (value) incoming[key] = value.slice(0, 250);
+    });
+
+    const merged = { ...existing, ...incoming };
+    sessionStorage.setItem(storageKey, JSON.stringify(merged));
+    return merged;
+  } catch {
+    return {};
+  }
+}
+
+function hasSeenCustomPrebookSample() {
+  if (typeof window === "undefined") return false;
+  try {
+    return sessionStorage.getItem("rbr_custom_prebook_sample_seen") === "1";
+  } catch {
+    return false;
+  }
+}
+
+function markCustomPrebookSampleSeen() {
+  if (typeof window === "undefined") return;
+  try {
+    sessionStorage.setItem("rbr_custom_prebook_sample_seen", "1");
+  } catch {}
+}
+
+function sendGa4Event(eventName, params = {}) {
+  try {
+    if (
+      typeof window !== "undefined" &&
+      typeof window.gtag === "function" &&
+      eventName
+    ) {
+      window.gtag("event", eventName, params);
+    }
+  } catch (e) {
+    console.warn("[RBR funnel] GA4 event failed:", eventName, e);
+  }
+}
+
+function trackRbrFunnelEvent({
+  eventName,
+  query = "",
+  extra = {},
+  gaEventName = "",
+  gaParams = {},
+}) {
+  if (!eventName) return;
+
+  const attribution = getRbrAttribution();
+  const sessionId = getRbrFunnelSessionId();
+  const sampleSeen = hasSeenCustomPrebookSample();
+
+  // GA4 layer: intentionally do NOT send the raw report query, phone, name,
+  // email, gclid, or the high-cardinality internal session id.
+  if (gaEventName) {
+    sendGa4Event(gaEventName, {
+      product_type: "custom_prebook_report",
+      sample_seen: sampleSeen ? "yes" : "no",
+      ...gaParams,
+    });
+  }
+
+  // First-party RBR layer: exact funnel path for joining stages together.
+  // This remains optional until the dedicated AWS endpoint is configured.
+  if (!RBR_FUNNEL_TRACK_URL) return;
+
+  const eventId =
+    typeof crypto !== "undefined" && crypto.randomUUID
+      ? crypto.randomUUID()
+      : `evt-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+
+  const body = {
+    event_id: eventId,
+    session_id: sessionId,
+    event_name: eventName,
+    event_ts: new Date().toISOString(),
+    page_path:
+      typeof window !== "undefined"
+        ? `${window.location.pathname}${window.location.search}`
+        : "",
+    report_query: String(query || "").trim().slice(0, MAX_QUERY_CHARS),
+    product_type: "custom_prebook_report",
+    displayed_price: Number(REGION.prebookPrice || 0),
+    currency: REGION.currencyCode,
+    sample_seen: sampleSeen,
+    attribution,
+    ...extra,
+  };
+
+  fetch(RBR_FUNNEL_TRACK_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+    keepalive: true,
+  }).catch((e) => {
+    console.warn("[RBR funnel] backend event failed:", eventName, e);
+  });
+}
+
 // Fire Google Ads conversion safely (once per paymentId)
 function fireGoogleAdsPrebookConversion({ paymentId, value }) {
   try {
@@ -278,6 +443,7 @@ const ReportsMobile = () => {
   const [samplePreviewMode, setSamplePreviewMode] = useState(false);
   const [pdfViewerOpen, setPdfViewerOpen] = useState(false);
   const [pdfViewerUrl, setPdfViewerUrl] = useState("");
+  const [pdfViewerTitle, setPdfViewerTitle] = useState("Sample Report Preview");
 
   // ✅ modal now supports rich JSX content
   const [openModal, setOpenModal] = useState(false);
@@ -375,6 +541,24 @@ const ReportsMobile = () => {
       instantMountedRef.current = false;
       instantAbortRef.current.aborted = true;
     };
+  }, []);
+
+  // ✅ Funnel stage 1: landing / page entry.
+  // Guarded because React StrictMode can run effects twice in development.
+  useEffect(() => {
+    try {
+      const key = "rbr_funnel_landing_fired";
+      if (sessionStorage.getItem(key) === "1") return;
+      sessionStorage.setItem(key, "1");
+    } catch {}
+
+    trackRbrFunnelEvent({
+      eventName: "landing_view",
+      gaEventName: "rbr_funnel_landing",
+      gaParams: {
+        page_type: "reports_mobile",
+      },
+    });
   }, []);
 
   // ✅ When OTP inline step opens, focus the first empty box
@@ -583,6 +767,41 @@ const ReportsMobile = () => {
               );
             }
 
+            // ✅ Funnel stage 9: confirmed successful Pre-book payment.
+            const confirmedPaidValue =
+              Number(amount || 0) / 100 || Number(REGION.prebookPrice || 0);
+
+            const isTestPayment =
+              confirmedPaidValue < Number(REGION.prebookPrice || 0);
+
+            trackRbrFunnelEvent({
+              eventName: "payment_success",
+              query: trimmed,
+              extra: {
+                prebook_id: prebookId,
+                razorpay_order_id: razorpayOrderId,
+                razorpay_payment_id: payId,
+                paid_value: confirmedPaidValue,
+                is_test_payment: isTestPayment,
+              },
+              gaEventName: isTestPayment ? "" : "purchase",
+              gaParams: isTestPayment
+                ? {}
+                : {
+                    transaction_id: payId,
+                    currency: currency || REGION.currencyCode,
+                    value: confirmedPaidValue,
+                    items: [
+                      {
+                        item_id: "rbr_custom_prebook_report",
+                        item_name: "RBR Custom Business Intelligence Report",
+                        price: confirmedPaidValue,
+                        quantity: 1,
+                      },
+                    ],
+                  },
+            });
+
             // ✅ Google Ads conversion: PRE-BOOK purchase
             // Skip the protected ₹1 test payment so test purchases do not
             // distort live Google Ads conversion data.
@@ -632,6 +851,19 @@ const ReportsMobile = () => {
         },
         modal: {
           ondismiss: () => {
+            trackRbrFunnelEvent({
+              eventName: "payment_cancelled",
+              query: trimmed,
+              extra: {
+                prebook_id: prebookId,
+                razorpay_order_id: razorpayOrderId,
+              },
+              gaEventName: "rbr_payment_cancelled",
+              gaParams: {
+                product_type: "custom_prebook_report",
+              },
+            });
+
             setPrebookLoading(false);
             setRetryCtx({
               prebookId,
@@ -651,6 +883,23 @@ const ReportsMobile = () => {
       };
 
       const rzp = new window.Razorpay(options);
+
+      // ✅ Funnel stage 8: Razorpay window opened for Pre-book.
+      trackRbrFunnelEvent({
+        eventName: "razorpay_opened",
+        query: trimmed,
+        extra: {
+          prebook_id: prebookId,
+          razorpay_order_id: razorpayOrderId,
+          amount_minor: Number(amount || 0),
+        },
+        gaEventName: "rbr_razorpay_opened",
+        gaParams: {
+          currency: currency || REGION.currencyCode,
+          value: Number(amount || 0) / 100 || Number(REGION.prebookPrice || 0),
+        },
+      });
+
       rzp.open();
     } catch (e) {
       console.error("openRazorpayForPrebook error:", e);
@@ -754,6 +1003,31 @@ const ReportsMobile = () => {
         return;
       }
 
+      // ✅ Checkout has now been prepared successfully.
+      trackRbrFunnelEvent({
+        eventName: "checkout_started",
+        query: trimmed,
+        extra: {
+          prebook_id: prebookId,
+          razorpay_order_id: razorpayOrderId,
+          amount_minor: Number(amount || 0),
+        },
+        gaEventName: "begin_checkout",
+        gaParams: {
+          currency: currency || REGION.currencyCode,
+          value: Number(amount || 0) / 100 || Number(REGION.prebookPrice || 0),
+          items: [
+            {
+              item_id: "rbr_custom_prebook_report",
+              item_name: "RBR Custom Business Intelligence Report",
+              price:
+                Number(amount || 0) / 100 || Number(REGION.prebookPrice || 0),
+              quantity: 1,
+            },
+          ],
+        },
+      });
+
       setRetryCtx({
         prebookId,
         razorpayOrderId,
@@ -802,6 +1076,26 @@ const ReportsMobile = () => {
     setPrebookHasKnownUser(!!savedPhone);
     setPrebookError("");
     setInstantChooserError("");
+
+    // ✅ Funnel stage 3: premium/custom offer was actually shown.
+    trackRbrFunnelEvent({
+      eventName: "prebook_offer_shown",
+      query: trimmed,
+      gaEventName: "view_item",
+      gaParams: {
+        currency: REGION.currencyCode,
+        value: Number(REGION.prebookPrice || 0),
+        items: [
+          {
+            item_id: "rbr_custom_prebook_report",
+            item_name: "RBR Custom Business Intelligence Report",
+            price: Number(REGION.prebookPrice || 0),
+            quantity: 1,
+          },
+        ],
+      },
+    });
+
     setPrebookPromptOpen(true);
   };
 
@@ -1294,6 +1588,24 @@ const ReportsMobile = () => {
     pendingInstantRef.current = null;
 
     if (pendingPrebook) {
+      // ✅ Funnel stage 7: Pre-book OTP/login verified.
+      trackRbrFunnelEvent({
+        eventName: "otp_verified",
+        query: pendingPrebook.query,
+        gaEventName: "login",
+        gaParams: {
+          method: "phone_otp",
+        },
+      });
+
+      trackRbrFunnelEvent({
+        eventName: "identity_ready",
+        query: pendingPrebook.query,
+        extra: {
+          login_mode: "phone_otp",
+        },
+      });
+
       // After OTP verification, use the canonical verified phone identity
       // (+91xxxxxxxxxx -> 91xxxxxxxxxx) for Pre-book. This keeps the
       // purchase tied to the existing UserProfiles identity and also lets
@@ -1451,6 +1763,7 @@ const ReportsMobile = () => {
       }
 
       if (samplePreviewMode) {
+        setPdfViewerTitle("Sample Report Preview");
         setPdfViewerUrl(url);
         setPdfViewerOpen(true);
         setSamplePreviewMode(false);
@@ -1502,11 +1815,17 @@ const ReportsMobile = () => {
     setSuggestOpen(false);
 
     try {
-      window.gtag?.("event", "report_search", {
-        event_category: "engagement",
-        event_label: "mobile_reports_search",
-        value: 1,
-        search_term: trimmed,
+      // ✅ Funnel stage 2: website report search.
+      // The raw query stays in RBR's own logs/tracker; it is not sent to GA4.
+      trackRbrFunnelEvent({
+        eventName: "report_search",
+        query: trimmed,
+        gaEventName: "report_search",
+        gaParams: {
+          event_category: "engagement",
+          event_label: "mobile_reports_search",
+          value: 1,
+        },
       });
 
       const payload = {
@@ -1790,6 +2109,19 @@ const ReportsMobile = () => {
         );
       }
 
+      trackRbrFunnelEvent({
+        eventName: "research_questions_saved",
+        query: ctx?.query || "",
+        extra: {
+          prebook_id: ctx?.prebookId || "",
+          question_count: Array.isArray(questions) ? questions.length : 0,
+        },
+        gaEventName: "rbr_prebook_questions_saved",
+        gaParams: {
+          question_count: Array.isArray(questions) ? questions.length : 0,
+        },
+      });
+
       setInstantQuestionsOpen(false);
       setInstantPayCtx(null);
 
@@ -1939,6 +2271,17 @@ const ReportsMobile = () => {
     e.preventDefault();
     setInstantChooserError("");
 
+    // ✅ Funnel stage 5: customer chose the premium/custom report.
+    trackRbrFunnelEvent({
+      eventName: "prebook_order_clicked",
+      query: prebookQuery,
+      gaEventName: "rbr_prebook_order_clicked",
+      gaParams: {
+        currency: REGION.currencyCode,
+        value: Number(REGION.prebookPrice || 0),
+      },
+    });
+
     const phoneDigits = (prebookPhone || "").replace(/\D/g, "");
     let nm = (prebookName || "").trim();
 
@@ -1964,6 +2307,14 @@ const ReportsMobile = () => {
     // Logged-in users can proceed directly to Razorpay.
     const alreadyLoggedIn = !!state?.userInfo?.isLogin;
     if (alreadyLoggedIn) {
+      trackRbrFunnelEvent({
+        eventName: "identity_ready",
+        query: prebookQuery,
+        extra: {
+          login_mode: "existing_session",
+        },
+      });
+
       pendingPrebookRef.current = null;
       setPrebookPromptOpen(false);
       await startPrebookFlow(prebookQuery, nm, phoneDigits);
@@ -1984,6 +2335,16 @@ const ReportsMobile = () => {
       prebookHasKnownUser,
     };
 
+    // ✅ Funnel stage 6: OTP/login step started for Pre-book.
+    trackRbrFunnelEvent({
+      eventName: "otp_started",
+      query: prebookQuery,
+      gaEventName: "rbr_prebook_otp_started",
+      gaParams: {
+        login_method: "phone_otp",
+      },
+    });
+
     // Reuse the existing inline OTP UI and the same Login.jsx OTP APIs.
     setOtpPhone(phoneDigits.slice(-10));
     setOtpValue("");
@@ -1998,6 +2359,85 @@ const ReportsMobile = () => {
   };
 
 
+
+
+// ⭐ Open one representative NEW pre-book/custom-report sample.
+// This is intentionally separate from the generic "View Sample Reports" list
+// so we can measure whether seeing a premium sample changes conversion.
+const openCustomPrebookSample = async () => {
+  const query = (prebookQuery || "").trim();
+
+  trackRbrFunnelEvent({
+    eventName: "custom_sample_clicked",
+    query,
+    gaEventName: "view_custom_report_sample",
+    gaParams: {
+      sample_type: "prebook_custom",
+      sample_action: "click",
+    },
+  });
+
+  if (!PREBOOK_SAMPLE_FILE_KEY) {
+    setModalTitle("Sample report is being prepared");
+    setModalMsgNode(
+      <span>
+        We’re preparing a representative sample of our new custom-report
+        quality. Please check again shortly.
+      </span>
+    );
+    setOpenModal(true);
+    return;
+  }
+
+  try {
+    setSearchLoading(true);
+
+    const presignResp = await fetch(PRESIGN_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ file_key: PREBOOK_SAMPLE_FILE_KEY }),
+    });
+
+    if (!presignResp.ok) {
+      throw new Error("Could not open the custom-report sample.");
+    }
+
+    const presignData = await presignResp.json();
+    const url = presignData?.presigned_url;
+
+    if (!url) {
+      throw new Error("Sample URL was not returned.");
+    }
+
+    markCustomPrebookSampleSeen();
+
+    trackRbrFunnelEvent({
+      eventName: "custom_sample_viewed",
+      query,
+      gaEventName: "view_custom_report_sample",
+      gaParams: {
+        sample_type: "prebook_custom",
+        sample_action: "opened",
+      },
+    });
+
+    setPdfViewerTitle("Sample Custom Report Preview");
+    setPdfViewerUrl(url);
+    setPdfViewerOpen(true);
+  } catch (e) {
+    console.error("openCustomPrebookSample error:", e);
+    setModalTitle("Sample unavailable");
+    setModalMsgNode(
+      <span>
+        ⚠️ We couldn’t open the custom-report sample right now. Please try
+        again shortly.
+      </span>
+    );
+    setOpenModal(true);
+  } finally {
+    setSearchLoading(false);
+  }
+};
 
 // ⭐ Run a sample search using the same form submit flow
 const runSampleSearch = (query) => {
@@ -2382,7 +2822,7 @@ const runSampleSearch = (query) => {
           >
             <div className="flex items-center justify-between px-4 py-3 border-b border-slate-200">
               <div className="text-slate-900 font-semibold text-sm">
-                Sample Report Preview
+                {pdfViewerTitle}
               </div>
               <button
                 type="button"
@@ -2901,6 +3341,14 @@ const runSampleSearch = (query) => {
                       {REGION.currencySymbol}{REGION.prebookPrice}
                     </div>
 
+                    <button
+                      type="button"
+                      onClick={openCustomPrebookSample}
+                      className="mt-2 w-full border border-blue-200 bg-blue-50 hover:bg-blue-100 text-blue-800 font-extrabold py-2 rounded-xl text-xs active:scale-[0.98]"
+                    >
+                      View Sample Custom Report
+                    </button>
+
                     <div className="text-[11px] text-gray-700 mt-2 leading-snug">
                       Delivered within 72 hours. {REGION.currencySymbol}{REGION.prebookPrice} adjusted in final price.
                     </div>
@@ -2954,7 +3402,7 @@ const runSampleSearch = (query) => {
                         type="submit"
                         className="mt-1 w-full bg-gray-900 hover:bg-black text-white font-extrabold py-2.5 rounded-xl active:scale-[0.98]"
                       >
-                        Pre-book
+                        Order Custom Report
                       </button>
 
                       <div className="text-[10px] text-gray-500 text-center -mt-1">
