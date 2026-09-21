@@ -2972,7 +2972,7 @@ const runSampleSearch = (query) => {
         >
           <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
           <div
-            className="relative z-10 w-full sm:w-[580px] rounded-2xl shadow-2xl overflow-hidden max-h-[80vh] flex flex-col bg-white"
+            className="relative z-10 w-full sm:w-[580px] rounded-2xl shadow-2xl overflow-hidden max-h-[92vh] flex flex-col bg-white"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="bg-gradient-to-br from-blue-700 via-blue-600 to-sky-500 px-5 pt-5 pb-4">
@@ -3065,61 +3065,46 @@ const runSampleSearch = (query) => {
         <div
           role="dialog"
           aria-modal="true"
-          className="fixed inset-0 z-50 flex items-center justify-center px-3 py-6"
+          className="fixed inset-0 z-[9999] flex items-center justify-center px-3 py-3"
           onClick={() => setPrebookPromptOpen(false)}
         >
           <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
 
           <div
-            className="relative z-10 w-full sm:w-[580px] rounded-2xl shadow-2xl overflow-hidden max-h-[80vh] flex flex-col bg-white"
+            className="relative z-10 w-full sm:w-[580px] rounded-2xl shadow-2xl overflow-hidden max-h-[92vh] flex flex-col bg-white"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Header (fixed) */}
+            {/* Header — make the search outcome unmistakable before selling anything */}
             {!instantOtpStep && (
-              <div className="bg-gradient-to-br from-blue-700 via-blue-600 to-sky-500 px-5 pt-5 pb-4">
-                <div className="flex items-start justify-between">
-                  <div className="min-w-0">
-                    <div className="text-white/90 text-xs font-semibold tracking-wide"></div>
-                    <h2 className="text-white text-lg font-extrabold leading-tight mt-1">
-                      We can prepare a report for
-                      <span className="block truncate mt-0.5">
+              <div className="border-b border-slate-200 bg-white px-4 pt-4 pb-3">
+                <div className="flex items-start gap-3">
+                  <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-blue-50 text-blue-700">
+                    <span aria-hidden>⌕</span>
+                  </div>
+
+                  <div className="min-w-0 flex-1">
+                    <div className="text-[11px] font-extrabold uppercase tracking-[0.12em] text-slate-500">
+                      Search result
+                    </div>
+                    <h2 className="mt-0.5 text-lg font-extrabold leading-tight text-slate-950">
+                      We couldn’t find a ready-made report for
+                      <span className="block truncate text-blue-700">
                         “{prebookQuery}”
                       </span>
                     </h2>
-                    <div className="mt-2 text-white/90 text-xs leading-snug">
-                      Choose a custom deep-dive or a quick automated overview.
-                    </div>
+                    <p className="mt-1.5 text-xs leading-relaxed text-slate-600">
+                      RBR can still create a report specifically for this requirement.
+                    </p>
                   </div>
 
                   <button
+                    type="button"
                     onClick={() => setPrebookPromptOpen(false)}
-                    className="shrink-0 h-9 w-9 rounded-full bg-white/20 hover:bg-white/30 text-white flex items-center justify-center"
+                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-600 hover:bg-slate-200"
                     aria-label="Close"
                   >
                     ✕
                   </button>
-                </div>
-
-                {/* Trust strip */}
-                <div className="mt-4 grid grid-cols-3 gap-2">
-                  <div className="rounded-xl bg-white/15 px-2 py-2 text-center">
-                    <div className="text-white text-sm">🔒</div>
-                    <div className="text-white/90 text-[10px] font-semibold">
-                      Secure pay
-                    </div>
-                  </div>
-                  <div className="rounded-xl bg-white/15 px-2 py-2 text-center">
-                    <div className="text-white text-sm">📩</div>
-                    <div className="text-white/90 text-[10px] font-semibold">
-                      OTP login
-                    </div>
-                  </div>
-                  <div className="rounded-xl bg-white/15 px-2 py-2 text-center">
-                    <div className="text-white text-sm">👤</div>
-                    <div className="text-white/90 text-[10px] font-semibold">
-                      My Profile
-                    </div>
-                  </div>
                 </div>
               </div>
             )}
@@ -3130,10 +3115,14 @@ const runSampleSearch = (query) => {
               style={{ WebkitOverflowScrolling: "touch" }}
             >
               {!instantOtpStep && (
-                <p className="text-gray-700 text-sm leading-snug mb-3">
-                  For <strong>“{prebookQuery}”</strong>, our custom report is the
-                  detailed option built around your exact requirement.
-                </p>
+                <div className="mb-3 rounded-xl border border-blue-100 bg-blue-50 px-3 py-2.5">
+                  <div className="text-sm font-bold text-slate-900">
+                    We can create it for you.
+                  </div>
+                  <div className="mt-0.5 text-[12px] leading-relaxed text-slate-600">
+                    Choose the custom report below if you need a decision-ready deep-dive, or use the smaller Instant option for a quick automated overview.
+                  </div>
+                </div>
               )}
 
               {/* ✅ Step switch: chooser ↔ OTP (inline) */}
@@ -3265,133 +3254,122 @@ const runSampleSearch = (query) => {
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {/* Shared identity details for either purchase option */}
-                  {!prebookHasKnownUser && (
-                    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
-                      <div className="text-xs font-extrabold text-slate-800">
-                        Your details
-                      </div>
-                      <div className="text-[11px] text-slate-500 mt-0.5 mb-2">
-                        Used for OTP verification and report delivery updates.
-                      </div>
-                      <div className="grid grid-cols-1 gap-2">
-                        <input
-                          type="text"
-                          value={prebookName}
-                          onChange={(e) => setPrebookName(e.target.value)}
-                          placeholder="Your name"
-                          className="w-full border border-slate-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-                        />
-                        <input
-                          type="tel"
-                          value={prebookPhone}
-                          onChange={(e) => setPrebookPhone(e.target.value)}
-                          placeholder="WhatsApp / mobile number"
-                          className="w-full border border-slate-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-                        />
-                      </div>
-                    </div>
-                  )}
-
-                  {/* PRIMARY PRODUCT — CUSTOM / PREBOOK */}
+                  {/* PRIMARY PRODUCT — CUSTOM REPORT */}
                   <form
                     onSubmit={handlePrebookSubmit}
-                    className="relative overflow-hidden rounded-3xl border-2 border-blue-200 bg-gradient-to-br from-[#071b3d] via-[#0b3f82] to-[#0b67c2] shadow-xl"
+                    className="overflow-hidden rounded-2xl border-2 border-blue-200 bg-white shadow-[0_12px_30px_rgba(37,99,235,0.10)]"
                   >
-                    <div className="absolute -top-14 -right-14 h-36 w-36 rounded-full bg-white/10 blur-2xl" />
-                    <div className="absolute -bottom-16 -left-16 h-40 w-40 rounded-full bg-cyan-300/10 blur-2xl" />
-
-                    <div className="relative p-4 sm:p-5">
+                    <div className="border-b border-blue-100 bg-gradient-to-r from-blue-50 to-sky-50 px-4 py-3">
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
-                          <div className="inline-flex items-center rounded-full border border-cyan-200/30 bg-cyan-100/15 px-2.5 py-1 text-[10px] font-extrabold tracking-wide text-cyan-50">
+                          <div className="inline-flex items-center rounded-full bg-blue-600 px-2.5 py-1 text-[9px] font-extrabold tracking-wide text-white">
                             BEST FOR BUSINESS DECISIONS
                           </div>
-                          <div className="mt-3 text-[11px] font-bold tracking-[0.12em] text-blue-100">
-                            CUSTOM BUSINESS INTELLIGENCE REPORT
+                          <div className="mt-2 text-[10px] font-extrabold uppercase tracking-[0.12em] text-blue-700">
+                            Custom Business Report
                           </div>
-                          <div className="mt-1 text-xl font-extrabold leading-tight text-white">
-                            Built specifically for your requirement
+                          <div className="mt-0.5 text-base font-extrabold leading-snug text-slate-950">
+                            Created specifically for “{prebookQuery}”
                           </div>
                         </div>
 
-                        <div className="shrink-0 rounded-2xl border border-white/15 bg-white/10 px-3 py-2 text-right">
-                          <div className="text-[10px] font-semibold text-blue-100">
-                            Custom report
-                          </div>
-                          <div className="text-2xl font-black text-white leading-none mt-1">
+                        <div className="shrink-0 text-right">
+                          <div className="text-[9px] font-semibold text-slate-500">Price</div>
+                          <div className="text-2xl font-black leading-none text-blue-700">
                             {REGION.currencySymbol}{REGION.prebookPrice}
                           </div>
                         </div>
                       </div>
+                    </div>
 
-                      <div className="mt-4 rounded-2xl border border-white/15 bg-white/10 p-3">
-                        <div className="grid grid-cols-1 gap-2 text-[12px] text-white/95">
-                          <div className="flex items-start gap-2">
-                            <span className="mt-[1px] text-cyan-200">✓</span>
-                            <span>Prepared around your exact market, industry or business topic.</span>
-                          </div>
-                          <div className="flex items-start gap-2">
-                            <span className="mt-[1px] text-cyan-200">✓</span>
-                            <span>Include <strong>5 research questions</strong> you specifically want answered.</span>
-                          </div>
-                          <div className="flex items-start gap-2">
-                            <span className="mt-[1px] text-cyan-200">✓</span>
-                            <span>Credible data sources and source references used where applicable.</span>
-                          </div>
-                          <div className="flex items-start gap-2">
-                            <span className="mt-[1px] text-cyan-200">✓</span>
-                            <span>Market, competitor, opportunity and outlook analysis based on the requirement.</span>
-                          </div>
-                          <div className="flex items-start gap-2">
-                            <span className="mt-[1px] text-cyan-200">✓</span>
-                            <span>Delivered within <strong>48 hours</strong> and saved in <strong>My Profile</strong>.</span>
-                          </div>
+                    <div className="p-4">
+                      <div className="grid grid-cols-1 gap-2 text-[12px] leading-snug text-slate-700">
+                        <div className="flex items-start gap-2">
+                          <span className="mt-[1px] font-black text-emerald-600">✓</span>
+                          <span>Built around your exact market, industry or business requirement.</span>
+                        </div>
+                        <div className="flex items-start gap-2">
+                          <span className="mt-[1px] font-black text-emerald-600">✓</span>
+                          <span><strong>5 research questions</strong> from you can be addressed in the report.</span>
+                        </div>
+                        <div className="flex items-start gap-2">
+                          <span className="mt-[1px] font-black text-emerald-600">✓</span>
+                          <span>Credible data sources and source references used where applicable.</span>
+                        </div>
+                        <div className="flex items-start gap-2">
+                          <span className="mt-[1px] font-black text-emerald-600">✓</span>
+                          <span>Prepared within <strong>48 hours</strong> and saved in <strong>My Profile</strong>.</span>
                         </div>
                       </div>
 
                       <button
                         type="button"
                         onClick={openCustomPrebookSample}
-                        className="mt-3 w-full rounded-xl border border-white/25 bg-white/10 hover:bg-white/15 text-white font-extrabold py-2.5 text-sm active:scale-[0.99] transition"
+                        className="mt-3 w-full rounded-xl border border-blue-200 bg-blue-50 py-2.5 text-sm font-extrabold text-blue-700 hover:bg-blue-100 active:scale-[0.99]"
                       >
                         View Sample Custom Report
                       </button>
-                      <div className="mt-1 text-center text-[10px] text-blue-100/90">
-                        See the report quality before you order
+                      <div className="mt-1 text-center text-[10px] text-slate-500">
+                        See the quality before you order
                       </div>
 
-                      <details className="mt-3 rounded-xl border border-white/15 bg-black/10 px-3 py-2.5 text-white">
-                        <summary className="cursor-pointer select-none text-xs font-bold text-white/95">
-                          What happens after I order?
-                        </summary>
-                        <div className="mt-2 text-[11px] leading-relaxed text-blue-50/95">
-                          <ul className="ml-4 list-disc space-y-1.5">
-                            <li>Verify your mobile number with OTP if you are not already logged in.</li>
-                            <li>Complete secure payment through Razorpay.</li>
-                            <li>Tell us the 5 questions you want the report to answer.</li>
-                            <li>Your custom report is prepared and delivered within 48 hours.</li>
-                            <li>The completed report remains available in <strong>My Profile</strong>.</li>
-                          </ul>
+                      {!prebookHasKnownUser && (
+                        <div className="mt-3 border-t border-slate-100 pt-3">
+                          <div className="text-[11px] font-extrabold text-slate-800">
+                            To order, tell us where to send the OTP and updates
+                          </div>
+                          <div className="mt-2 grid grid-cols-1 gap-2">
+                            <input
+                              type="text"
+                              value={prebookName}
+                              onChange={(e) => setPrebookName(e.target.value)}
+                              placeholder="Your name"
+                              className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            />
+                            <input
+                              type="tel"
+                              value={prebookPhone}
+                              onChange={(e) => setPrebookPhone(e.target.value)}
+                              placeholder="WhatsApp / mobile number"
+                              className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            />
+                          </div>
                         </div>
-                      </details>
+                      )}
 
                       {prebookError && (
-                        <div className="mt-3 rounded-xl border border-red-200/30 bg-red-950/20 px-3 py-2 text-xs font-semibold text-red-50">
+                        <div className="mt-2 rounded-lg bg-red-50 px-3 py-2 text-xs font-semibold text-red-600">
                           {prebookError}
                         </div>
                       )}
 
                       <button
                         type="submit"
-                        className="mt-4 w-full rounded-xl bg-white hover:bg-blue-50 text-blue-800 font-black py-3.5 text-base shadow-lg active:scale-[0.99] transition"
+                        className="mt-3 w-full rounded-xl bg-blue-600 py-3 text-base font-black text-white shadow-md hover:bg-blue-700 active:scale-[0.99]"
                       >
                         Order Custom Report — {REGION.currencySymbol}{REGION.prebookPrice}
                       </button>
 
-                      <div className="mt-2 text-center text-[10px] text-blue-100/90">
-                        🔒 Secure Razorpay payment • OTP verified • Access in <strong>My Profile</strong>
+                      <div className="mt-2 flex items-center justify-center gap-3 text-[10px] font-medium text-slate-500">
+                        <span>🔒 Secure Razorpay</span>
+                        <span>•</span>
+                        <span>OTP verified</span>
+                        <span>•</span>
+                        <span>My Profile</span>
                       </div>
+
+                      <details className="mt-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
+                        <summary className="cursor-pointer select-none text-[11px] font-bold text-slate-700">
+                          What happens after I order?
+                        </summary>
+                        <ul className="ml-4 mt-2 list-disc space-y-1 text-[11px] leading-relaxed text-slate-600">
+                          <li>Verify your mobile number with OTP if needed.</li>
+                          <li>Complete secure payment through Razorpay.</li>
+                          <li>Tell us the 5 questions you want answered.</li>
+                          <li>Your report is prepared within 48 hours.</li>
+                          <li>The completed report stays available in <strong>My Profile</strong>.</li>
+                        </ul>
+                      </details>
                     </div>
                   </form>
 
@@ -3399,14 +3377,14 @@ const runSampleSearch = (query) => {
                   <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3.5">
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
-                        <div className="text-[10px] font-bold tracking-wide text-slate-500">
-                          NEED SOMETHING QUICK?
+                        <div className="text-[9px] font-extrabold uppercase tracking-wide text-slate-500">
+                          Need only a quick overview?
                         </div>
-                        <div className="mt-1 text-sm font-extrabold text-slate-900">
+                        <div className="mt-0.5 text-sm font-extrabold text-slate-900">
                           Instant 10-Page Report
                         </div>
                         <div className="mt-1 text-[11px] leading-snug text-slate-600">
-                          Automated quick evaluation with overview, trends and key players.
+                          Automated overview with trends and key players. Not a custom deep-dive.
                         </div>
                       </div>
                       <div className="shrink-0 text-lg font-black text-slate-800">
@@ -3423,14 +3401,10 @@ const runSampleSearch = (query) => {
                     <button
                       type="button"
                       onClick={() => triggerInstant(prebookQuery)}
-                      className="mt-3 w-full rounded-xl border border-slate-300 bg-white hover:bg-slate-100 text-slate-800 font-extrabold py-2.5 active:scale-[0.99] transition"
+                      className="mt-3 w-full rounded-xl border border-slate-300 bg-white py-2.5 text-sm font-extrabold text-slate-700 hover:bg-slate-100 active:scale-[0.99]"
                     >
                       Generate Instant Report — {REGION.currencySymbol}{REGION.instantPrice}
                     </button>
-
-                    <div className="mt-1.5 text-center text-[10px] text-slate-500">
-                      Automated overview • Not a custom deep-dive
-                    </div>
                   </div>
                 </div>
               )}
