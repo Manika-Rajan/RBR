@@ -484,6 +484,11 @@ const ReportsMobile = () => {
   const [instantChooserError, setInstantChooserError] = useState("");
   const [prebookHasKnownUser, setPrebookHasKnownUser] = useState(false);
 
+  // ✅ Mobile chooser is deliberately staged:
+  // offer = one-glance decision screen; details = name/mobile only after a product is chosen.
+  const [chooserStep, setChooserStep] = useState("offer"); // offer | details
+  const [chooserIntent, setChooserIntent] = useState("prebook"); // prebook | instant
+
   // ======================
   // ✅ OTP Modal (for Instant) — reuse same OTP system as Login.jsx
   // ======================
@@ -1076,6 +1081,8 @@ const ReportsMobile = () => {
     setPrebookHasKnownUser(!!savedPhone);
     setPrebookError("");
     setInstantChooserError("");
+    setChooserStep("offer");
+    setChooserIntent("prebook");
 
     // ✅ Funnel stage 3: premium/custom offer was actually shown.
     trackRbrFunnelEvent({
@@ -1572,6 +1579,9 @@ const ReportsMobile = () => {
     }
     setPrebookError("");
     setInstantChooserError("");
+    if (pendingPrebookRef.current) setChooserIntent("prebook");
+    else if (pendingInstantRef.current) setChooserIntent("instant");
+    setChooserStep("details");
     setPrebookPromptOpen(true);
   };
 
@@ -2004,6 +2014,8 @@ const ReportsMobile = () => {
     setOtpError("");
     setOtpValue("");
     setOtpSent(false);
+    setChooserStep("offer");
+    setChooserIntent("prebook");
   }, [prebookPromptOpen]);
 
   async function pollInstantUntilDone({ userPhone, instantId }) {
@@ -2267,11 +2279,12 @@ const ReportsMobile = () => {
     }
   }
 
-  const handlePrebookSubmit = async (e) => {
-    e.preventDefault();
+  // ✅ Single-glance offer actions. The first screen contains NO form.
+  // New/logged-out users see name + mobile only after choosing a product.
+  const beginCustomOrderFromOffer = async () => {
+    setPrebookError("");
     setInstantChooserError("");
 
-    // ✅ Funnel stage 5: customer chose the premium/custom report.
     trackRbrFunnelEvent({
       eventName: "prebook_order_clicked",
       query: prebookQuery,
@@ -2280,6 +2293,72 @@ const ReportsMobile = () => {
         currency: REGION.currencyCode,
         value: Number(REGION.prebookPrice || 0),
       },
+    });
+
+    const phoneDigits = String(prebookPhone || "").replace(/\D/g, "");
+    const nm = (prebookName || "").trim() || "RBR User";
+
+    // Repeat/logged-in buyers should not be forced through another form.
+    if (state?.userInfo?.isLogin && phoneDigits.length >= 10) {
+      trackRbrFunnelEvent({
+        eventName: "identity_ready",
+        query: prebookQuery,
+        extra: { login_mode: "existing_session" },
+      });
+      setPrebookPromptOpen(false);
+      await startPrebookFlow(prebookQuery, nm, phoneDigits);
+      return;
+    }
+
+    trackRbrFunnelEvent({
+      eventName: "order_details_started",
+      query: prebookQuery,
+      extra: { selected_product: "custom_prebook" },
+    });
+
+    setChooserIntent("prebook");
+    setChooserStep("details");
+  };
+
+  const beginInstantOrderFromOffer = async () => {
+    setPrebookError("");
+    setInstantChooserError("");
+
+    trackRbrFunnelEvent({
+      eventName: "instant_order_clicked",
+      query: prebookQuery,
+      gaEventName: "rbr_instant_order_clicked",
+      gaParams: {
+        currency: REGION.currencyCode,
+        value: Number(REGION.instantPrice || 0),
+      },
+    });
+
+    const phoneDigits = String(prebookPhone || "").replace(/\D/g, "");
+
+    if (state?.userInfo?.isLogin && phoneDigits.length >= 10) {
+      await triggerInstant(prebookQuery);
+      return;
+    }
+
+    trackRbrFunnelEvent({
+      eventName: "order_details_started",
+      query: prebookQuery,
+      extra: { selected_product: "instant" },
+    });
+
+    setChooserIntent("instant");
+    setChooserStep("details");
+  };
+
+  const handlePrebookSubmit = async (e) => {
+    e.preventDefault();
+    setInstantChooserError("");
+
+    trackRbrFunnelEvent({
+      eventName: "order_details_submitted",
+      query: prebookQuery,
+      extra: { selected_product: "custom_prebook" },
     });
 
     const phoneDigits = (prebookPhone || "").replace(/\D/g, "");
@@ -2359,6 +2438,23 @@ const ReportsMobile = () => {
   };
 
 
+
+  const handleChooserDetailsSubmit = async (e) => {
+    e.preventDefault();
+
+    if (chooserIntent === "prebook") {
+      await handlePrebookSubmit(e);
+      return;
+    }
+
+    trackRbrFunnelEvent({
+      eventName: "order_details_submitted",
+      query: prebookQuery,
+      extra: { selected_product: "instant" },
+    });
+
+    await triggerInstant(prebookQuery);
+  };
 
 
 // ⭐ Open one representative NEW pre-book/custom-report sample.
@@ -2781,7 +2877,7 @@ const runSampleSearch = (query) => {
         <div
           role="dialog"
           aria-modal="true"
-          className="fixed inset-0 z-50 flex items-center justify-center"
+          className="fixed inset-0 z-[10001] flex items-center justify-center"
           onClick={closeModal}
         >
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
@@ -2812,7 +2908,7 @@ const runSampleSearch = (query) => {
         <div
           role="dialog"
           aria-modal="true"
-          className="fixed inset-0 z-[60] flex items-center justify-center"
+          className="fixed inset-0 z-[10000] flex items-center justify-center"
           onClick={() => setPdfViewerOpen(false)}
         >
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
@@ -3060,7 +3156,7 @@ const runSampleSearch = (query) => {
         </div>
       )}
 
-      {/* ✅ Choose between Instant vs Pre-Book — improved scroll + “single glance” */}
+      {/* ✅ Mobile-first report-not-found chooser: ONE GLANCE first, details only after a product is chosen */}
       {prebookPromptOpen && (
         <div
           role="dialog"
@@ -3071,64 +3167,31 @@ const runSampleSearch = (query) => {
           <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
 
           <div
-            className="relative z-10 w-full sm:w-[580px] rounded-2xl shadow-2xl overflow-hidden max-h-[92vh] flex flex-col bg-white"
+            className="relative z-10 w-full max-w-[430px] overflow-hidden rounded-2xl bg-white shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Header — make the search outcome unmistakable before selling anything */}
-            {!instantOtpStep && (
-              <div className="border-b border-slate-200 bg-white px-4 pt-4 pb-3">
-                <div className="flex items-start gap-3">
-                  <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-blue-50 text-blue-700">
-                    <span aria-hidden>⌕</span>
-                  </div>
-
-                  <div className="min-w-0 flex-1">
-                    <div className="text-[11px] font-extrabold uppercase tracking-[0.12em] text-slate-500">
-                      Search result
-                    </div>
-                    <h2 className="mt-0.5 text-lg font-extrabold leading-tight text-slate-950">
-                      We couldn’t find a ready-made report for
-                      <span className="block truncate text-blue-700">
-                        “{prebookQuery}”
-                      </span>
-                    </h2>
-                    <p className="mt-1.5 text-xs leading-relaxed text-slate-600">
-                      RBR can still create a report specifically for this requirement.
-                    </p>
-                  </div>
-
+            {/* OTP remains the existing inline verification step */}
+            {instantOtpStep ? (
+              <div className="max-h-[92vh] overflow-y-auto px-4 py-4">
+                <div className="mb-3 flex items-center justify-between">
+                  <button
+                    type="button"
+                    onClick={cancelInstantOtp}
+                    className="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-bold text-slate-700"
+                  >
+                    ← Back
+                  </button>
                   <button
                     type="button"
                     onClick={() => setPrebookPromptOpen(false)}
-                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-600 hover:bg-slate-200"
+                    className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 text-slate-600"
                     aria-label="Close"
                   >
                     ✕
                   </button>
                 </div>
-              </div>
-            )}
 
-            {/* Body (scrollable) */}
-            <div
-              className="px-4 pt-4 pb-4 overflow-y-auto"
-              style={{ WebkitOverflowScrolling: "touch" }}
-            >
-              {!instantOtpStep && (
-                <div className="mb-3 rounded-xl border border-blue-100 bg-blue-50 px-3 py-2.5">
-                  <div className="text-sm font-bold text-slate-900">
-                    We can create it for you.
-                  </div>
-                  <div className="mt-0.5 text-[12px] leading-relaxed text-slate-600">
-                    Choose the custom report below if you need a decision-ready deep-dive, or use the smaller Instant option for a quick automated overview.
-                  </div>
-                </div>
-              )}
-
-              {/* ✅ Step switch: chooser ↔ OTP (inline) */}
-              {instantOtpStep ? (
                 <div className="px-1 pb-2 flex justify-center">
-                  {/* ✅ UI-only sizing change: scale down OTP verification UI by 40% */}
                   <div
                     style={{
                       transform: "scale(0.6)",
@@ -3137,7 +3200,6 @@ const runSampleSearch = (query) => {
                       marginBottom: "-120px",
                     }}
                   >
-                    {/* Slim loading bar */}
                     <div className="text-center text-3xl sm:text-4xl font-light text-gray-600 mt-1">
                       Loading Level
                     </div>
@@ -3149,7 +3211,7 @@ const runSampleSearch = (query) => {
                         background: "#ffffff",
                         borderRadius: "999px",
                         boxShadow: "0 10px 30px rgba(0,0,0,0.10)",
-                        padding: "12px 16px", // compact height
+                        padding: "12px 16px",
                       }}
                     >
                       <div
@@ -3170,7 +3232,7 @@ const runSampleSearch = (query) => {
                         >
                           <div className="rbr-otp-loadingbar" />
                         </div>
-                        
+
                         <style>{`
                           @keyframes rbrIndeterminate {
                             0%   { transform: translateX(-60%); }
@@ -3189,7 +3251,6 @@ const runSampleSearch = (query) => {
                       </div>
                     </div>
 
-                    {/* Verification content */}
                     <div className="text-center text-4xl sm:text-5xl font-light text-gray-700 mb-3">
                       Verification Code
                     </div>
@@ -3223,10 +3284,7 @@ const runSampleSearch = (query) => {
                             aria-label={`OTP digit ${i + 1}`}
                           />
                           {i < OTP_LEN - 1 && (
-                            <span
-                              className="text-gray-500 text-2xl"
-                              aria-hidden
-                            >
+                            <span className="text-gray-500 text-2xl" aria-hidden>
                               ·
                             </span>
                           )}
@@ -3252,174 +3310,198 @@ const runSampleSearch = (query) => {
                     </div>
                   </div>
                 </div>
-              ) : (
-                <div className="space-y-3">
-                  {/* PRIMARY PRODUCT — CUSTOM REPORT */}
-                  <form
-                    onSubmit={handlePrebookSubmit}
-                    className="overflow-hidden rounded-2xl border-2 border-blue-200 bg-white shadow-[0_12px_30px_rgba(37,99,235,0.10)]"
+              </div>
+            ) : chooserStep === "details" ? (
+              /* STEP 2 — only now ask for name/mobile */
+              <div className="px-4 py-4">
+                <div className="flex items-center justify-between gap-3">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPrebookError("");
+                      setInstantChooserError("");
+                      setChooserStep("offer");
+                    }}
+                    className="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-bold text-slate-700"
                   >
-                    <div className="border-b border-blue-100 bg-gradient-to-r from-blue-50 to-sky-50 px-4 py-3">
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0">
-                          <div className="inline-flex items-center rounded-full bg-blue-600 px-2.5 py-1 text-[9px] font-extrabold tracking-wide text-white">
-                            BEST FOR BUSINESS DECISIONS
-                          </div>
-                          <div className="mt-2 text-[10px] font-extrabold uppercase tracking-[0.12em] text-blue-700">
-                            Custom Business Report
-                          </div>
-                          <div className="mt-0.5 text-base font-extrabold leading-snug text-slate-950">
-                            Created specifically for “{prebookQuery}”
-                          </div>
-                        </div>
+                    ← Back
+                  </button>
 
-                        <div className="shrink-0 text-right">
-                          <div className="text-[9px] font-semibold text-slate-500">Price</div>
-                          <div className="text-2xl font-black leading-none text-blue-700">
-                            {REGION.currencySymbol}{REGION.prebookPrice}
-                          </div>
-                        </div>
-                      </div>
+                  <button
+                    type="button"
+                    onClick={() => setPrebookPromptOpen(false)}
+                    className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 text-slate-600"
+                    aria-label="Close"
+                  >
+                    ✕
+                  </button>
+                </div>
+
+                <div className="mt-4 text-center">
+                  <div className="text-[10px] font-black uppercase tracking-[0.14em] text-blue-700">
+                    {chooserIntent === "prebook" ? "Custom Report" : "Instant Report"}
+                  </div>
+                  <h2 className="mt-1 text-xl font-black text-slate-950">
+                    {chooserIntent === "prebook"
+                      ? `Order Custom Report — ${REGION.currencySymbol}${REGION.prebookPrice}`
+                      : `Instant 10-Page Report — ${REGION.currencySymbol}${REGION.instantPrice}`}
+                  </h2>
+                  <p className="mt-1 text-xs leading-relaxed text-slate-500">
+                    Enter your name and mobile number. We’ll verify it by OTP before secure payment.
+                  </p>
+                </div>
+
+                <form onSubmit={handleChooserDetailsSubmit} className="mt-4 space-y-3">
+                  <input
+                    type="text"
+                    value={prebookName}
+                    onChange={(e) => setPrebookName(e.target.value)}
+                    placeholder="Your name"
+                    autoComplete="name"
+                    className="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                  <input
+                    type="tel"
+                    value={prebookPhone}
+                    onChange={(e) => setPrebookPhone(e.target.value)}
+                    placeholder="WhatsApp / mobile number"
+                    inputMode="tel"
+                    autoComplete="tel"
+                    className="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+
+                  {chooserIntent === "prebook" && prebookError ? (
+                    <div className="rounded-lg bg-red-50 px-3 py-2 text-xs font-semibold text-red-600">
+                      {prebookError}
                     </div>
+                  ) : null}
 
-                    <div className="p-4">
-                      <div className="grid grid-cols-1 gap-2 text-[12px] leading-snug text-slate-700">
-                        <div className="flex items-start gap-2">
-                          <span className="mt-[1px] font-black text-emerald-600">✓</span>
-                          <span>Built around your exact market, industry or business requirement.</span>
-                        </div>
-                        <div className="flex items-start gap-2">
-                          <span className="mt-[1px] font-black text-emerald-600">✓</span>
-                          <span><strong>5 research questions</strong> from you can be addressed in the report.</span>
-                        </div>
-                        <div className="flex items-start gap-2">
-                          <span className="mt-[1px] font-black text-emerald-600">✓</span>
-                          <span>Credible data sources and source references used where applicable.</span>
-                        </div>
-                        <div className="flex items-start gap-2">
-                          <span className="mt-[1px] font-black text-emerald-600">✓</span>
-                          <span>Prepared within <strong>48 hours</strong> and saved in <strong>My Profile</strong>.</span>
-                        </div>
-                      </div>
-
-                      <button
-                        type="button"
-                        onClick={openCustomPrebookSample}
-                        className="mt-3 w-full rounded-xl border border-blue-200 bg-blue-50 py-2.5 text-sm font-extrabold text-blue-700 hover:bg-blue-100 active:scale-[0.99]"
-                      >
-                        View Sample Custom Report
-                      </button>
-                      <div className="mt-1 text-center text-[10px] text-slate-500">
-                        See the quality before you order
-                      </div>
-
-                      {!prebookHasKnownUser && (
-                        <div className="mt-3 border-t border-slate-100 pt-3">
-                          <div className="text-[11px] font-extrabold text-slate-800">
-                            To order, tell us where to send the OTP and updates
-                          </div>
-                          <div className="mt-2 grid grid-cols-1 gap-2">
-                            <input
-                              type="text"
-                              value={prebookName}
-                              onChange={(e) => setPrebookName(e.target.value)}
-                              placeholder="Your name"
-                              className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            />
-                            <input
-                              type="tel"
-                              value={prebookPhone}
-                              onChange={(e) => setPrebookPhone(e.target.value)}
-                              placeholder="WhatsApp / mobile number"
-                              className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            />
-                          </div>
-                        </div>
-                      )}
-
-                      {prebookError && (
-                        <div className="mt-2 rounded-lg bg-red-50 px-3 py-2 text-xs font-semibold text-red-600">
-                          {prebookError}
-                        </div>
-                      )}
-
-                      <button
-                        type="submit"
-                        className="mt-3 w-full rounded-xl bg-blue-600 py-3 text-base font-black text-white shadow-md hover:bg-blue-700 active:scale-[0.99]"
-                      >
-                        Order Custom Report — {REGION.currencySymbol}{REGION.prebookPrice}
-                      </button>
-
-                      <div className="mt-2 flex items-center justify-center gap-3 text-[10px] font-medium text-slate-500">
-                        <span>🔒 Secure Razorpay</span>
-                        <span>•</span>
-                        <span>OTP verified</span>
-                        <span>•</span>
-                        <span>My Profile</span>
-                      </div>
-
-                      <details className="mt-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
-                        <summary className="cursor-pointer select-none text-[11px] font-bold text-slate-700">
-                          What happens after I order?
-                        </summary>
-                        <ul className="ml-4 mt-2 list-disc space-y-1 text-[11px] leading-relaxed text-slate-600">
-                          <li>Verify your mobile number with OTP if needed.</li>
-                          <li>Complete secure payment through Razorpay.</li>
-                          <li>Tell us the 5 questions you want answered.</li>
-                          <li>Your report is prepared within 48 hours.</li>
-                          <li>The completed report stays available in <strong>My Profile</strong>.</li>
-                        </ul>
-                      </details>
+                  {chooserIntent === "instant" && instantChooserError ? (
+                    <div className="rounded-lg bg-red-50 px-3 py-2 text-xs font-semibold text-red-600">
+                      {instantChooserError}
                     </div>
-                  </form>
+                  ) : null}
 
-                  {/* SECONDARY PRODUCT — INSTANT */}
-                  <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3.5">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <div className="text-[9px] font-extrabold uppercase tracking-wide text-slate-500">
-                          Need only a quick overview?
-                        </div>
-                        <div className="mt-0.5 text-sm font-extrabold text-slate-900">
-                          Instant 10-Page Report
-                        </div>
-                        <div className="mt-1 text-[11px] leading-snug text-slate-600">
-                          Automated overview with trends and key players. Not a custom deep-dive.
-                        </div>
-                      </div>
-                      <div className="shrink-0 text-lg font-black text-slate-800">
-                        {REGION.currencySymbol}{REGION.instantPrice}
-                      </div>
+                  <button
+                    type="submit"
+                    className="w-full rounded-xl bg-blue-600 py-3 text-sm font-black text-white shadow hover:bg-blue-700 active:scale-[0.99]"
+                  >
+                    Continue to OTP
+                  </button>
+
+                  <div className="text-center text-[10px] text-slate-500">
+                    OTP verification • Secure Razorpay payment
+                  </div>
+                </form>
+              </div>
+            ) : (
+              /* STEP 1 — ONE GLANCE. No form, no accordion, no scrolling required on normal phones. */
+              <div className="px-4 py-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0 flex-1">
+                    <div className="inline-flex rounded-full bg-amber-100 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-amber-800">
+                      Ready-made report not found
                     </div>
-
-                    {instantChooserError && (
-                      <p className="mt-2 text-xs font-semibold text-red-600">
-                        {instantChooserError}
-                      </p>
-                    )}
-
-                    <button
-                      type="button"
-                      onClick={() => triggerInstant(prebookQuery)}
-                      className="mt-3 w-full rounded-xl border border-slate-300 bg-white py-2.5 text-sm font-extrabold text-slate-700 hover:bg-slate-100 active:scale-[0.99]"
+                    <div
+                      className="mt-2 text-base font-black leading-snug text-slate-950"
+                      style={{
+                        display: "-webkit-box",
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: "vertical",
+                        overflow: "hidden",
+                      }}
                     >
-                      Generate Instant Report — {REGION.currencySymbol}{REGION.instantPrice}
-                    </button>
+                      “{prebookQuery}”
+                    </div>
+                    <div className="mt-1 text-sm font-bold text-blue-700">
+                      We can create it for you.
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setPrebookPromptOpen(false)}
+                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-600"
+                    aria-label="Close"
+                  >
+                    ✕
+                  </button>
+                </div>
+
+                {/* Primary product */}
+                <div className="mt-3 rounded-2xl border-2 border-blue-200 bg-gradient-to-b from-blue-50 to-white p-3.5 shadow-[0_10px_26px_rgba(37,99,235,0.10)]">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="text-[10px] font-black uppercase tracking-[0.12em] text-blue-700">
+                        Custom Business Report
+                      </div>
+                      <div className="mt-0.5 text-sm font-black text-slate-950">
+                        Built for your exact requirement
+                      </div>
+                    </div>
+                    <div className="shrink-0 text-xl font-black text-blue-700">
+                      {REGION.currencySymbol}{REGION.prebookPrice}
+                    </div>
+                  </div>
+
+                  <div className="mt-2 grid grid-cols-3 gap-1.5 text-center">
+                    <div className="rounded-lg bg-white px-1.5 py-2 text-[10px] font-bold leading-tight text-slate-700 shadow-sm">
+                      ✓ Your exact topic
+                    </div>
+                    <div className="rounded-lg bg-white px-1.5 py-2 text-[10px] font-bold leading-tight text-slate-700 shadow-sm">
+                      ✓ Ask 5 questions
+                    </div>
+                    <div className="rounded-lg bg-white px-1.5 py-2 text-[10px] font-bold leading-tight text-slate-700 shadow-sm">
+                      ✓ Sources • 48h
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={openCustomPrebookSample}
+                    className="mt-3 w-full rounded-xl border border-blue-200 bg-white py-2.5 text-sm font-extrabold text-blue-700 hover:bg-blue-50 active:scale-[0.99]"
+                  >
+                    View Sample Report
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={beginCustomOrderFromOffer}
+                    className="mt-2 w-full rounded-xl bg-blue-600 py-3 text-sm font-black text-white shadow-md hover:bg-blue-700 active:scale-[0.99]"
+                  >
+                    Order Custom Report — {REGION.currencySymbol}{REGION.prebookPrice}
+                  </button>
+
+                  <div className="mt-1.5 text-center text-[10px] font-medium text-slate-500">
+                    Secure payment • Saved in My Profile
                   </div>
                 </div>
-              )}
 
-              {/* Footer reassurance */}
-              <div className="mt-4 text-[11px] text-gray-500 text-center px-2">
-                By continuing, you agree to receive updates on WhatsApp / SMS for
-                your report status.
+                {/* Secondary product kept intentionally compact */}
+                <div className="mt-3 flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5">
+                  <div className="min-w-0 flex-1">
+                    <div className="text-[11px] font-black text-slate-800">
+                      Need something quick?
+                    </div>
+                    <div className="mt-0.5 text-[10px] leading-snug text-slate-500">
+                      Instant 10-page automated overview
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={beginInstantOrderFromOffer}
+                    className="shrink-0 rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-black text-slate-700 active:scale-[0.99]"
+                  >
+                    {REGION.currencySymbol}{REGION.instantPrice} Instant
+                  </button>
+                </div>
               </div>
-            </div>
+            )}
           </div>
         </div>
       )}
 
-      
+
       {/* Did you mean modal */}
       {suggestOpen && (
         <div
