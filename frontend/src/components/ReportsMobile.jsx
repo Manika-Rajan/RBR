@@ -154,11 +154,16 @@ const FUNNEL_ATTR_KEYS = [
   "gclid",
   "gbraid",
   "wbraid",
+
+  "gad_source",
+  "gad_campaignid",
+
   "utm_source",
   "utm_medium",
   "utm_campaign",
   "utm_term",
   "utm_content",
+
   "campaignid",
   "adgroupid",
   "keyword",
