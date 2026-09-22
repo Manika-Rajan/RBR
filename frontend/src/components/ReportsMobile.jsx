@@ -141,7 +141,7 @@ const MAX_QUERY_CHARS = 50;
 const RBR_FUNNEL_TRACK_URL =
   getEnv("VITE_RBR_FUNNEL_TRACK_URL") ||
   getEnv("REACT_APP_RBR_FUNNEL_TRACK_URL") ||
-  "";
+  "https://jp1bupouyl.execute-api.ap-south-1.amazonaws.com/prod/google-ads-funnel-event";
 
 // Upload one representative NEW pre-book output PDF to S3 and set its key here
 // through Amplify env vars. The existing presign Lambda is reused.
