@@ -1,5 +1,5 @@
 // RBR/frontend/src/components/ReportsMobile.jsx
-// Mobile landing — logs searches; navigates only if a known report's preview exists.
+// Mobile landing — logs landing/search engagement + searches; navigates only if a known report's preview exists.
 // If no exact match, calls /suggest (POST) and shows a classic “Did you mean…?” popup (ice-blue).
 // If still nothing, offers an Instant vs Pre-Book choice (Razorpay prebook wired; instant placeholder).
 
@@ -228,6 +228,23 @@ function markCustomPrebookSampleSeen() {
   try {
     sessionStorage.setItem("rbr_custom_prebook_sample_seen", "1");
   } catch {}
+}
+
+// ✅ Engagement-stage guard.
+// Returns true only the first time this stage is reached in the current browser session.
+// This keeps focus/typing events useful without filling the funnel table with duplicates.
+function claimRbrFunnelStageOnce(storageKey) {
+  if (!storageKey) return true;
+  if (typeof window === "undefined") return true;
+
+  try {
+    if (sessionStorage.getItem(storageKey) === "1") return false;
+    sessionStorage.setItem(storageKey, "1");
+    return true;
+  } catch {
+    // If storage is unavailable, allow tracking rather than breaking the search UX.
+    return true;
+  }
 }
 
 function sendGa4Event(eventName, params = {}) {
@@ -1958,6 +1975,19 @@ const ReportsMobile = () => {
   };
 
   const handleFocus = () => {
+    // ✅ New funnel stage: the visitor actively engaged with the search box.
+    // Track only once per browser session, even if the input is focused again.
+    if (claimRbrFunnelStageOnce("rbr_funnel_search_box_focused_fired")) {
+      trackRbrFunnelEvent({
+        eventName: "search_box_focused",
+        query: "",
+        gaEventName: "rbr_search_box_focused",
+        gaParams: {
+          page_type: "reports_mobile",
+        },
+      });
+    }
+
     computeDropdownPos();
     setShowSuggestions(true);
   };
@@ -2596,9 +2626,30 @@ const runSampleSearch = (query) => {
             value={q}
             maxLength={MAX_QUERY_CHARS}
             onChange={(e) => {
-              const v = e.target.value || "";
-              if (v.length <= MAX_QUERY_CHARS) setQ(v);
-              else setQ(v.slice(0, MAX_QUERY_CHARS));
+              const rawValue = e.target.value || "";
+              const v =
+                rawValue.length <= MAX_QUERY_CHARS
+                  ? rawValue
+                  : rawValue.slice(0, MAX_QUERY_CHARS);
+
+              setQ(v);
+
+              // ✅ New funnel stage: the visitor started typing a search.
+              // Deliberately do NOT send the partial/raw query here.
+              // The complete submitted query is already captured later by report_search.
+              if (
+                v.trim().length > 0 &&
+                claimRbrFunnelStageOnce("rbr_funnel_search_started_fired")
+              ) {
+                trackRbrFunnelEvent({
+                  eventName: "search_started",
+                  query: "",
+                  gaEventName: "rbr_search_started",
+                  gaParams: {
+                    page_type: "reports_mobile",
+                  },
+                });
+              }
             }}
             onFocus={handleFocus}
             placeholder="e.g., paper industry, FMCG, pharma…"
