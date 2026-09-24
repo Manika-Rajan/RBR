@@ -1813,6 +1813,7 @@ const ReportsMobile = () => {
           },
           gaEventName: "view_item",
           gaParams: {
+            product_type: "existing_report",
             currency,
             value: Number(price || 0),
             items: [
@@ -1945,6 +1946,7 @@ const ReportsMobile = () => {
           },
           gaEventName: "rbr_existing_report_suggestions_shown",
           gaParams: {
+            product_type: "existing_report",
             result_count: Math.min(mapped.length, 3),
           },
         });
