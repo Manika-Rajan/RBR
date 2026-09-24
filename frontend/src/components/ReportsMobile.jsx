@@ -1802,6 +1802,30 @@ const ReportsMobile = () => {
         return;
       }
 
+      if (!samplePreviewMode) {
+        trackRbrFunnelEvent({
+          eventName: "existing_report_opened",
+          query: lastQuery || reportTitle,
+          extra: {
+            product_type: "existing_report",
+            selected_product: "catalogue_report",
+            displayed_price: Number(price || 0),
+          },
+          gaEventName: "view_item",
+          gaParams: {
+            currency,
+            value: Number(price || 0),
+            items: [
+              {
+                item_id: reportId || reportSlug,
+                item_name: reportTitle,
+                price: Number(price || 0),
+                quantity: 1,
+              },
+            ],
+          },
+        });
+      }
       navigate("/report-display", {
         state: {
           reportSlug,
@@ -1913,6 +1937,17 @@ const ReportsMobile = () => {
             return b.suggestion_priority - a.suggestion_priority;
           });
 
+        trackRbrFunnelEvent({
+          eventName: "existing_report_suggestions_shown",
+          query: trimmed,
+          extra: {
+            product_type: "existing_report",
+          },
+          gaEventName: "rbr_existing_report_suggestions_shown",
+          gaParams: {
+            result_count: Math.min(mapped.length, 3),
+          },
+        });
         setSuggestItems(mapped.slice(0, 3));
         setSuggestOpen(true);
         return;
@@ -3617,6 +3652,19 @@ const runSampleSearch = (query) => {
                   type="button"
                   className="w-full text-left rounded-xl border border-blue-100 bg-white/80 hover:bg-white hover:border-blue-200 hover:shadow-md active:scale-[0.99] transition-all p-3 flex items-center gap-3"
                   onClick={() => {
+                    trackRbrFunnelEvent({
+                      eventName: "existing_report_selected",
+                      query: lastQuery,
+                      extra: {
+                        product_type: "existing_report",
+                        selected_product: "catalogue_report",
+                      },
+                      gaEventName: "rbr_existing_report_selected",
+                      gaParams: {
+                        product_type: "existing_report",
+                      },
+                    });
+                  
                     setSuggestOpen(false);
                     goToReportBySlug(s);
                   }}
