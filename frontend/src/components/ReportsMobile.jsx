@@ -2644,10 +2644,10 @@ const runSampleSearch = (query) => {
 
 {/* Hero */}
       <h1 className="text-xl sm:text-2xl font-bold text-center text-gray-900 mb-3 px-1">
-        Get Instant Market &amp; Business Reports
+        What business information do you need?
       </h1>
       <p className="text-gray-600 text-center mb-6 text-sm sm:text-base px-2">
-        Search 1000+ industry reports. Accurate. Reliable. Ready for your business.
+        Search for a market, industry, product, import/export opportunity, or business topic.
       </p>
 
       {/* Search */}
@@ -2689,7 +2689,7 @@ const runSampleSearch = (query) => {
               }
             }}
             onFocus={handleFocus}
-            placeholder="e.g., paper industry, FMCG, pharma…"
+            placeholder="e.g., FMCG market report India"
             inputMode="search"
             enterKeyHint="search"
             className="flex-grow px-3 py-3 border border-gray-300 rounded-l-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base"
@@ -2699,7 +2699,7 @@ const runSampleSearch = (query) => {
             disabled={searchLoading}
             className="bg-blue-600 text-white px-4 py-3 rounded-r-xl font-semibold text-sm sm:text-base active:scale-[0.98] disabled:opacity-60"
           >
-            {searchLoading ? "Searching…" : "Search"}
+            {searchLoading ? "Searching…" : "Find My Report"}
           </button>
 
         </div>
