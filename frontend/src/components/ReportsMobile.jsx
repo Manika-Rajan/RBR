@@ -1734,6 +1734,29 @@ const ReportsMobile = () => {
       const reportType =
         reportMeta.report_type || reportMeta.reportType || "catalogue";
 
+      // ✅ Track visible existing-report preview failures as explicit outcomes.
+      // Sample-report previews are excluded so internal/sample browsing does not
+      // pollute the real customer search funnel.
+      const trackExistingPreviewUnavailable = (reason) => {
+        if (samplePreviewMode) return;
+
+        trackRbrFunnelEvent({
+          eventName: "existing_report_preview_unavailable",
+          query: lastQuery || reportTitle,
+          extra: {
+            product_type: "existing_report",
+            selected_product: "catalogue_report",
+            displayed_price: Number(price || 0),
+            outcome_reason: reason,
+          },
+          gaEventName: "rbr_existing_report_preview_unavailable",
+          gaParams: {
+            product_type: "existing_report",
+            outcome_type: "preview_unavailable",
+          },
+        });
+      };
+
       const presignResp = await fetch(PRESIGN_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -1741,6 +1764,7 @@ const ReportsMobile = () => {
       });
 
       if (!presignResp.ok) {
+        trackExistingPreviewUnavailable("presign_failed");
         setModalTitle("Preview not ready");
         setModalMsgNode(
           <span>
@@ -1756,6 +1780,7 @@ const ReportsMobile = () => {
       const url = presignData?.presigned_url;
 
       if (!url) {
+        trackExistingPreviewUnavailable("missing_presigned_url");
         setModalTitle("Preview not ready");
         setModalMsgNode(
           <span>
@@ -1780,6 +1805,7 @@ const ReportsMobile = () => {
           !(probe.status === 200 || probe.status === 206) ||
           !contentType.includes("pdf")
         ) {
+          trackExistingPreviewUnavailable("preview_not_pdf_or_unreachable");
           setModalTitle("Preview not ready");
           setModalMsgNode(
             <span>
@@ -1843,6 +1869,23 @@ const ReportsMobile = () => {
       });
     } catch (error) {
       console.error("goToReportBySlug error:", error);
+
+      if (!samplePreviewMode) {
+        trackRbrFunnelEvent({
+          eventName: "existing_report_open_error",
+          query: lastQuery || reportMeta.title || reportSlug || "",
+          extra: {
+            product_type: "existing_report",
+            selected_product: "catalogue_report",
+          },
+          gaEventName: "rbr_existing_report_open_error",
+          gaParams: {
+            product_type: "existing_report",
+            outcome_type: "open_error",
+          },
+        });
+      }
+
       setModalTitle("Error");
       setModalMsgNode(
         <span>
@@ -1957,6 +2000,22 @@ const ReportsMobile = () => {
 
       // ✅ if lambda returns hint for generic searches, show message
       if (hint) {
+        // ✅ Search outcome tracking:
+        // A submitted search reached the generic-guidance branch.
+        // Keep the raw query only in RBR's first-party tracker; GA4 receives
+        // only the low-cardinality outcome type.
+        trackRbrFunnelEvent({
+          eventName: "search_generic_hint_shown",
+          query: trimmed,
+          extra: {
+            product_type: "search_guidance",
+          },
+          gaEventName: "rbr_search_generic_hint_shown",
+          gaParams: {
+            outcome_type: "generic_hint",
+          },
+        });
+
         setModalTitle("Search too generic");
         setModalMsgNode(renderGenericHint(trimmed));
         setOpenModal(true);
@@ -1975,6 +2034,21 @@ const ReportsMobile = () => {
       return;
     } catch (e) {
       console.error("Error during search flow:", e);
+
+      // ✅ Search outcome tracking:
+      // The submitted search ended in an error instead of a result branch.
+      trackRbrFunnelEvent({
+        eventName: "search_error",
+        query: trimmed,
+        extra: {
+          product_type: "search",
+        },
+        gaEventName: "rbr_search_error",
+        gaParams: {
+          outcome_type: "search_error",
+        },
+      });
+
       setModalTitle("Error");
       setModalMsgNode(
         <span>
