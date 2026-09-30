@@ -12,6 +12,120 @@ const REGION = getRegionConfig();
 
 const CONVERSION_SEND_TO = 'AW-824378442/NWTVCJbO_bobEMqIjIkD'; // Google Ads ID/Label
 
+// ====== RBR first-party funnel tracking ======
+// Reuses the same sessionStorage keys and endpoint as the search/report pages,
+// so the customer journey stays linked end-to-end. No name, phone, email, or
+// other PII is sent to the funnel tracker.
+const RBR_FUNNEL_TRACK_URL =
+  'https://jp1bupouyl.execute-api.ap-south-1.amazonaws.com/prod/google-ads-funnel-event';
+
+const RBR_FUNNEL_ATTR_KEYS = [
+  'gclid',
+  'gbraid',
+  'wbraid',
+  'gad_source',
+  'gad_campaignid',
+  'utm_source',
+  'utm_medium',
+  'utm_campaign',
+  'utm_term',
+  'utm_content',
+  'campaignid',
+  'adgroupid',
+  'keyword',
+  'matchtype',
+  'device',
+  'network',
+  'creative',
+];
+
+function getRbrFunnelSessionId() {
+  if (typeof window === 'undefined') return '';
+
+  try {
+    const key = 'rbr_funnel_session_id';
+    let id = sessionStorage.getItem(key);
+
+    if (!id) {
+      id =
+        typeof crypto !== 'undefined' && crypto.randomUUID
+          ? crypto.randomUUID()
+          : `rbr-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+
+      sessionStorage.setItem(key, id);
+    }
+
+    return id;
+  } catch {
+    return '';
+  }
+}
+
+function getRbrFunnelAttribution() {
+  if (typeof window === 'undefined') return {};
+
+  const storageKey = 'rbr_funnel_attribution';
+
+  try {
+    const existing = JSON.parse(sessionStorage.getItem(storageKey) || '{}');
+    const params = new URLSearchParams(window.location.search || '');
+    const incoming = {};
+
+    RBR_FUNNEL_ATTR_KEYS.forEach((key) => {
+      const value = params.get(key);
+      if (value) incoming[key] = value.slice(0, 250);
+    });
+
+    const merged = { ...existing, ...incoming };
+    sessionStorage.setItem(storageKey, JSON.stringify(merged));
+    return merged;
+  } catch {
+    return {};
+  }
+}
+
+function trackExistingReportPaymentEvent({
+  eventName,
+  reportQuery = '',
+  extra = {},
+}) {
+  if (!eventName || !RBR_FUNNEL_TRACK_URL) return;
+
+  const eventId =
+    typeof crypto !== 'undefined' && crypto.randomUUID
+      ? crypto.randomUUID()
+      : `evt-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+
+  const body = {
+    event_id: eventId,
+    session_id: getRbrFunnelSessionId(),
+    event_name: eventName,
+    event_ts: new Date().toISOString(),
+    page_path:
+      typeof window !== 'undefined'
+        ? `${window.location.pathname}${window.location.search}`
+        : '',
+    report_query: String(reportQuery || '').trim().slice(0, 120),
+    product_type: 'existing_report',
+    sample_seen: false,
+    attribution: getRbrFunnelAttribution(),
+    ...extra,
+  };
+
+  fetch(RBR_FUNNEL_TRACK_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+    keepalive: true,
+  }).catch((trackingError) => {
+    console.warn(
+      '[RBR funnel] existing-report mobile payment event failed:',
+      eventName,
+      trackingError
+    );
+  });
+}
+
 // Fire Google Ads conversion safely (once per paymentId)
 function fireGoogleAdsPurchase({ paymentId, valueINR }) {
   try {
@@ -83,6 +197,27 @@ const PaymentMobile = () => {
     localStorage.getItem('fileKey') ||
     '';
 
+  const resolvedReportSlug =
+    stateObj.reportSlug ||
+    stateObj.report_slug ||
+    report?.reportSlug ||
+    report?.report_slug ||
+    localStorage.getItem('reportSlug') ||
+    '';
+
+  const resolvedReportTitle =
+    stateObj.reportTitle ||
+    stateObj.report_title ||
+    report?.reportTitle ||
+    report?.report_title ||
+    localStorage.getItem('reportTitle') ||
+    '';
+
+  const resolvedCurrency =
+    stateObj.currency ||
+    report?.currency ||
+    REGION.currencyCode;
+
   // Prefer values from userInfo, fallback to localStorage
   const storedName = localStorage.getItem('userName') || (userInfo?.name ?? '');
   const storedPhone =
@@ -107,6 +242,41 @@ const PaymentMobile = () => {
   const amount = Number.isFinite(amountRaw) && amountRaw > 0 ? amountRaw : 2999;
 
   const file_key = resolvedFileKey;
+  const funnelReportQuery =
+    resolvedReportTitle || resolvedReportSlug || reportId || '';
+  const isTestPayment = Number(amount || 0) === 1;
+
+  // Diagnostic + funnel stage: proves that PaymentMobile itself was reached.
+  useEffect(() => {
+    const sessionId = getRbrFunnelSessionId();
+    const guardKey = `rbr_payment_mobile_viewed_${sessionId}_${reportId || 'unknown'}`;
+
+    try {
+      if (sessionStorage.getItem(guardKey)) return;
+      sessionStorage.setItem(guardKey, '1');
+    } catch {
+      // If storage is unavailable, still send the event.
+    }
+
+    trackExistingReportPaymentEvent({
+      eventName: 'existing_report_payment_page_viewed',
+      reportQuery: funnelReportQuery,
+      extra: {
+        product_type: 'existing_report',
+        selected_product: resolvedReportSlug || reportId,
+        displayed_price: Number(amount || 0),
+        currency: resolvedCurrency,
+        is_test_payment: isTestPayment,
+      },
+    });
+  }, [
+    reportId,
+    funnelReportQuery,
+    resolvedReportSlug,
+    amount,
+    resolvedCurrency,
+    isTestPayment,
+  ]);
 
   // Persist payment context so refresh doesn't lose it
   useEffect(() => {
@@ -116,13 +286,22 @@ const PaymentMobile = () => {
     }
     if (file_key) localStorage.setItem('fileKey', file_key);
     if (amount != null) localStorage.setItem('amount', String(amount));
+    if (resolvedReportSlug) localStorage.setItem('reportSlug', resolvedReportSlug);
+    if (resolvedReportTitle) localStorage.setItem('reportTitle', resolvedReportTitle);
     try {
       if (reportId) cxtDispatch({ type: 'SET_REPORT_ID', payload: reportId });
       if (file_key) cxtDispatch({ type: 'SET_FILE_KEY', payload: file_key });
     } catch {
       // ignore if reducer doesn't handle these
     }
-  }, [reportId, file_key, amount, cxtDispatch]);
+  }, [
+    reportId,
+    file_key,
+    amount,
+    resolvedReportSlug,
+    resolvedReportTitle,
+    cxtDispatch,
+  ]);
 
   useEffect(() => {
     console.log('PaymentMobile - Initial state:', {
@@ -261,6 +440,18 @@ const PaymentMobile = () => {
     });
 
   const handlePayment = async () => {
+    trackExistingReportPaymentEvent({
+      eventName: 'existing_report_pay_now_clicked',
+      reportQuery: funnelReportQuery,
+      extra: {
+        product_type: 'existing_report',
+        selected_product: resolvedReportSlug || reportId,
+        displayed_price: Number(amount || 0),
+        currency: resolvedCurrency,
+        is_test_payment: isTestPayment,
+      },
+    });
+
     console.log('handlePayment (mobile) started', {
       reportId,
       amount,
@@ -423,6 +614,20 @@ const PaymentMobile = () => {
         return;
       }
 
+      trackExistingReportPaymentEvent({
+        eventName: 'existing_report_order_created',
+        reportQuery: funnelReportQuery,
+        extra: {
+          product_type: 'existing_report',
+          selected_product: resolvedReportSlug || reportId,
+          displayed_price: Number(amount || 0),
+          amount_minor: Number(orderAmount || 0),
+          currency: orderCurrency || resolvedCurrency,
+          razorpay_order_id: orderId,
+          is_test_payment: isTestPayment,
+        },
+      });
+
       console.log('Opening Razorpay popup with order (mobile):', orderId);
 
       // Step 5: Initialize Razorpay
@@ -505,11 +710,35 @@ const PaymentMobile = () => {
               }
             );
 
-            // ✅ Fire Google Ads Purchase conversion (once per payment id)
-            fireGoogleAdsPurchase({
-              paymentId: response.razorpay_payment_id,
-              valueINR: Number(amount),
+            // ✅ First-party funnel: verified existing-report purchase.
+            trackExistingReportPaymentEvent({
+              eventName: 'existing_report_purchase',
+              reportQuery: funnelReportQuery,
+              extra: {
+                product_type: 'existing_report',
+                selected_product: resolvedReportSlug || reportId,
+                displayed_price: Number(amount || 0),
+                paid_value: Number(amount || 0),
+                amount_minor: Math.round(Number(amount || 0) * 100),
+                currency: orderCurrency || resolvedCurrency,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_order_id: response.razorpay_order_id,
+                is_test_payment: isTestPayment,
+              },
             });
+
+            // ✅ Preserve the live Google Ads conversion, but never count the
+            // protected ₹1 test transaction as a real conversion.
+            if (!isTestPayment) {
+              fireGoogleAdsPurchase({
+                paymentId: response.razorpay_payment_id,
+                valueINR: Number(amount),
+              });
+            } else {
+              console.log('[Ads] ₹1 test payment detected; conversion skipped.', {
+                paymentId: response.razorpay_payment_id,
+              });
+            }
 
             // ✅ Save user details then go to Purchase Success screen
             await saveUserDetails();
@@ -553,6 +782,21 @@ const PaymentMobile = () => {
         modal: {
           ondismiss: () => {
             console.log('Razorpay modal closed by user (mobile)');
+
+            trackExistingReportPaymentEvent({
+              eventName: 'existing_report_payment_cancelled',
+              reportQuery: funnelReportQuery,
+              extra: {
+                product_type: 'existing_report',
+                selected_product: resolvedReportSlug || reportId,
+                displayed_price: Number(amount || 0),
+                amount_minor: Number(orderAmount || 0),
+                currency: orderCurrency || resolvedCurrency,
+                razorpay_order_id: orderId,
+                is_test_payment: isTestPayment,
+              },
+            });
+
             setError('Payment cancelled. Please try again.');
             setLoading(false);
           },
@@ -566,6 +810,22 @@ const PaymentMobile = () => {
         const rzp = new window.Razorpay(options);
         rzp.on('payment.failed', async (response) => {
           console.error('Payment failed (mobile):', response?.error?.description);
+
+          trackExistingReportPaymentEvent({
+            eventName: 'existing_report_payment_failed',
+            reportQuery: funnelReportQuery,
+            extra: {
+              product_type: 'existing_report',
+              selected_product: resolvedReportSlug || reportId,
+              displayed_price: Number(amount || 0),
+              amount_minor: Number(orderAmount || 0),
+              currency: orderCurrency || resolvedCurrency,
+              razorpay_payment_id: response?.error?.metadata?.payment_id || '',
+              razorpay_order_id: orderId,
+              is_test_payment: isTestPayment,
+            },
+          });
+
           setError(
             `Payment failed: ${response?.error?.description || 'Unknown'}`
           );
@@ -597,9 +857,52 @@ const PaymentMobile = () => {
         });
 
         console.log('Opening Razorpay modal (mobile)');
+
+        trackExistingReportPaymentEvent({
+          eventName: 'existing_report_razorpay_open_attempt',
+          reportQuery: funnelReportQuery,
+          extra: {
+            product_type: 'existing_report',
+            selected_product: resolvedReportSlug || reportId,
+            displayed_price: Number(amount || 0),
+            amount_minor: Number(orderAmount || 0),
+            currency: orderCurrency || resolvedCurrency,
+            razorpay_order_id: orderId,
+            is_test_payment: isTestPayment,
+          },
+        });
+
         rzp.open();
+
+        trackExistingReportPaymentEvent({
+          eventName: 'existing_report_razorpay_opened',
+          reportQuery: funnelReportQuery,
+          extra: {
+            product_type: 'existing_report',
+            selected_product: resolvedReportSlug || reportId,
+            displayed_price: Number(amount || 0),
+            amount_minor: Number(orderAmount || 0),
+            currency: orderCurrency || resolvedCurrency,
+            razorpay_order_id: orderId,
+            is_test_payment: isTestPayment,
+          },
+        });
       } catch (err) {
         console.error('Razorpay initialization error (mobile):', err.message);
+
+        trackExistingReportPaymentEvent({
+          eventName: 'existing_report_razorpay_open_failed',
+          reportQuery: funnelReportQuery,
+          extra: {
+            product_type: 'existing_report',
+            selected_product: resolvedReportSlug || reportId,
+            displayed_price: Number(amount || 0),
+            currency: resolvedCurrency,
+            error_stage: 'razorpay_initialization_or_open',
+            is_test_payment: isTestPayment,
+          },
+        });
+
         setError(`Failed to open payment gateway: ${err.message}`);
         setLoading(false);
       }
