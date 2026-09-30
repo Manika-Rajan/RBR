@@ -23,6 +23,120 @@ const LEAD_API_URL =
 const SUGGEST_URL =
   "https://vtwyu7hv50.execute-api.ap-south-1.amazonaws.com/default/suggest";
 
+// ====== RBR first-party funnel tracking ======
+// Uses the same sessionStorage keys and production endpoint as ReportsMobile,
+// so a visitor's search journey continues into /report-display without creating
+// a new funnel session. No name, phone, email, or other PII is sent here.
+const RBR_FUNNEL_TRACK_URL =
+  "https://jp1bupouyl.execute-api.ap-south-1.amazonaws.com/prod/google-ads-funnel-event";
+
+const RBR_FUNNEL_ATTR_KEYS = [
+  "gclid",
+  "gbraid",
+  "wbraid",
+  "gad_source",
+  "gad_campaignid",
+  "utm_source",
+  "utm_medium",
+  "utm_campaign",
+  "utm_term",
+  "utm_content",
+  "campaignid",
+  "adgroupid",
+  "keyword",
+  "matchtype",
+  "device",
+  "network",
+  "creative",
+];
+
+function getRbrFunnelSessionId() {
+  if (typeof window === "undefined") return "";
+
+  try {
+    const key = "rbr_funnel_session_id";
+    let id = sessionStorage.getItem(key);
+
+    if (!id) {
+      id =
+        typeof crypto !== "undefined" && crypto.randomUUID
+          ? crypto.randomUUID()
+          : `rbr-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+
+      sessionStorage.setItem(key, id);
+    }
+
+    return id;
+  } catch {
+    return "";
+  }
+}
+
+function getRbrFunnelAttribution() {
+  if (typeof window === "undefined") return {};
+
+  const storageKey = "rbr_funnel_attribution";
+
+  try {
+    const existing = JSON.parse(sessionStorage.getItem(storageKey) || "{}");
+    const params = new URLSearchParams(window.location.search || "");
+    const incoming = {};
+
+    RBR_FUNNEL_ATTR_KEYS.forEach((key) => {
+      const value = params.get(key);
+      if (value) incoming[key] = value.slice(0, 250);
+    });
+
+    const merged = { ...existing, ...incoming };
+    sessionStorage.setItem(storageKey, JSON.stringify(merged));
+    return merged;
+  } catch {
+    return {};
+  }
+}
+
+function trackExistingReportFunnelEvent({
+  eventName,
+  reportQuery = "",
+  extra = {},
+}) {
+  if (!eventName || !RBR_FUNNEL_TRACK_URL) return;
+
+  const eventId =
+    typeof crypto !== "undefined" && crypto.randomUUID
+      ? crypto.randomUUID()
+      : `evt-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+
+  const body = {
+    event_id: eventId,
+    session_id: getRbrFunnelSessionId(),
+    event_name: eventName,
+    event_ts: new Date().toISOString(),
+    page_path:
+      typeof window !== "undefined"
+        ? `${window.location.pathname}${window.location.search}`
+        : "",
+    report_query: String(reportQuery || "").trim().slice(0, 120),
+    product_type: "existing_report",
+    sample_seen: false,
+    attribution: getRbrFunnelAttribution(),
+    ...extra,
+  };
+
+  fetch(RBR_FUNNEL_TRACK_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+    keepalive: true,
+  }).catch((trackingError) => {
+    console.warn(
+      "[RBR funnel] existing-report event failed:",
+      eventName,
+      trackingError
+    );
+  });
+}
+
 // 🔹 How many pages are fully free to read (0-based index)
 //    1 => pages 0 and 1 (i.e. page 1 & page 2)
 const UNLOCKED_MAX_PAGE = 3;
@@ -360,6 +474,20 @@ const ReportsDisplayMobile = () => {
   // ====== PAYMENT FLOW ======
   const goToPayment = () => {
     const paymentFileKey = fullKeyFromState || `${reportSlug}.pdf`;
+
+    // First-party funnel event only. This does NOT fire a Google Ads conversion
+    // and does not alter the existing GA4 buy_now_click event below.
+    trackExistingReportFunnelEvent({
+      eventName: "existing_report_checkout_started",
+      reportQuery: title || reportSlug,
+      extra: {
+        product_type: "existing_report",
+        selected_product: reportSlug,
+        displayed_price: Number(FINAL || 0),
+        currency: currencyCode,
+        login_mode: isLoggedIn ? "already_logged_in" : "login_required",
+      },
+    });
 
     window.gtag?.("event", "buy_now_click", {
       event_category: "engagement",
