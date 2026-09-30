@@ -241,6 +241,38 @@ const Payment = () => {
     resolvedReportTitle || resolvedReportSlug || reportId || '';
   const isTestPayment = Number(amount || 0) === 1;
 
+  // Diagnostic: prove that the deployed Payment.js page itself was reached.
+  useEffect(() => {
+    const sessionId = getRbrFunnelSessionId();
+    const guardKey = `rbr_payment_page_viewed_${sessionId}_${reportId || 'unknown'}`;
+
+    try {
+      if (sessionStorage.getItem(guardKey)) return;
+      sessionStorage.setItem(guardKey, '1');
+    } catch {
+      // If storage is unavailable, still send the diagnostic event.
+    }
+
+    trackExistingReportPaymentEvent({
+      eventName: 'existing_report_payment_page_viewed',
+      reportQuery: funnelReportQuery,
+      extra: {
+        product_type: 'existing_report',
+        selected_product: resolvedReportSlug || reportId,
+        displayed_price: Number(amount || 0),
+        currency: resolvedCurrency,
+        is_test_payment: isTestPayment,
+      },
+    });
+  }, [
+    reportId,
+    funnelReportQuery,
+    resolvedReportSlug,
+    amount,
+    resolvedCurrency,
+    isTestPayment,
+  ]);
+
   // Persist payment context so refresh doesn't lose it
   useEffect(() => {
     if (reportId) {
@@ -397,6 +429,18 @@ const Payment = () => {
     });
 
   const handlePayment = async () => {
+    trackExistingReportPaymentEvent({
+      eventName: 'existing_report_pay_now_clicked',
+      reportQuery: funnelReportQuery,
+      extra: {
+        product_type: 'existing_report',
+        selected_product: resolvedReportSlug || reportId,
+        displayed_price: Number(amount || 0),
+        currency: resolvedCurrency,
+        is_test_payment: isTestPayment,
+      },
+    });
+
     console.log('handlePayment started', {
       reportId,
       amount,
@@ -545,6 +589,20 @@ const Payment = () => {
         setLoading(false);
         return;
       }
+
+      trackExistingReportPaymentEvent({
+        eventName: 'existing_report_order_created',
+        reportQuery: funnelReportQuery,
+        extra: {
+          product_type: 'existing_report',
+          selected_product: resolvedReportSlug || reportId,
+          displayed_price: Number(amount || 0),
+          amount_minor: Number(orderAmount || 0),
+          currency: resolvedCurrency,
+          razorpay_order_id: orderId,
+          is_test_payment: isTestPayment,
+        },
+      });
 
       console.log('Opening Razorpay popup with order:', orderId);
 
@@ -757,6 +815,21 @@ const Payment = () => {
         });
 
         console.log('Opening Razorpay modal');
+
+        trackExistingReportPaymentEvent({
+          eventName: 'existing_report_razorpay_open_attempt',
+          reportQuery: funnelReportQuery,
+          extra: {
+            product_type: 'existing_report',
+            selected_product: resolvedReportSlug || reportId,
+            displayed_price: Number(amount || 0),
+            amount_minor: Number(orderAmount || 0),
+            currency: resolvedCurrency,
+            razorpay_order_id: orderId,
+            is_test_payment: isTestPayment,
+          },
+        });
+
         rzp.open();
 
         trackExistingReportPaymentEvent({
@@ -774,6 +847,20 @@ const Payment = () => {
         });
       } catch (err) {
         console.error('Razorpay initialization error:', err.message);
+
+        trackExistingReportPaymentEvent({
+          eventName: 'existing_report_razorpay_open_failed',
+          reportQuery: funnelReportQuery,
+          extra: {
+            product_type: 'existing_report',
+            selected_product: resolvedReportSlug || reportId,
+            displayed_price: Number(amount || 0),
+            currency: resolvedCurrency,
+            error_stage: 'razorpay_initialization_or_open',
+            is_test_payment: isTestPayment,
+          },
+        });
+
         setError(`Failed to open payment gateway: ${err.message}`);
         setLoading(false);
       }
