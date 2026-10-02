@@ -457,6 +457,9 @@ const ReportsMobile = () => {
 
   const [q, setQ] = useState("");
 
+  // ✅ Landing conversion path selected by the visitor.
+  // "" = normal catalogue search, "instant" = Instant Report, "prebook" = Custom Report.
+  const [landingIntent, setLandingIntent] = useState("");
 
   // ⭐ Sample Reports modal
   const [samplesOpen, setSamplesOpen] = useState(false);
@@ -2077,6 +2080,12 @@ const ReportsMobile = () => {
     }
 
     setShowSuggestions(false);
+
+    if (landingIntent === "instant" || landingIntent === "prebook") {
+      openLandingProductDetails(landingIntent, query);
+      return;
+    }
+
     handleSearch(query);
   };
 
@@ -2703,6 +2712,98 @@ const runSampleSearch = (query) => {
   }, 60);
 };
 
+  // ✅ Landing conversion paths.
+  const chooseLandingPath = (intent) => {
+    const selectedProduct =
+      intent === "instant"
+        ? "instant"
+        : intent === "prebook"
+        ? "custom_prebook"
+        : "existing_report";
+
+    trackRbrFunnelEvent({
+      eventName: "landing_path_selected",
+      query: "",
+      extra: { selected_product: selectedProduct },
+      gaEventName: "rbr_landing_path_selected",
+      gaParams: { selected_product: selectedProduct },
+    });
+
+    setLandingIntent(intent === "existing" ? "" : intent);
+    setShowSuggestions(false);
+
+    setTimeout(() => {
+      try {
+        inputRef.current?.focus();
+        inputRef.current?.scrollIntoView({
+          behavior: "smooth",
+          block: "center",
+        });
+      } catch {
+        inputRef.current?.focus();
+      }
+    }, 0);
+  };
+
+  const openLandingProductDetails = (intent, query) => {
+    const trimmed = String(query || "").trim();
+    if (!trimmed) return;
+
+    const savedPhone = state?.userInfo?.phone || state?.userInfo?.userId || "";
+    const savedName = state?.userInfo?.name || "";
+
+    setLastQuery(trimmed);
+    setPrebookQuery(trimmed);
+    setPrebookName(savedName);
+    setPrebookPhone(savedPhone);
+    setPrebookHasKnownUser(!!savedPhone);
+    setPrebookError("");
+    setInstantChooserError("");
+    setChooserIntent(intent);
+    setChooserStep("details");
+    setPrebookPromptOpen(true);
+    setLandingIntent("");
+
+    trackRbrFunnelEvent({
+      eventName: "landing_product_topic_submitted",
+      query: trimmed,
+      extra: {
+        selected_product: intent === "prebook" ? "custom_prebook" : "instant",
+      },
+      gaEventName: "rbr_landing_product_topic_submitted",
+      gaParams: {
+        selected_product: intent === "prebook" ? "custom_prebook" : "instant",
+      },
+    });
+
+    trackRbrFunnelEvent({
+      eventName:
+        intent === "prebook" ? "prebook_order_clicked" : "instant_order_clicked",
+      query: trimmed,
+      extra: {
+        selected_product: intent === "prebook" ? "custom_prebook" : "instant",
+      },
+      gaEventName:
+        intent === "prebook"
+          ? "rbr_prebook_order_clicked"
+          : "rbr_instant_order_clicked",
+      gaParams: {
+        currency: REGION.currencyCode,
+        value: Number(
+          intent === "prebook" ? REGION.prebookPrice : REGION.instantPrice
+        ),
+      },
+    });
+
+    trackRbrFunnelEvent({
+      eventName: "order_details_started",
+      query: trimmed,
+      extra: {
+        selected_product: intent === "prebook" ? "custom_prebook" : "instant",
+      },
+    });
+  };
+
   return (
     <div className="min-h-screen bg-white flex flex-col items-center px-4 pt-24 pb-10 relative">
 {/* Sample Reports */}
@@ -2717,14 +2818,124 @@ const runSampleSearch = (query) => {
 </div>
 
 {/* Hero */}
-      <h1 className="text-xl sm:text-2xl font-bold text-center text-gray-900 mb-3 px-1">
-        What business information do you need?
+      <h1 className="text-xl sm:text-2xl font-bold text-center text-gray-900 mb-2 px-1">
+        Get the business information you need
       </h1>
-      <p className="text-gray-600 text-center mb-6 text-sm sm:text-base px-2">
-        Search for a market, industry, product, import/export opportunity, or business topic.
+      <p className="text-gray-600 text-center mb-4 text-sm sm:text-base px-2">
+        Choose a ready-made report, get an instant overview, or request a custom sourced report.
       </p>
 
-      {/* Search */}
+      {/* Three clear purchase paths */}
+      <div className="w-full grid gap-2.5 mb-4">
+        <button
+          type="button"
+          onClick={() => chooseLandingPath("existing")}
+          className="w-full rounded-2xl border border-slate-200 bg-white px-3.5 py-3 text-left shadow-sm active:scale-[0.99]"
+        >
+          <div className="flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <div className="text-[10px] font-black uppercase tracking-[0.12em] text-blue-600">
+                Ready-made
+              </div>
+              <div className="mt-0.5 text-[15px] font-extrabold text-slate-900">
+                Find an existing report
+              </div>
+              <div className="mt-0.5 text-[11px] leading-snug text-slate-500">
+                Search our catalogue and preview a matching report before you buy.
+              </div>
+            </div>
+            <div className="shrink-0 rounded-full bg-blue-50 px-3 py-1.5 text-[11px] font-extrabold text-blue-700">
+              Search →
+            </div>
+          </div>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => chooseLandingPath("instant")}
+          className={
+            "w-full rounded-2xl border px-3.5 py-3 text-left shadow-sm active:scale-[0.99] " +
+            (landingIntent === "instant"
+              ? "border-sky-400 bg-sky-50"
+              : "border-sky-200 bg-[#F4FBFF]")
+          }
+        >
+          <div className="flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <div className="text-[10px] font-black uppercase tracking-[0.12em] text-sky-700">
+                Need it now?
+              </div>
+              <div className="mt-0.5 text-[15px] font-extrabold text-slate-900">
+                Instant 10-Page Report
+              </div>
+              <div className="mt-0.5 text-[11px] leading-snug text-slate-500">
+                Quick automated business overview for an immediate requirement.
+              </div>
+            </div>
+            <div className="shrink-0 text-right">
+              <div className="text-lg font-black text-sky-700">
+                {REGION.currencySymbol}{REGION.instantPrice}
+              </div>
+              <div className="text-[10px] font-bold text-sky-700">Choose →</div>
+            </div>
+          </div>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => chooseLandingPath("prebook")}
+          className={
+            "w-full rounded-2xl border px-3.5 py-3 text-left shadow-sm active:scale-[0.99] " +
+            (landingIntent === "prebook"
+              ? "border-emerald-400 bg-emerald-50"
+              : "border-emerald-200 bg-[#F5FCF8]")
+          }
+        >
+          <div className="flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <div className="text-[10px] font-black uppercase tracking-[0.12em] text-emerald-700">
+                Need the exact answer?
+              </div>
+              <div className="mt-0.5 text-[15px] font-extrabold text-slate-900">
+                Custom Business Report
+              </div>
+              <div className="mt-0.5 text-[11px] leading-snug text-slate-500">
+                Prepared for your requirement with sources and delivery within 48 hours.
+              </div>
+            </div>
+            <div className="shrink-0 text-right">
+              <div className="text-lg font-black text-emerald-700">
+                {REGION.currencySymbol}{REGION.prebookPrice}
+              </div>
+              <div className="text-[10px] font-bold text-emerald-700">Choose →</div>
+            </div>
+          </div>
+        </button>
+      </div>
+
+      {landingIntent ? (
+        <div
+          className={
+            "w-full mb-2 rounded-xl px-3 py-2 text-[11px] font-semibold " +
+            (landingIntent === "instant"
+              ? "bg-sky-50 text-sky-800 border border-sky-100"
+              : "bg-emerald-50 text-emerald-800 border border-emerald-100")
+          }
+        >
+          {landingIntent === "instant"
+            ? "Instant Report selected — enter the topic you want covered below."
+            : "Custom Report selected — enter the exact business topic or requirement below."}
+          <button
+            type="button"
+            onClick={() => setLandingIntent("")}
+            className="ml-2 underline underline-offset-2"
+          >
+            Switch to catalogue search
+          </button>
+        </div>
+      ) : null}
+
+      {/* Search / product-topic input */}
       <form onSubmit={onSubmit} className="w-full mb-3">
         <label htmlFor="mobile-search" className="sr-only">
           Search reports
@@ -2763,7 +2974,13 @@ const runSampleSearch = (query) => {
               }
             }}
             onFocus={handleFocus}
-            placeholder="e.g., FMCG market report India"
+            placeholder={
+              landingIntent === "instant"
+                ? "e.g., EV charging market India"
+                : landingIntent === "prebook"
+                ? "e.g., Competitor analysis for pharma exports"
+                : "e.g., FMCG market report India"
+            }
             inputMode="search"
             enterKeyHint="search"
             className="flex-grow px-3 py-3 border border-gray-300 rounded-l-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base"
@@ -2773,7 +2990,13 @@ const runSampleSearch = (query) => {
             disabled={searchLoading}
             className="bg-blue-600 text-white px-4 py-3 rounded-r-xl font-semibold text-sm sm:text-base active:scale-[0.98] disabled:opacity-60"
           >
-            {searchLoading ? "Searching…" : "Find My Report"}
+            {searchLoading
+              ? "Working…"
+              : landingIntent === "instant"
+              ? "Continue to Instant"
+              : landingIntent === "prebook"
+              ? "Continue to Custom"
+              : "Find My Report"}
           </button>
 
         </div>
