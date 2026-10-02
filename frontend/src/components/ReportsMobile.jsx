@@ -2729,6 +2729,22 @@ const runSampleSearch = (query) => {
       gaParams: { selected_product: selectedProduct },
     });
 
+    // Also emit a product-specific first-party event name.
+    // This makes the User Funnel reliable even if the backend/read API
+    // omits selected_product from the generic landing_path_selected event.
+    const specificLandingEvent =
+      intent === "instant"
+        ? "landing_instant_selected"
+        : intent === "prebook"
+        ? "landing_custom_selected"
+        : "landing_existing_report_selected";
+
+    trackRbrFunnelEvent({
+      eventName: specificLandingEvent,
+      query: "",
+      extra: { selected_product: selectedProduct },
+    });
+
     setLandingIntent(intent === "existing" ? "" : intent);
     setShowSuggestions(false);
 
