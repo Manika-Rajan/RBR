@@ -2905,7 +2905,7 @@ const runSampleSearch = (query) => {
               ? "Continue to Instant"
               : landingIntent === "prebook"
               ? "Continue to Custom"
-              : "Find My Report"}
+              : "Find Report"}
           </button>
 
         </div>
