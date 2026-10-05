@@ -2836,168 +2836,13 @@ const runSampleSearch = (query) => {
   </button>
 </div>
 
-{/* Hero */}
+{/* Hero — search first */}
       <h1 className="text-xl sm:text-2xl font-bold text-center text-gray-900 mb-2 px-1">
-        Get the business information you need
+        What business information do you need?
       </h1>
       <p className="text-gray-600 text-center mb-4 text-sm sm:text-base px-2">
-        Choose a ready-made report, get an instant overview, or request a custom sourced report.
+        Search for a market, industry, product, import/export opportunity, or business topic.
       </p>
-
-      {/* Three clear purchase paths.
-          Once the visitor explicitly chooses Instant or Custom, stop comparing
-          products and reinforce only that selected path. */}
-      {!landingIntent ? (
-      <div className="w-full grid gap-2.5 mb-4">
-        <button
-          type="button"
-          onClick={() => chooseLandingPath("existing")}
-          className="w-full rounded-2xl border border-slate-200 bg-white px-3.5 py-3 text-left shadow-sm active:scale-[0.99]"
-        >
-          <div className="flex items-center justify-between gap-3">
-            <div className="min-w-0">
-              <div className="text-[10px] font-black uppercase tracking-[0.12em] text-blue-600">
-                Ready-made
-              </div>
-              <div className="mt-0.5 text-[15px] font-extrabold text-slate-900">
-                Find an existing report
-              </div>
-              <div className="mt-0.5 text-[11px] leading-snug text-slate-500">
-                Search our catalogue and preview a matching report before you buy.
-              </div>
-            </div>
-            <div className="shrink-0 rounded-full bg-blue-50 px-3 py-1.5 text-[11px] font-extrabold text-blue-700">
-              Search →
-            </div>
-          </div>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => chooseLandingPath("instant")}
-          className={
-            "w-full rounded-2xl border px-3.5 py-3 text-left shadow-sm active:scale-[0.99] " +
-            (landingIntent === "instant"
-              ? "border-sky-400 bg-sky-50"
-              : "border-sky-200 bg-[#F4FBFF]")
-          }
-        >
-          <div className="flex items-center justify-between gap-3">
-            <div className="min-w-0">
-              <div className="text-[10px] font-black uppercase tracking-[0.12em] text-sky-700">
-                Need it now?
-              </div>
-              <div className="mt-0.5 text-[15px] font-extrabold text-slate-900">
-                Instant 10-Page Report
-              </div>
-              <div className="mt-0.5 text-[11px] leading-snug text-slate-500">
-                Quick automated business overview for an immediate requirement.
-              </div>
-            </div>
-            <div className="shrink-0 text-right">
-              <div className="text-lg font-black text-sky-700">
-                {REGION.currencySymbol}{REGION.instantPrice}
-              </div>
-              <div className="text-[10px] font-bold text-sky-700">Choose →</div>
-            </div>
-          </div>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => chooseLandingPath("prebook")}
-          className={
-            "w-full rounded-2xl border px-3.5 py-3 text-left shadow-sm active:scale-[0.99] " +
-            (landingIntent === "prebook"
-              ? "border-emerald-400 bg-emerald-50"
-              : "border-emerald-200 bg-[#F5FCF8]")
-          }
-        >
-          <div className="flex items-center justify-between gap-3">
-            <div className="min-w-0">
-              <div className="text-[10px] font-black uppercase tracking-[0.12em] text-emerald-700">
-                Need the exact answer?
-              </div>
-              <div className="mt-0.5 text-[15px] font-extrabold text-slate-900">
-                Custom Business Report
-              </div>
-              <div className="mt-0.5 text-[11px] leading-snug text-slate-500">
-                Prepared for your requirement with sources and delivery within 48 hours.
-              </div>
-            </div>
-            <div className="shrink-0 text-right">
-              <div className="text-lg font-black text-emerald-700">
-                {REGION.currencySymbol}{REGION.prebookPrice}
-              </div>
-              <div className="text-[10px] font-bold text-emerald-700">Choose →</div>
-            </div>
-          </div>
-        </button>
-      </div>
-      ) : (
-        <div
-          className={
-            "w-full mb-3 rounded-2xl border px-3.5 py-3 shadow-sm " +
-            (landingIntent === "instant"
-              ? "border-sky-300 bg-sky-50"
-              : "border-emerald-300 bg-emerald-50")
-          }
-        >
-          <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0">
-              <div
-                className={
-                  "text-[10px] font-black uppercase tracking-[0.12em] " +
-                  (landingIntent === "instant"
-                    ? "text-sky-700"
-                    : "text-emerald-700")
-                }
-              >
-                Selected
-              </div>
-              <div className="mt-0.5 text-[16px] font-extrabold text-slate-900">
-                {landingIntent === "instant"
-                  ? "Instant 10-Page Report"
-                  : "Custom Business Report"}
-              </div>
-              <div className="mt-1 text-[11px] leading-snug text-slate-600">
-                {landingIntent === "instant"
-                  ? "Enter the topic you want covered. We’ll continue only with the Instant Report flow."
-                  : "Enter your exact business requirement. We’ll continue only with the Custom Report flow."}
-              </div>
-            </div>
-
-            <div className="shrink-0 text-right">
-              <div
-                className={
-                  "text-lg font-black " +
-                  (landingIntent === "instant"
-                    ? "text-sky-700"
-                    : "text-emerald-700")
-                }
-              >
-                {REGION.currencySymbol}
-                {landingIntent === "instant"
-                  ? REGION.instantPrice
-                  : REGION.prebookPrice}
-              </div>
-            </div>
-          </div>
-
-          <button
-            type="button"
-            onClick={() => setLandingIntent("")}
-            className={
-              "mt-2.5 text-[10px] font-bold underline underline-offset-2 " +
-              (landingIntent === "instant"
-                ? "text-sky-700"
-                : "text-emerald-700")
-            }
-          >
-            Change option
-          </button>
-        </div>
-      )}
 
       {/* Search / product-topic input */}
       <form onSubmit={onSubmit} className="w-full mb-3">
@@ -3192,6 +3037,17 @@ const runSampleSearch = (query) => {
 
       </form>
 
+      {/* Keep the landing decision simple: search first, then show the right product path. */}
+      <div className="w-full mb-3 rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-3 text-center">
+        <div className="text-[11px] font-extrabold text-slate-700">
+          Search our catalogue first.
+        </div>
+        <div className="mt-1 text-[10px] leading-relaxed text-slate-500">
+          If we don’t already have what you need, you can get an Instant 10-Page Report for{" "}
+          <strong>{REGION.currencySymbol}{REGION.instantPrice}</strong> or order a Custom Business Report for{" "}
+          <strong>{REGION.currencySymbol}{REGION.prebookPrice}</strong>.
+        </div>
+      </div>
 
       {/* Loader overlay for search */}
       {searchLoading && (
