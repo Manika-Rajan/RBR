@@ -6,7 +6,7 @@ const REGION_CONFIGS = {
     currencySymbol: "₹",
     currencyCode: "INR",
   
-    instantPrice: 199,
+    instantPrice: 1899,
     prebookPrice: 6499,
     finalReportPrice: 2999,
   
