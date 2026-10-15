@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import logo from "../assets/logo.svg";
-import { Worker, Viewer } from "@react-pdf-viewer/core";
+import { Worker, Viewer, SpecialZoomLevel } from "@react-pdf-viewer/core";
 import "@react-pdf-viewer/core/lib/styles/index.css";
 import { useStore } from "../Store";
 import { Modal, ModalBody } from "reactstrap";
@@ -226,6 +226,23 @@ const ReportsDisplayMobile = () => {
     Number.isFinite(incomingPromoPct) && incomingPromoPct >= 0
       ? incomingPromoPct
       : DEFAULT_PROMO_PCT;
+
+  // Use the actual MRP-to-selling-price difference for customer-facing discount
+  // messaging. This prevents contradictory displays such as "0% OFF" while
+  // showing a crossed-out MRP above a lower selling price.
+  const CALCULATED_PROMO_PCT =
+    MRP > FINAL && FINAL > 0
+      ? Math.max(0, Math.round(((MRP - FINAL) / MRP) * 100))
+      : 0;
+
+  const EFFECTIVE_PROMO_PCT =
+    CALCULATED_PROMO_PCT > 0
+      ? CALCULATED_PROMO_PCT
+      : MRP > FINAL && PROMO_PCT > 0
+      ? PROMO_PCT
+      : 0;
+
+  const HAS_DISCOUNT = EFFECTIVE_PROMO_PCT > 0 && MRP > FINAL;
 
   const currencySymbol =
     currencyCode === "INR"
@@ -498,7 +515,7 @@ const ReportsDisplayMobile = () => {
       report_slug: reportSlug,
       price_mrp: MRP,
       price_final: FINAL,
-      promo_pct: PROMO_PCT,
+      promo_pct: EFFECTIVE_PROMO_PCT,
     });
 
     cxtDispatch({
@@ -510,7 +527,7 @@ const ReportsDisplayMobile = () => {
         reportTitle: title,
         price: FINAL,
         mrp: MRP,
-        promoPct: PROMO_PCT,
+        promoPct: EFFECTIVE_PROMO_PCT,
         currency: currencyCode,
         reportType,
       },
@@ -531,7 +548,7 @@ const ReportsDisplayMobile = () => {
           reportSlug,
           reportTitle: title,
           mrp: MRP,
-          promoPct: PROMO_PCT,
+          promoPct: EFFECTIVE_PROMO_PCT,
           currency: currencyCode,
           reportType,
         },
@@ -551,9 +568,11 @@ const ReportsDisplayMobile = () => {
     reportSlug
       .replace(/_/g, " ")
       .replace(/\b\w/g, (character) => character.toUpperCase());
-  const subtitle = isPurchased
-    ? "You’ve unlocked this report from Rajan Business Reports."
-    : "Preview of this Rajan Business Reports industry study. Unlock the full report for complete data & forecasts.";
+
+  // If the catalogue title already contains a year (for example, 2024), show it
+  // transparently instead of implying that an older report is current.
+  const reportYearMatch = String(title || "").match(/\b(?:19|20)\d{2}\b/);
+  const reportYear = reportYearMatch ? reportYearMatch[0] : "";
 
   // ====== Lead capture ======
   const openLead = () => {
@@ -699,46 +718,62 @@ const ReportsDisplayMobile = () => {
   return (
     <>
       <div className="min-h-screen flex flex-col bg-gradient-to-b from-blue-900 via-slate-950 to-slate-900">
-        {/* Sticky Header */}
-        <header className="sticky top-0 z-30 bg-gradient-to-r from-blue-700 via-blue-600 to-indigo-600 text-white shadow-md">
-          <div className="px-4 pt-3 pb-4 flex items-center gap-3">
-            <Link to="/" className="shrink-0">
-              <div className="h-9 w-9 rounded-xl bg-white/10 border border-white/20 flex items-center justify-center overflow-hidden">
-                <img src={logo} alt="RBR" className="h-7 w-7" />
+        {/* Sticky Header — sales-focused, transparent report metadata */}
+        <header className="sticky top-0 z-30 bg-white text-slate-900 border-b border-slate-200 shadow-sm">
+          <div className="px-4 py-3">
+            <div className="flex items-start gap-3">
+              <Link to="/" className="shrink-0" aria-label="Rajan Business Reports home">
+                <div className="h-10 w-10 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center overflow-hidden">
+                  <img src={logo} alt="RBR" className="h-8 w-8" />
+                </div>
+              </Link>
+
+              <div className="min-w-0 flex-1">
+                <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-blue-700">
+                  Rajan Business Reports
+                </div>
+                <h1 className="mt-0.5 text-[15px] font-bold leading-snug text-slate-950">
+                  {title}
+                </h1>
+                <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-slate-500">
+                  {reportYear && (
+                    <span className="font-medium text-slate-700">Report year: {reportYear}</span>
+                  )}
+                  <span>PDF report</span>
+                  <span>Preview available</span>
+                </div>
               </div>
-            </Link>
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-2">
-                <h1 className="text-[15px] font-semibold truncate">{title}</h1>
-                {!isPurchased && (
-                  <span className="inline-flex items-center rounded-full bg-amber-400/90 text-slate-900 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide">
-                    {PROMO_PCT}% off
-                  </span>
-                )}
-              </div>
-              <p className="mt-[2px] text-[11px] text-blue-100 leading-snug line-clamp-2">
-                {subtitle}
-              </p>
+
+              {isPurchased && (
+                <span className="shrink-0 inline-flex items-center rounded-full bg-emerald-50 text-emerald-700 px-2.5 py-1 text-[11px] font-semibold border border-emerald-200">
+                  Purchased
+                </span>
+              )}
             </div>
-            {isPurchased ? (
-              <span className="ml-auto inline-flex items-center rounded-full bg-emerald-300/90 text-emerald-900 px-2.5 py-1 text-[11px] font-semibold">
-                ✅ Purchased
-              </span>
-            ) : (
-              <div className="ml-auto flex items-center gap-2">
-                <div className="text-right leading-tight">
-                  <div className="text-[10px] text-blue-100 line-through">
-                    {currencySymbol}{MRP.toLocaleString("en-IN")}
-                  </div>
-                  <div className="text-sm font-extrabold text-amber-300">
+
+            {!isPurchased && (
+              <div className="mt-3 flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5">
+                <div className="shrink-0 leading-tight">
+                  {HAS_DISCOUNT && (
+                    <div className="flex items-center gap-2">
+                      <span className="text-[11px] text-slate-400 line-through">
+                        {currencySymbol}{MRP.toLocaleString("en-IN")}
+                      </span>
+                      <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700 border border-emerald-200">
+                        {EFFECTIVE_PROMO_PCT}% OFF
+                      </span>
+                    </div>
+                  )}
+                  <div className="mt-0.5 text-xl font-extrabold text-slate-950">
                     {currencySymbol}{FINAL.toLocaleString("en-IN")}
                   </div>
                 </div>
+
                 <button
                   onClick={goToPayment}
-                  className="rounded-full bg-white text-[11px] font-semibold text-blue-700 px-3 py-1.5 active:scale-[0.96] shadow-sm"
+                  className="flex-1 rounded-xl bg-blue-700 text-white text-[13px] font-semibold px-4 py-2.5 active:scale-[0.98] shadow-sm"
                 >
-                  Unlock now
+                  Buy Full Report — {currencySymbol}{FINAL.toLocaleString("en-IN")}
                 </button>
               </div>
             )}
@@ -779,7 +814,7 @@ const ReportsDisplayMobile = () => {
                 </svg>
                 <p className="mt-3 text-sm font-medium">Preparing your preview…</p>
                 <p className="mt-1 text-[11px] text-slate-300">
-                  Loading the latest version of this report.
+                  Loading this report preview.
                 </p>
               </div>
             </div>
@@ -814,11 +849,12 @@ const ReportsDisplayMobile = () => {
 
           {/* PDF Viewer */}
           {!isLoading && !error && pdfUrl && (
-            <div className="relative h-[calc(100vh-150px)] sm:h-[calc(100vh-140px)] bg-slate-900">
+            <div className="relative h-[calc(100vh-220px)] sm:h-[calc(100vh-205px)] bg-slate-900">
               <div className="h-full bg-white">
                 <Worker workerUrl="https://unpkg.com/pdfjs-dist@3.4.120/build/pdf.worker.min.js">
                   <Viewer
                     fileUrl={pdfUrl}
+                    defaultScale={SpecialZoomLevel.PageWidth}
                     onPageChange={(e) => {
                       // e.currentPage is 0-based index
                       setCurrentPage(e.currentPage);
@@ -853,23 +889,27 @@ const ReportsDisplayMobile = () => {
                           </div>
                         </div>
                         <div className="text-right text-[11px]">
-                          <div className="line-through text-slate-400">
-                            {currencySymbol}{MRP.toLocaleString("en-IN")}
-                          </div>
+                          {HAS_DISCOUNT && (
+                            <div className="line-through text-slate-400">
+                              {currencySymbol}{MRP.toLocaleString("en-IN")}
+                            </div>
+                          )}
                           <div className="text-base font-semibold text-amber-300 leading-tight">
                             {currencySymbol}{FINAL.toLocaleString("en-IN")}
                           </div>
-                          <div className="text-[10px] text-emerald-300">
-                            {PROMO_PCT}% launch discount
-                          </div>
+                          {HAS_DISCOUNT && (
+                            <div className="text-[10px] text-emerald-300">
+                              {EFFECTIVE_PROMO_PCT}% off
+                            </div>
+                          )}
                         </div>
                       </div>
 
                       {/* Bullets */}
                       <ul className="mt-2 space-y-1.5 text-[11px] text-slate-200 list-disc list-inside">
-                        <li>Full market size & 5-year forecast</li>
-                        <li>Competitor list, pricing bands & margins</li>
-                        <li>Risks, regulations & “go / no-go” checklist</li>
+                        <li>Complete report beyond the preview</li>
+                        <li>All included analysis, tables and charts</li>
+                        <li>Full PDF access in your RBR account</li>
                       </ul>
 
                       {/* CTA block */}
@@ -878,7 +918,7 @@ const ReportsDisplayMobile = () => {
                           onClick={goToPayment}
                           className="w-full rounded-xl bg-gradient-to-r from-amber-400 via-amber-300 to-yellow-300 text-slate-900 text-sm py-2.5 font-semibold active:scale-[0.98]"
                         >
-                          Pay & unlock full report — {currencySymbol}{FINAL.toLocaleString("en-IN")}
+                          Buy Full Report — {currencySymbol}{FINAL.toLocaleString("en-IN")}
                         </button>
 
                         <div className="text-center text-[10px] text-slate-300 uppercase tracking-[0.18em]">
@@ -907,38 +947,26 @@ const ReportsDisplayMobile = () => {
           )}
         </main>
 
-        {/* Sticky Bottom Bar */}
-        <div className="sticky bottom-0 z-30 border-t border-slate-800 bg-slate-950/95 backdrop-blur">
-          <div className="px-4 py-3 flex items-center gap-3 text-white">
-            <div className="min-w-0">
-              <p className="text-[11px] text-slate-400 leading-none">Report ID</p>
-              <p className="text-sm font-medium truncate">{reportId || "—"}</p>
-            </div>
-
+        {/* Sticky Bottom Bar — one price, one action */}
+        <div className="sticky bottom-0 z-30 border-t border-slate-200 bg-white/95 backdrop-blur shadow-[0_-8px_24px_rgba(15,23,42,0.08)]">
+          <div className="px-4 py-3 flex items-center gap-3">
             {isPurchased ? (
-              <div className="ml-auto inline-flex items-center rounded-full bg-emerald-400/20 px-3 py-1.5 text-xs font-semibold text-emerald-300 border border-emerald-500/60">
-                ✅ Already purchased
+              <div className="w-full text-center rounded-xl bg-emerald-50 px-3 py-2.5 text-sm font-semibold text-emerald-700 border border-emerald-200">
+                Already purchased
               </div>
             ) : (
               <>
-                <div className="ml-2 text-right">
-                  <div className="text-[11px] text-slate-500 line-through">
-                    {currencySymbol}{MRP.toLocaleString("en-IN")}
-                  </div>
-                  <div className="text-base font-semibold text-amber-300 leading-tight">
+                <div className="shrink-0">
+                  <div className="text-[10px] uppercase tracking-wide text-slate-500">Full report</div>
+                  <div className="text-xl font-extrabold text-slate-950 leading-tight">
                     {currencySymbol}{FINAL.toLocaleString("en-IN")}
-                  </div>
-                  <div className="text-[11px] text-emerald-300">
-                    {PROMO_PCT > 0
-                      ? `${PROMO_PCT}% discount applied`
-                      : "Catalogue price"}
                   </div>
                 </div>
                 <button
                   onClick={goToPayment}
-                  className="ml-auto rounded-xl bg-gradient-to-r from-amber-400 via-amber-300 to-yellow-300 text-slate-900 text-sm px-4 py-2.5 font-semibold active:scale-[0.97] shadow-[0_10px_25px_rgba(15,23,42,0.8)]"
+                  className="ml-auto flex-1 rounded-xl bg-blue-700 text-white text-sm px-4 py-3 font-semibold active:scale-[0.98] shadow-sm"
                 >
-                  Pay & unlock now
+                  Buy Full Report
                 </button>
               </>
             )}
@@ -1064,7 +1092,7 @@ const ReportsDisplayMobile = () => {
                     onClick={goToPayment}
                     className="px-3 py-2.5 text-sm rounded-xl border border-slate-600 text-slate-100 bg-slate-900 active:scale-[0.98]"
                   >
-                    Unlock full report
+                    Buy full report
                   </button>
                 </div>
               </>
