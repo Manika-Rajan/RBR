@@ -571,8 +571,31 @@ const ReportsDisplayMobile = () => {
 
   // If the catalogue title already contains a year (for example, 2024), show it
   // transparently instead of implying that an older report is current.
+  // Report freshness metadata. Prefer explicit catalogue/router metadata, then
+  // fall back to a year embedded in the visible title. The FMCG catalogue item
+  // currently has an older PDF whose internal title says 2024, while the
+  // catalogue title itself omits the year, so keep a temporary slug fallback
+  // until Bulk Reports republishes the refreshed report with year metadata.
+  const explicitReportYear =
+    location.state?.reportYear ||
+    location.state?.report_year ||
+    location.state?.year ||
+    catalogReport?.report_year ||
+    catalogReport?.reportYear ||
+    catalogReport?.year ||
+    "";
+
   const reportYearMatch = String(title || "").match(/\b(?:19|20)\d{2}\b/);
-  const reportYear = reportYearMatch ? reportYearMatch[0] : "";
+  const legacyReportYearBySlug = {
+    fmcg: "2024",
+  };
+
+  const reportYear = String(
+    explicitReportYear ||
+      (reportYearMatch ? reportYearMatch[0] : "") ||
+      legacyReportYearBySlug[String(reportSlug || "").toLowerCase()] ||
+      ""
+  ).trim();
 
   // ====== Lead capture ======
   const openLead = () => {
