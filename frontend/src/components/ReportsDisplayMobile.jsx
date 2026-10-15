@@ -586,14 +586,13 @@ const ReportsDisplayMobile = () => {
     "";
 
   const reportYearMatch = String(title || "").match(/\b(?:19|20)\d{2}\b/);
-  const legacyReportYearBySlug = {
-    fmcg: "2024",
-  };
+  const normalizedReportIdentity = `${reportSlug || ""} ${title || ""}`.toLowerCase();
+  const legacyReportYear = normalizedReportIdentity.includes("fmcg") ? "2024" : "";
 
   const reportYear = String(
     explicitReportYear ||
       (reportYearMatch ? reportYearMatch[0] : "") ||
-      legacyReportYearBySlug[String(reportSlug || "").toLowerCase()] ||
+      legacyReportYear ||
       ""
   ).trim();
 
